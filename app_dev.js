@@ -1,0 +1,3968 @@
+﻿const data = {
+  hierarchies: [
+    { id: "v16", name: "Maestro V16", status: "Editable", products: 14 },
+    { id: "fitflow", name: "FitFlow", status: "Editable", products: 14 },
+    { id: "empty-2026", name: "Jerarquia comercial nueva", status: "Vacia", products: 0 }
+  ],
+  productLists: [
+    { id: "base", name: "Productos base maestro", products: 14 },
+    { id: "proveedor", name: "Lista proveedor / atributos", products: 0 },
+    { id: "nuevos", name: "Nuevos productos por asociar", products: 0 }
+  ],
+  hierarchyListLinks: [],
+  nodes: [
+    { id: "l-hid", parent: null, level: 0, name: "01 Instalaciones Hidraulicas" },
+    { id: "s-pvc", parent: "l-hid", level: 1, name: "PVC Presion" },
+    { id: "c-tubpvc", parent: "s-pvc", level: 2, name: "Tuberia PVC" },
+    { id: "f-c6", parent: "c-tubpvc", level: 3, name: "Tuberia PVC C-6" },
+    { id: "f-codos", parent: "s-pvc", level: 2, name: "Fittings PVC" },
+    { id: "fam-codos", parent: "f-codos", level: 3, name: "Codos PVC Presion" },
+    { id: "fam-tees", parent: "f-codos", level: 3, name: "Tees PVC Presion" },
+    { id: "fam-collares", parent: "s-pvc", level: 2, name: "Conexiones de Red" },
+    { id: "fam-collares-arr", parent: "fam-collares", level: 3, name: "Collares de Arranque" },
+
+    { id: "l-riego", parent: null, level: 0, name: "03 Sistemas de Riego" },
+    { id: "s-mang", parent: "l-riego", level: 1, name: "Mangueras y Conducciones" },
+    { id: "c-acoples", parent: "s-mang", level: 2, name: "Acoples y Terminales" },
+    { id: "f-camlock", parent: "c-acoples", level: 3, name: "Acoples Camlock" },
+    { id: "f-layflat", parent: "c-acoples", level: 3, name: "Terminales y Coplas Layflat" },
+    { id: "s-tec", parent: "l-riego", level: 1, name: "Riego Tecnificado" },
+    { id: "c-emisores", parent: "s-tec", level: 2, name: "Emisores de Riego" },
+    { id: "f-linea", parent: "c-emisores", level: 3, name: "Cintas y Lineas de Riego" },
+
+    { id: "l-bomb", parent: null, level: 0, name: "04 Equipos de Bombeo" },
+    { id: "s-centr", parent: "l-bomb", level: 1, name: "Centrifugas y Perifericas" },
+    { id: "c-bombdom", parent: "s-centr", level: 2, name: "Bombas Domiciliarias" },
+    { id: "f-centr", parent: "c-bombdom", level: 3, name: "Bombas Centrifugas" },
+    { id: "s-sum", parent: "l-bomb", level: 1, name: "Sumergibles y Pozo Profundo" },
+    { id: "c-achique", parent: "s-sum", level: 2, name: "Achique y Drenaje" },
+    { id: "f-sum", parent: "c-achique", level: 3, name: "Bombas Sumergibles Achique" },
+
+    { id: "l-elec", parent: null, level: 0, name: "07 Electrico e Instrumental" },
+    { id: "s-conduit", parent: "l-elec", level: 1, name: "Conduit" },
+    { id: "c-tubcon", parent: "s-conduit", level: 2, name: "Tuberia Conduit" },
+    { id: "f-tubcon", parent: "c-tubcon", level: 3, name: "Tuberias Conduit" }
+  ],
+  products: [
+    { id: "00264", name: "TUB. PVC HID. 315MM C-6 C/GOMA X MT.", originalNode: "fam-codos", node: "fam-codos", status: "suggested", suggestion: "f-c6", price: 78500 },
+    { id: "02931", name: "CRUCES 25 mm. PVC CEMENTAR", originalNode: "fam-tees", node: "fam-tees", status: "validated", price: 1563 },
+    { id: "05114", name: "COLLAR ARRANQUE PVC PARA PVC 250 X 4", originalNode: "fam-collares-arr", node: "fam-collares-arr", status: "validated", price: 0 },
+    { id: "05261", name: "COLLAR PVC PARA P.V.C 140 X 3", originalNode: "fam-collares-arr", node: "fam-collares-arr", status: "corrected", price: 0 },
+    { id: "02734", name: "CURVA 125mm x 45 CEMENTAR", originalNode: "fam-codos", node: "fam-codos", status: "suggested", suggestion: "fam-codos", price: 0 },
+    { id: "02483", name: "TEE REGISTRO 110mm C/GOMA BLANCO", originalNode: "fam-tees", node: "fam-tees", status: "pending", price: 0 },
+    { id: "03460", name: "ACOPLE RAPIDO CAMLOCK MANGUERA C 2 ALU", originalNode: "f-camlock", node: "f-camlock", status: "validated", price: 0 },
+    { id: "01794", name: "COPLA LAYFLAT 2 ECO", originalNode: "f-layflat", node: "f-layflat", status: "pending", price: 0 },
+    { id: "09970", name: "LINEA RIEGO CEODRIP PC 2 LTR HR 16MM", originalNode: "f-linea", node: "f-linea", status: "validated", price: 0 },
+    { id: "22700", name: "BOMBA CENTRIFUGA 1HP", originalNode: "f-centr", node: "f-centr", status: "pending", price: 0 },
+    { id: "80747", name: "BOMBA BTCM150B2 2HP 220V BESTFLOW", originalNode: "f-centr", node: "f-centr", status: "validated", price: 0 },
+    { id: "203242", name: "BOMBA ACHIQUE CON TRITURADOR 1.5 HP 220V", originalNode: "f-sum", node: "f-sum", status: "corrected", price: 0 },
+    { id: "00274", name: "TUB. CONDUIT 50 MM X 6 MT X METRO", originalNode: "f-tubcon", node: "f-tubcon", status: "validated", price: 0 },
+    { id: "50750", name: "HALOFFLEX 20X50MT 750N REFORZADO ELECTRI", originalNode: "f-tubcon", node: "f-tubcon", status: "suggested", suggestion: "f-tubcon", price: 0 }
+  ]
+};
+
+const state = {
+  selectedNode: null,
+  selectedProduct: null,
+  selectedProducts: new Set(),
+  expandedNodes: new Set(["l-hid", "s-pvc", "f-codos", "fam-collares", "l-riego", "s-mang"]),
+  activeHierarchyId: "v16",
+  activeProductListId: "base",
+  view: "active",
+  treeSearch: "",
+  productSearch: "",
+  status: "all",
+  hideRedundant: false,
+  changes: [],
+  activePane: "source",
+  operation: {
+    type: null,
+    sourceNode: null,
+    targetNode: null,
+    targetSearch: "",
+    targetExpandedNodes: new Set(),
+    mergeName: "",
+    mergeLocation: "source"
+  }
+};
+
+let selectedLoadType = "hierarchy";
+let pendingHierarchyLoad = null;
+let pendingProductLoad = null;
+let renderCache = null;
+let saveTimer = null;
+let dataDirty = false;
+let importInProgress = false;
+let activeLoadStartedAt = 0;
+let firebaseReady = false;
+let firebaseUser = window.catalogAdminFirebaseUser || null;
+const loadDebug = [];
+
+const moveState = {
+  targetNode: null,
+  expandedNodes: new Set(),
+  mode: "product",
+  sourceNode: null,
+  allowedTarget: null
+};
+
+const historyStack = [];
+const redoStack = [];
+
+const UNCLASSIFIED_NODE_ID = "__unclassified__";
+const levelNames = ["Linea", "Sistema", "Categoria", "Familia"];
+const loadTypes = {
+  hierarchy: {
+    title: "Jerarquia",
+    detail: "Carga una estructura sola o una estructura con productos asignados."
+  },
+  products: {
+    title: "Productos",
+    detail: "Carga una lista simple o una lista con atributos, sin clasificar en jerarquias."
+  }
+};
+const statusLabels = {
+  pending: "Pendiente",
+  validated: "Validado",
+  corrected: "Corregido",
+  suggested: "Sugerido"
+};
+
+const $ = (id) => document.getElementById(id);
+const APP_BUILD = "firebase-admin-dev-20260520-03";
+const STORAGE_KEY = "catalogAdmin.localState.v1";
+const DB_NAME = "catalogAdminDb";
+const DB_STORE = "catalogState";
+const ADMIN_ENV = "dev";
+const ADMIN_STATE_CHUNKS = "catalog_admin_state_chunks_dev";
+const ADMIN_VERSIONS = "catalog_admin_versions_dev";
+const ADMIN_AUDIT = "catalog_admin_audit_dev";
+const ADMIN_META_COLLECTION = "config_dev";
+const ADMIN_META_DOC = "catalog_admin_meta";
+const ADMIN_CHUNK_SIZE = 700000;
+
+function applySavedCatalogState(saved) {
+  if (!saved?.data) return false;
+  ["hierarchies", "productLists", "hierarchyListLinks", "nodes", "products"].forEach((key) => {
+    if (key === "products" && saved.productDataInIndexedDb && (!saved.data[key] || saved.data[key].length === 0)) return;
+    if (Array.isArray(saved.data[key]) && Array.isArray(data[key])) {
+      data[key].splice(0, data[key].length, ...saved.data[key]);
+    }
+  });
+  if (saved.activeHierarchyId && data.hierarchies.some((h) => h.id === saved.activeHierarchyId)) {
+    state.activeHierarchyId = saved.activeHierarchyId;
+  }
+  if (saved.activeProductListId && data.productLists.some((list) => list.id === saved.activeProductListId)) {
+    state.activeProductListId = saved.activeProductListId;
+  }
+  if (Array.isArray(saved.changes)) state.changes = saved.changes.slice(0, 80);
+  return true;
+}
+
+function loadLocalCatalogState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    applySavedCatalogState(saved);
+  } catch (error) {
+    console.warn("No se pudo recuperar el catalogo local", error);
+  }
+}
+
+function openCatalogDb() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      reject(new Error("IndexedDB no disponible"));
+      return;
+    }
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(DB_STORE, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadCatalogFromIndexedDb() {
+  try {
+    const db = await openCatalogDb();
+    const saved = await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readonly");
+      const request = tx.objectStore(DB_STORE).get("current");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    if (applySavedCatalogState(saved)) {
+      data.nodes.forEach((node) => { if (!node.hierarchyId) node.hierarchyId = "v16"; });
+      normalizeProductSources();
+      const repaired = data.hierarchies.reduce((sum, hierarchy) => sum + consolidateEquivalentNodes(hierarchy.id), 0);
+      if (repaired) markDataDirty();
+      invalidateRenderCache();
+      renderAll();
+    }
+  } catch (error) {
+    console.warn("No se pudo recuperar IndexedDB", error);
+  }
+}
+
+function saveLocalCatalogState() {
+  if (importInProgress) {
+    markDataDirty();
+    return;
+  }
+  if (window.requestIdleCallback) {
+    requestIdleCallback(() => persistCatalogState(), { timeout: 8000 });
+    return;
+  }
+  setTimeout(persistCatalogState, 0);
+}
+
+function persistCatalogState() {
+  if (importInProgress) {
+    markDataDirty();
+    return;
+  }
+  const payload = {
+    id: "current",
+    savedAt: new Date().toISOString(),
+    activeHierarchyId: state.activeHierarchyId,
+    activeProductListId: state.activeProductListId,
+    changes: state.changes.slice(0, 80),
+    data: {
+      hierarchies: data.hierarchies,
+        productLists: data.productLists,
+        hierarchyListLinks: data.hierarchyListLinks,
+      nodes: data.nodes,
+      products: data.products
+    }
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      savedAt: payload.savedAt,
+      activeHierarchyId: payload.activeHierarchyId,
+      activeProductListId: payload.activeProductListId,
+      changes: payload.changes,
+      productDataInIndexedDb: payload.data.products.length > 2500,
+      data: {
+        hierarchies: payload.data.hierarchies,
+        productLists: payload.data.productLists,
+        hierarchyListLinks: payload.data.hierarchyListLinks,
+        nodes: payload.data.nodes,
+        products: payload.data.products.length > 2500 ? [] : payload.data.products
+      }
+    }));
+  } catch (error) {
+    console.warn("No se pudo guardar resumen local", error);
+  }
+  openCatalogDb()
+    .then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).put(payload);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    }))
+    .then(() => { dataDirty = false; })
+    .catch((error) => console.warn("No se pudo guardar catalogo grande", error));
+}
+
+function markDataDirty() {
+  dataDirty = true;
+  clearTimeout(saveTimer);
+  if (importInProgress) return;
+  saveTimer = setTimeout(saveLocalCatalogState, 12000);
+}
+
+loadLocalCatalogState();
+data.nodes.forEach((node) => { if (!node.hierarchyId) node.hierarchyId = "v16"; });
+function normalizeProductSources() {
+  data.products.forEach((product) => {
+    product.listIds = product.listIds || ["base"];
+    product.listAttributes = product.listAttributes || {};
+    if (product.attributes) {
+      product.listIds.forEach((listId) => {
+        if (!product.listAttributes[listId]) product.listAttributes[listId] = { ...product.attributes };
+      });
+    }
+    product.assignments = product.assignments || { v16: product.originalNode || product.node };
+  });
+}
+normalizeProductSources();
+const nodeHierarchy = (node) => node.hierarchyId || "v16";
+const activeNodes = () => renderCache?.hierarchyId === state.activeHierarchyId ? renderCache.activeNodes : data.nodes.filter((n) => nodeHierarchy(n) === state.activeHierarchyId);
+const nodeById = () => renderCache?.nodeMap || Object.fromEntries(data.nodes.map((n) => [n.id, n]));
+const childrenOf = (id) => {
+  if (renderCache?.hierarchyId === state.activeHierarchyId) return renderCache.childrenByParent.get(id || "") || [];
+  return activeNodes().filter((n) => n.parent === id);
+};
+const productNode = (p) => p.assignments?.[state.activeHierarchyId] || (state.activeHierarchyId === "v16" ? p.originalNode : p.node);
+const repairedLocalNodes = data.hierarchies.reduce((sum, hierarchy) => sum + consolidateEquivalentNodes(hierarchy.id), 0);
+if (repairedLocalNodes) markDataDirty();
+loadCatalogFromIndexedDb();
+
+function buildRenderCache() {
+  const nodeMap = Object.fromEntries(data.nodes.map((n) => [n.id, n]));
+  const activeNodeList = data.nodes.filter((n) => nodeHierarchy(n) === state.activeHierarchyId);
+  const childrenByParent = new Map();
+  activeNodeList.forEach((node) => {
+    const key = node.parent || "";
+    if (!childrenByParent.has(key)) childrenByParent.set(key, []);
+    childrenByParent.get(key).push(node);
+  });
+  const productCounts = new Map();
+  data.products.forEach((product) => {
+    let current = nodeMap[productNode(product)];
+    while (current && nodeHierarchy(current) === state.activeHierarchyId) {
+      productCounts.set(current.id, (productCounts.get(current.id) || 0) + 1);
+      current = nodeMap[current.parent];
+    }
+  });
+  renderCache = { hierarchyId: state.activeHierarchyId, nodeMap, activeNodes: activeNodeList, childrenByParent, productCounts };
+}
+
+function invalidateRenderCache() {
+  renderCache = null;
+}
+
+function pathFor(nodeId) {
+  const map = nodeById();
+  const path = [];
+  let node = map[nodeId];
+  while (node) {
+    path.unshift(node);
+    node = map[node.parent];
+  }
+  return path;
+}
+
+function activeHierarchy() {
+  return data.hierarchies.find((h) => h.id === state.activeHierarchyId) || data.hierarchies[0];
+}
+
+function isDescendantOrSelf(nodeId, ancestorId) {
+  if (!ancestorId) return true;
+  let current = nodeById()[nodeId];
+  while (current) {
+    if (current.id === ancestorId) return true;
+    current = nodeById()[current.parent];
+  }
+  return false;
+}
+
+function countProducts(nodeId) {
+  if (nodeId === UNCLASSIFIED_NODE_ID) return activeUnclassifiedProducts().length;
+  if (renderCache?.hierarchyId === state.activeHierarchyId) return renderCache.productCounts.get(nodeId) || 0;
+  return data.products.filter((p) => isDescendantOrSelf(productNode(p), nodeId)).length;
+}
+
+function activeHierarchyProductCount() {
+  const map = nodeById();
+  const linkedIds = activeHierarchyLinkedListIds();
+  return data.products.filter((product) => {
+    const assignedNode = productNode(product);
+    const assignedHere = assignedNode && map[assignedNode] && nodeHierarchy(map[assignedNode]) === state.activeHierarchyId;
+    const linkedHere = linkedIds.some((listId) => (product.listIds || []).includes(listId));
+    return assignedHere || linkedHere;
+  }).length;
+}
+
+function visibleProducts() {
+  const focusNode = focusedNodeId();
+  const map = nodeById();
+  const linkedIds = activeHierarchyLinkedListIds();
+  return data.products.filter((p) => {
+    const assignedNode = productNode(p);
+    const inHierarchy = assignedNode && map[assignedNode] && nodeHierarchy(map[assignedNode]) === state.activeHierarchyId;
+    const linkedOnly = !inHierarchy && linkedIds.some((listId) => (p.listIds || []).includes(listId));
+    const inNode = focusNode === UNCLASSIFIED_NODE_ID
+      ? linkedOnly
+      : (!focusNode || (assignedNode && isDescendantOrSelf(assignedNode, focusNode)));
+    const q = state.productSearch.trim().toLowerCase();
+    const matchesQ = !q || p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+    const matchesStatus = state.status === "all" || p.status === state.status;
+    return (inHierarchy || linkedOnly) && inNode && matchesQ && matchesStatus;
+  });
+}
+
+function focusedNodeId() {
+  if (state.operation.type && state.activePane === "target") return state.operation.targetNode;
+  return state.selectedNode;
+}
+
+function renderTree() {
+  const q = state.treeSearch.trim().toLowerCase();
+  const roots = childrenOf(null);
+  const rows = [];
+  const walk = (node) => {
+    const path = pathFor(node.id).map((n) => n.name).join(" ").toLowerCase();
+    const hasMatch = !q || path.includes(q) || node.name.toLowerCase().includes(q);
+    const childNodes = childrenOf(node.id);
+    const visuallyRedundant = isVisuallyRedundant(node);
+    if (hasMatch) {
+      if (!(state.hideRedundant && visuallyRedundant)) rows.push(node);
+      if (q || state.expandedNodes.has(node.id)) childNodes.forEach(walk);
+    } else {
+      const before = rows.length;
+      childNodes.forEach(walk);
+      if (rows.length > before) rows.splice(before, 0, node);
+    }
+  };
+  roots.forEach(walk);
+
+  const unclassifiedCount = activeUnclassifiedProducts().length;
+  const unclassifiedHtml = unclassifiedCount ? `
+    <button class="tree-node tree-level-0 unclassified-node${state.selectedNode === UNCLASSIFIED_NODE_ID ? " active" : ""}" data-node="${UNCLASSIFIED_NODE_ID}">
+      <span class="twisty"></span>
+      <span class="node-name">No clasificados</span>
+      <span class="node-count">${unclassifiedCount}</span>
+    </button>
+  ` : "";
+  $("tree").innerHTML = rows.map((node) => {
+    const active = state.selectedNode === node.id ? " active" : "";
+    const focus = state.operation.type && state.activePane === "source" && state.selectedNode === node.id ? " focus-source" : "";
+    const visual = isVisuallyRedundant(node) ? " visual-skip" : "";
+    const level = ` tree-level-${node.level}`;
+    const hasChildren = childrenOf(node.id).length > 0;
+    const expanded = state.expandedNodes.has(node.id);
+    return `
+      <button class="tree-node${active}${focus}${visual}${level}" data-node="${node.id}">
+        <span class="twisty ${hasChildren ? "has-children" : ""} ${expanded ? "expanded" : ""}" data-toggle-node="${node.id}">${hasChildren ? ">" : ""}</span>
+        <span class="node-name">${node.name}</span>
+        <span class="node-count">${countProducts(node.id)}</span>
+      </button>
+    `;
+  }).join("") + unclassifiedHtml;
+}
+
+function isVisuallyRedundant(node) {
+  const childNodes = childrenOf(node.id);
+  return countProducts(node.id) === 0 && childNodes.length === 1;
+}
+
+function branchNodeIds(nodeId) {
+  const ids = [nodeId];
+  childrenOf(nodeId).forEach((child) => ids.push(...branchNodeIds(child.id)));
+  return ids;
+}
+
+function expandBranch(nodeId = state.selectedNode) {
+  const selected = nodeId ? nodeById()[nodeId] : null;
+  const maxLevelToOpen = selected ? selected.level : 0;
+  activeNodes().forEach((node) => {
+    if (node.level <= maxLevelToOpen && childrenOf(node.id).length) state.expandedNodes.add(node.id);
+  });
+  renderAll();
+}
+
+function collapseBranch(nodeId = state.selectedNode) {
+  const selected = nodeId ? nodeById()[nodeId] : null;
+  if (!selected) {
+    state.expandedNodes.clear();
+    renderAll();
+    return;
+  }
+  const thresholdLevel = Math.max(0, selected.level - 1);
+  activeNodes().forEach((node) => {
+    if (node.level >= thresholdLevel) state.expandedNodes.delete(node.id);
+  });
+  state.selectedNode = selected.parent || selected.id;
+  renderAll();
+}
+
+function renderHierarchySelector() {
+  const select = $("hierarchySelect");
+  if (!select) return;
+  select.innerHTML = data.hierarchies.map((h) => `<option value="${h.id}" ${h.id === state.activeHierarchyId ? "selected" : ""}>${h.name}</option>`).join("");
+  const subtitle = $("rightPanelSubtitle");
+  const productCount = activeHierarchyProductCount();
+  const hierarchy = activeHierarchy();
+  if (hierarchy) hierarchy.products = productCount;
+  const treeCount = $("treeCount");
+  if (treeCount) treeCount.textContent = `${activeNodes().length} nodos | ${productCount} productos`;
+  if (subtitle) {
+    const h = activeHierarchy();
+    subtitle.textContent = `${h.name} - ${activeNodes().length} nodos - ${productCount} productos`;
+  }
+}
+
+function activeProductList() {
+  return data.productLists.find((list) => list.id === state.activeProductListId) || data.productLists[0];
+}
+
+function productListCount(listId) {
+  return data.products.filter((product) => (product.listIds || []).includes(listId)).length;
+}
+
+function activeHierarchyListLinks() {
+  return (data.hierarchyListLinks || []).filter((link) => link.hierarchyId === state.activeHierarchyId);
+}
+
+function activeHierarchyLinkedListIds() {
+  return activeHierarchyListLinks().map((link) => link.listId);
+}
+
+function isProductLinkedToActiveHierarchy(product) {
+  const linkedLists = activeHierarchyLinkedListIds();
+  return linkedLists.some((listId) => (product.listIds || []).includes(listId));
+}
+
+function productBelongsToActiveHierarchy(product) {
+  const assignedNode = productNode(product);
+  const node = assignedNode ? nodeById()[assignedNode] : null;
+  return !!(node && nodeHierarchy(node) === state.activeHierarchyId) || isProductLinkedToActiveHierarchy(product);
+}
+
+function isProductUnclassifiedInActiveHierarchy(product) {
+  const assignedNode = productNode(product);
+  const node = assignedNode ? nodeById()[assignedNode] : null;
+  const assignedHere = !!(node && nodeHierarchy(node) === state.activeHierarchyId);
+  return !assignedHere && isProductLinkedToActiveHierarchy(product);
+}
+
+function activeUnclassifiedProducts() {
+  return data.products.filter((product) => isProductUnclassifiedInActiveHierarchy(product));
+}
+
+function productListAttributes(product, listId) {
+  return product.listAttributes?.[listId] || {};
+}
+
+function visibleProductAttributeEntries(product, limit = 4) {
+  const linkedIds = activeHierarchyLinkedListIds();
+  const preferredIds = linkedIds.includes(state.activeProductListId)
+    ? [state.activeProductListId, ...linkedIds.filter((id) => id !== state.activeProductListId)]
+    : linkedIds;
+  const entries = [];
+  preferredIds.forEach((listId) => {
+    const list = data.productLists.find((item) => item.id === listId);
+    const attrs = productListAttributes(product, listId);
+    Object.entries(attrs).forEach(([key, value]) => {
+      const text = cellText(value);
+      if (text && entries.length < limit) entries.push({ key, value: text, listName: list?.name || "Lista" });
+    });
+  });
+  if (!entries.length && product.price) entries.push({ key: "Precio", value: `$${product.price.toLocaleString("es-CL")}`, listName: "Base" });
+  return entries;
+}
+
+function renderProductListSelector() {
+  const select = $("productListSelect");
+  if (!select) return;
+  if (!data.productLists.some((list) => list.id === state.activeProductListId)) {
+    state.activeProductListId = data.productLists[0]?.id || "";
+  }
+  select.innerHTML = data.productLists.map((list) => `<option value="${list.id}" ${list.id === state.activeProductListId ? "selected" : ""}>${list.name}</option>`).join("");
+  const list = activeProductList();
+  const count = list ? productListCount(list.id) : 0;
+  if (list) list.products = count;
+  const countEl = $("productListCount");
+  if (countEl) {
+    const connected = (data.hierarchyListLinks || []).some((link) => link.hierarchyId === state.activeHierarchyId && link.listId === list?.id);
+    countEl.textContent = `${count} productos${connected ? " · conectada" : ""}`;
+  }
+}
+
+function deleteActiveProductList() {
+  const list = activeProductList();
+  if (!list) return;
+  if (data.productLists.length <= 1) {
+    openModal("No se puede eliminar", `
+      <div class="empty-state">
+        <h3>Debe existir al menos una lista</h3>
+        <p>Carga o crea otra lista antes de eliminar esta.</p>
+      </div>
+    `, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  const productCount = productListCount(list.id);
+  const links = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id);
+  openModal("Eliminar lista", `
+    <div class="rule-note">
+      Se eliminara la lista <strong>${list.name}</strong>, sus atributos cargados y sus conexiones con jerarquias.
+      No se borran las fichas de producto ni sus ubicaciones ya clasificadas.
+    </div>
+    <div class="load-preview">
+      <div class="load-pill"><strong>${productCount}</strong> productos en la lista</div>
+      <div class="load-pill"><strong>${links.length}</strong> conexion(es) con jerarquias</div>
+    </div>
+  `, () => {
+    pushHistory("eliminar lista");
+    const listId = list.id;
+    data.productLists.splice(0, data.productLists.length, ...data.productLists.filter((item) => item.id !== listId));
+    data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...(data.hierarchyListLinks || []).filter((link) => link.listId !== listId));
+    data.products.forEach((product) => {
+      product.listIds = (product.listIds || []).filter((id) => id !== listId);
+      if (product.listAttributes) delete product.listAttributes[listId];
+    });
+    state.activeProductListId = data.productLists[0]?.id || "";
+    state.selectedProduct = null;
+    state.selectedProducts.clear();
+    addChange("Lista eliminada", `"${list.name}" fue eliminada. Los productos y jerarquias se conservaron.`);
+  }, { confirmText: "Eliminar lista" });
+}
+
+function connectActiveListToHierarchy() {
+  const hierarchy = activeHierarchy();
+  const list = activeProductList();
+  if (!hierarchy || !list) return;
+  const productsInList = data.products.filter((product) => (product.listIds || []).includes(list.id));
+  const classified = productsInList.filter((product) => {
+    const assigned = productNode(product);
+    const node = assigned ? nodeById()[assigned] : null;
+    return !!(node && nodeHierarchy(node) === state.activeHierarchyId);
+  });
+  const unclassified = productsInList.length - classified.length;
+  const existing = (data.hierarchyListLinks || []).find((link) => link.hierarchyId === hierarchy.id && link.listId === list.id);
+  openModal("Conectar lista a jerarquia", `
+    <div class="rule-note">
+      La lista <strong>${list.name}</strong> quedara conectada con <strong>${hierarchy.name}</strong>.
+      Los productos con ubicacion por codigo se veran clasificados; los demas quedaran como no clasificados en esta jerarquia para poder trabajarlos despues.
+    </div>
+    <div class="load-preview">
+      <div class="load-pill"><strong>${productsInList.length}</strong> productos conectados</div>
+      <div class="load-pill"><strong>${classified.length}</strong> ya clasificados</div>
+      <div class="load-pill"><strong>${unclassified}</strong> no clasificados</div>
+      <div class="load-pill"><strong>${existing ? "Actualizar" : "Nueva"}</strong> conexion</div>
+    </div>
+  `, () => {
+    pushHistory("conectar lista");
+    data.hierarchyListLinks = data.hierarchyListLinks || [];
+    const now = new Date().toISOString();
+    const link = data.hierarchyListLinks.find((item) => item.hierarchyId === hierarchy.id && item.listId === list.id);
+    const payload = { matched: classified.length, unmatched: unclassified, productCount: productsInList.length, updatedAt: now };
+    if (link) Object.assign(link, payload);
+    else data.hierarchyListLinks.push({ id: `hl-${Date.now()}`, hierarchyId: hierarchy.id, listId: list.id, createdAt: now, ...payload });
+    addChange("Lista conectada", `${list.name} quedo conectada a ${hierarchy.name}: ${classified.length} clasificados y ${unclassified} no clasificados.`);
+  }, { confirmText: existing ? "Actualizar conexion" : "Conectar lista" });
+}
+
+function duplicateActiveHierarchy() {
+  const sourceHierarchy = activeHierarchy();
+  const name = `${sourceHierarchy.name} copia`;
+  const newId = `h-${Date.now()}`;
+  const idMap = {};
+  pushHistory("duplicar jerarquia");
+  activeNodes()
+    .sort((a, b) => a.level - b.level)
+    .forEach((node) => {
+      const newNodeId = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      idMap[node.id] = newNodeId;
+      data.nodes.push({
+        ...structuredClone(node),
+        id: newNodeId,
+        parent: node.parent ? idMap[node.parent] : null,
+        hierarchyId: newId
+      });
+    });
+  data.products.forEach((product) => {
+    const assigned = productNode(product);
+    if (assigned && idMap[assigned]) {
+      product.assignments = product.assignments || {};
+      product.assignments[newId] = idMap[assigned];
+    }
+  });
+  data.hierarchies.push({ id: newId, name, status: "Editable", products: visibleProducts().length });
+  state.activeHierarchyId = newId;
+  state.selectedNode = null;
+  state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
+  addChange("Jerarquia duplicada", `"${sourceHierarchy.name}" fue duplicada como "${name}".`);
+  renderAll();
+}
+
+function deleteActiveHierarchy() {
+  const hierarchy = activeHierarchy();
+  if (!hierarchy) return;
+  if (data.hierarchies.length <= 1) {
+    openModal("No se puede eliminar", `
+      <div class="empty-state">
+        <h3>Debe existir al menos una jerarquia</h3>
+        <p>Crea o carga otra jerarquia antes de eliminar esta.</p>
+      </div>
+    `, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  const nodeCount = activeNodes().length;
+  const productCount = activeHierarchyProductCount();
+  openModal("Eliminar jerarquia", `
+    <div class="rule-note">
+      Se eliminara la estructura <strong>${hierarchy.name}</strong> y sus ubicaciones de productos en esta jerarquia.
+      Las fichas de producto no se borran si viven en otras jerarquias o listas.
+    </div>
+    <div class="load-preview">
+      <div class="load-pill"><strong>${nodeCount}</strong> nodos</div>
+      <div class="load-pill"><strong>${productCount}</strong> productos ubicados</div>
+      <div class="load-pill"><strong>1</strong> jerarquia</div>
+    </div>
+  `, () => {
+    pushHistory("eliminar jerarquia");
+    const hierarchyId = state.activeHierarchyId;
+    data.hierarchies.splice(0, data.hierarchies.length, ...data.hierarchies.filter((item) => item.id !== hierarchyId));
+    data.nodes.splice(0, data.nodes.length, ...data.nodes.filter((node) => nodeHierarchy(node) !== hierarchyId));
+    data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...(data.hierarchyListLinks || []).filter((link) => link.hierarchyId !== hierarchyId));
+    data.products.forEach((product) => {
+      if (product.assignments) delete product.assignments[hierarchyId];
+      if (product.node && !nodeById()[product.node]) product.node = product.originalNode || null;
+    });
+    state.activeHierarchyId = data.hierarchies[0].id;
+    state.selectedNode = null;
+    state.selectedProduct = null;
+    state.selectedProducts.clear();
+    state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 1).map((node) => node.id));
+    addChange("Jerarquia eliminada", `"${hierarchy.name}" fue eliminada. Los productos base se conservaron.`);
+  }, { confirmText: "Eliminar jerarquia" });
+}
+
+function renderTargetTree() {
+  const panel = $("destinationPanel");
+  const workspace = $("workspace");
+  if (!panel || !workspace) return;
+  const op = state.operation;
+  const isActive = !!op.type;
+  panel.hidden = !isActive;
+  workspace.classList.toggle("operation-mode", isActive);
+  if (!isActive) return;
+
+  const q = op.targetSearch.trim().toLowerCase();
+  const rows = [];
+  const walk = (node) => {
+    const path = pathFor(node.id).map((n) => n.name).join(" ").toLowerCase();
+    const hasMatch = !q || path.includes(q) || node.name.toLowerCase().includes(q);
+    const childNodes = childrenOf(node.id);
+    if (hasMatch) {
+      rows.push(node);
+      if (q || op.targetExpandedNodes.has(node.id)) childNodes.forEach(walk);
+    } else {
+      const before = rows.length;
+      childNodes.forEach(walk);
+      if (rows.length > before) rows.splice(before, 0, node);
+    }
+  };
+  childrenOf(null).forEach(walk);
+
+  $("targetTree").innerHTML = rows.map((node) => {
+    const hasChildren = childrenOf(node.id).length > 0;
+    const expanded = op.targetExpandedNodes.has(node.id);
+    const valid = isValidOperationTarget(node.id);
+    const selected = op.targetNode === node.id ? " active focus-target" : "";
+    const validity = valid ? " valid-target" : " invalid-target";
+    return `
+      <button class="tree-node${selected}${validity} tree-level-${node.level}" data-target-node="${node.id}">
+        <span class="twisty ${hasChildren ? "has-children" : ""} ${expanded ? "expanded" : ""}" data-target-toggle="${node.id}">${hasChildren ? ">" : ""}</span>
+        <span class="node-name">${node.name}</span>
+        <span class="node-count">${countProducts(node.id)}</span>
+      </button>
+    `;
+  }).join("");
+  $("targetTreeCount").textContent = op.type === "merge" ? "Segundo nodo" : "Destino posible";
+  renderOperationCard();
+}
+
+function operationTitle() {
+  if (state.operation.type === "merge") return "Fusionar nodos";
+  if (state.operation.type === "move-node") return "Mover nodo";
+  return "";
+}
+
+function renderOperationCard() {
+  const card = $("operationCard");
+  if (!card || !state.operation.type) return;
+  const op = state.operation;
+  const source = op.sourceNode ? nodeById()[op.sourceNode] : null;
+  const target = op.targetNode ? nodeById()[op.targetNode] : null;
+  const sourceText = source ? `${levelNames[source.level]}: ${source.name}` : "Selecciona origen";
+  const targetText = target ? `${levelNames[target.level]}: ${target.name}` : "Selecciona destino";
+  const validTarget = target && isValidOperationTarget(target.id);
+
+  if (op.type === "merge") {
+    const defaultName = source && target ? `${source.name} y ${target.name}` : "";
+    if (!op.mergeName && defaultName) op.mergeName = defaultName;
+    card.innerHTML = `
+      <div class="operation-title">
+        <strong>${operationTitle()}</strong>
+        <button class="ghost-btn" data-operation-cancel>Cancelar</button>
+      </div>
+      <div class="operation-summary">
+        <span>Origen: <strong>${sourceText}</strong></span>
+        <span>Segundo nodo: <strong>${targetText}</strong></span>
+      </div>
+      <div class="merge-options">
+        <label>Nombre del nuevo nodo
+          <input id="mergeNameInput" value="${op.mergeName}" placeholder="Nombre fusionado">
+        </label>
+        <label>Ubicacion final
+          <select id="mergeLocationSelect">
+            <option value="source" ${op.mergeLocation === "source" ? "selected" : ""}>Donde estaba el origen</option>
+            <option value="target" ${op.mergeLocation === "target" ? "selected" : ""}>Donde estaba el destino</option>
+          </select>
+        </label>
+      </div>
+      <div class="operation-actions">
+        <button class="primary-btn" data-operation-confirm ${validTarget ? "" : "disabled"}>Fusionar nodos</button>
+      </div>
+    `;
+    return;
+  }
+
+  card.innerHTML = `
+    <div class="operation-title">
+      <strong>${operationTitle()}</strong>
+      <button class="ghost-btn" data-operation-cancel>Cancelar</button>
+    </div>
+    <div class="operation-summary">
+      <span>Origen: <strong>${sourceText}</strong></span>
+      <span>Destino: <strong>${targetText}</strong></span>
+      <span>${moveTargetHelp(source, target)}</span>
+    </div>
+    <div class="operation-actions">
+      <button class="primary-btn" data-operation-confirm ${validTarget ? "" : "disabled"}>Mover aqui</button>
+    </div>
+  `;
+}
+
+function renderHeader() {
+  const focusNode = focusedNodeId();
+  const isUnclassified = focusNode === UNCLASSIFIED_NODE_ID;
+  const node = focusNode ? nodeById()[focusNode] : null;
+  const products = visibleProducts();
+  const activePane = state.operation.type ? (state.activePane === "target" ? "Destino activo" : "Origen activo") : "Catalogo";
+  $("crumbs").innerHTML = isUnclassified
+    ? `<span class="active-pane-note">${activePane}</span> Productos conectados sin ubicacion`
+    : (node ? `<span class="active-pane-note">${activePane}</span> ${pathFor(node.id).map((n) => n.name).join(" / ")}` : "Catalogo completo");
+  $("sectionTitle").textContent = isUnclassified ? "No clasificados" : (node ? node.name : "Productos del maestro");
+  $("visibleProducts").textContent = products.length;
+  $("pendingCount").textContent = products.filter((p) => p.status === "pending" || p.status === "suggested").length;
+  $("validatedCount").textContent = products.filter((p) => p.status === "validated").length;
+}
+
+function renderProducts() {
+  const rows = visibleProducts();
+  if (!rows.length) {
+    $("productRows").innerHTML = `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div>`;
+    return;
+  }
+  $("productRows").innerHTML = rows.map((p) => {
+    const node = nodeById()[productNode(p)];
+    const loc = node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado en esta jerarquia";
+    const checked = state.selectedProducts.has(p.id) ? "checked" : "";
+    const selected = state.selectedProduct === p.id ? " selected" : "";
+    const attrs = visibleProductAttributeEntries(p);
+    const meta = attrs.length
+      ? attrs.map((attr) => `<span class="attr-chip"><strong>${attr.key}</strong> ${attr.value}</span>`).join("")
+      : `<span class="muted-meta">Sin atributos conectados</span>`;
+    return `
+      <div class="product-row${selected}" data-product="${p.id}">
+        <label class="checkline" data-stop>
+          <input type="checkbox" data-check="${p.id}" ${checked}>
+          <span class="code">${p.id}</span>
+        </label>
+        <div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-meta">${meta}</div>
+        </div>
+        <div class="location">${loc}</div>
+        <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderInspector() {
+  const product = data.products.find((p) => p.id === state.selectedProduct);
+  if (!product) {
+    const h = activeHierarchy();
+    const productCount = activeHierarchyProductCount();
+    $("inspector").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">[]</div>
+        <h3>${h.name}</h3>
+        <p>${activeNodes().length} nodos y ${productCount} productos totales en esta jerarquia.</p>
+      </div>
+    `;
+    return;
+  }
+  const activePathNode = productNode(product);
+  const fitPath = activePathNode && nodeById()[activePathNode] ? pathFor(activePathNode).map((n) => n.name).join(" / ") : "Sin asignacion en esta jerarquia";
+  const v16Path = pathFor(product.originalNode).map((n) => n.name).join(" / ");
+  const suggestion = product.suggestion ? pathFor(product.suggestion).map((n) => n.name).join(" / ") : "Sin sugerencia";
+  const attrEntries = visibleProductAttributeEntries(product, 12);
+  const attrHtml = attrEntries.length ? attrEntries.map((attr) => `
+    <div class="detail-item">
+      <div class="detail-label">${attr.key}</div>
+      <div class="detail-value">${attr.value}</div>
+    </div>
+  `).join("") : `
+    <div class="detail-item">
+      <div class="detail-label">Atributos de listas conectadas</div>
+      <div class="detail-value">Sin atributos visibles para esta jerarquia</div>
+    </div>
+  `;
+  $("inspector").innerHTML = `
+    <div class="detail-card">
+      <div>
+        <div class="code">${product.id}</div>
+        <div class="detail-title">${product.name}</div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">Ubicacion jerarquia activa</div>
+          <div class="detail-value">${fitPath}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Ubicacion base del producto</div>
+          <div class="detail-value">${v16Path}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Sugerencia</div>
+          <div class="detail-value">${suggestion}</div>
+        </div>
+        ${attrHtml}
+      </div>
+      <div class="detail-actions">
+        <button class="primary-btn" data-action="validate-product">Validar</button>
+        <button class="ghost-btn" data-action="move-product">Mover</button>
+        <button class="ghost-btn" data-action="apply-suggestion">Aplicar sugerencia</button>
+        <button class="ghost-btn" data-action="mark-pending">Dejar pendiente</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderChanges() {
+  $("changeCount").textContent = state.changes.length;
+  $("changeList").innerHTML = state.changes.length ? state.changes.map((c) => `
+    <div class="change-item">
+      <strong>${c.title}</strong>
+      <span>${c.detail}</span>
+    </div>
+  `).join("") : `<div class="empty-state"><p>No hay cambios preparados.</p></div>`;
+}
+
+function renderAll() {
+  buildRenderCache();
+  renderHierarchySelector();
+  renderProductListSelector();
+  renderTree();
+  renderTargetTree();
+  renderHeader();
+  renderProducts();
+  renderInspector();
+  renderChanges();
+  setActionStates();
+  if (dataDirty) markDataDirty();
+}
+
+function openModal(title, bodyHtml, onConfirm, options = {}) {
+  $("modalTitle").textContent = title;
+  $("modalBody").innerHTML = bodyHtml;
+  $("modalBackdrop").hidden = false;
+  $("modalConfirm").textContent = options.confirmText || "Guardar";
+  $("modalCancel").textContent = options.cancelText || "Cancelar";
+  $("modalCancel").hidden = !!options.hideCancel;
+  $("modalConfirm").onclick = async () => {
+    await onConfirm();
+    if (!options.keepOpen) closeModal();
+    renderAll();
+  };
+}
+
+function setProcessingState(active, message = "") {
+  importInProgress = active;
+  if (active) activeLoadStartedAt = performance.now();
+  if (active) clearTimeout(saveTimer);
+  $("modalConfirm").disabled = active;
+  $("modalCancel").disabled = active;
+  let bar = $("processingState");
+  if (!active) {
+    if (bar) bar.remove();
+    if (dataDirty) markDataDirty();
+    return;
+  }
+  if (active && !bar) {
+    $("modalBody").insertAdjacentHTML("afterbegin", `
+      <div class="processing-state" id="processingState">
+        <div class="clock-loader" aria-hidden="true"></div>
+        <div>
+          <strong>Procesando informacion</strong>
+          <span>${message}</span>
+        </div>
+      </div>
+    `);
+    return;
+  }
+  if (bar) {
+    bar.querySelector("span").textContent = message;
+  }
+}
+
+function updateProcessingStatus(message) {
+  const bar = $("processingState");
+  if (bar) bar.querySelector("span").textContent = message;
+  logLoad("estado", message);
+}
+
+function showLoadError(title, error) {
+  setProcessingState(false);
+  const body = $("loadConfig") || $("modalBody");
+  const elapsed = activeLoadStartedAt ? ((performance.now() - activeLoadStartedAt) / 1000).toFixed(1) : "0.0";
+  if (body) {
+    body.insertAdjacentHTML("afterbegin", `
+      <div class="load-error">
+        <strong>${title}</strong>
+        <span>${error?.message || error || "La carga se detuvo sin detalle."}</span>
+        <small>Etapa detenida despues de ${elapsed}s. La app no deberia quedar cargando indefinidamente.</small>
+      </div>
+    `);
+  }
+}
+
+async function runLoadStep(fn) {
+  try {
+    await fn();
+  } catch (error) {
+    console.error("Fallo general de carga", error);
+    showLoadError("La carga se detuvo", error);
+  }
+}
+
+function logLoad(stage, detail = {}) {
+  const entry = {
+    time: new Date().toLocaleTimeString("es-CL"),
+    stage,
+    detail: typeof detail === "string" ? detail : JSON.stringify(detail)
+  };
+  loadDebug.unshift(entry);
+  if (loadDebug.length > 80) loadDebug.pop();
+  renderLoadDebug();
+}
+
+function renderLoadDebug() {
+  const container = $("loadDebug");
+  if (!container) return;
+  container.innerHTML = loadDebug.slice(0, 12).map((entry) => `
+    <div class="debug-row">
+      <strong>${entry.time}</strong>
+      <span>${entry.stage}</span>
+      <code>${entry.detail}</code>
+    </div>
+  `).join("");
+}
+
+function copyLoadDebug() {
+  const text = loadDebug.map((entry) => `${entry.time} | ${entry.stage} | ${entry.detail}`).join("\n");
+  navigator.clipboard?.writeText(text);
+  const body = $("loadConfig") || $("modalBody");
+  if (body) {
+    body.insertAdjacentHTML("afterbegin", `<div class="load-result"><strong>Debug copiado</strong><br>El diagnostico de carga quedo en el portapapeles.</div>`);
+  }
+}
+
+function progressMessage(label, current, total, extra = "") {
+  const percent = total ? Math.round((current / total) * 100) : 0;
+  return `${label}... ${current}/${total} filas (${percent}%). ${extra}`.trim();
+}
+
+function cellText(value) {
+  return String(value ?? "").trim();
+}
+
+function closeModal() {
+  $("modalBackdrop").hidden = true;
+  $("modalConfirm").onclick = null;
+  $("modalCancel").hidden = false;
+  $("modalConfirm").textContent = "Guardar";
+  $("modalCancel").textContent = "Cancelar";
+}
+
+function nodeOptions(selectedId = "") {
+  return data.nodes.map((n) => `<option value="${n.id}" ${n.id === selectedId ? "selected" : ""}>${"- ".repeat(n.level)}${n.name}</option>`).join("");
+}
+
+function directProductsInNode(nodeId) {
+  return data.products.filter((p) => productNode(p) === nodeId);
+}
+
+function productsUnderNode(nodeId) {
+  return data.products.filter((p) => isDescendantOrSelf(productNode(p), nodeId));
+}
+
+function subtreeNodeIds(nodeId) {
+  const ids = [nodeId];
+  childrenOf(nodeId).forEach((child) => ids.push(...subtreeNodeIds(child.id)));
+  return ids;
+}
+
+function subtreeMaxLevel(nodeId) {
+  return Math.max(...subtreeNodeIds(nodeId).map((id) => nodeById()[id].level));
+}
+
+function isValidOperationTarget(targetId) {
+  const op = state.operation;
+  const source = op.sourceNode ? nodeById()[op.sourceNode] : null;
+  const target = targetId ? nodeById()[targetId] : null;
+  if (!op.type || !source || !target || source.id === target.id) return false;
+  if (op.type === "merge") return target.level === source.level;
+  if (op.type === "move-node") {
+    if (subtreeNodeIds(source.id).includes(target.id)) return false;
+    const newLevel = target.level + 1;
+    const delta = newLevel - source.level;
+    if (Math.abs(delta) > 1) return false;
+    if (subtreeMaxLevel(source.id) + delta > 3) return false;
+    if (source.level + delta < 0) return false;
+    return true;
+  }
+  return false;
+}
+
+function moveTargetHelp(source, target) {
+  if (!source || !target) return "Elige en destino donde quedara el nodo.";
+  if (!isValidOperationTarget(target.id)) return "Este destino no cumple las reglas para mover.";
+  const newLevel = target.level + 1;
+  if (newLevel === source.level) return "Movimiento lateral: cambia de contenedor manteniendo el nivel.";
+  if (newLevel < source.level) return "Movimiento hacia arriba: sube un nivel.";
+  return "Movimiento hacia abajo: baja un nivel.";
+}
+
+function currentSnapshot(label) {
+  return {
+    label,
+    hierarchies: structuredClone(data.hierarchies),
+    productLists: structuredClone(data.productLists),
+    hierarchyListLinks: structuredClone(data.hierarchyListLinks || []),
+    nodes: structuredClone(data.nodes),
+    products: structuredClone(data.products),
+    selectedNode: state.selectedNode,
+    selectedProduct: state.selectedProduct,
+    selectedProducts: [...state.selectedProducts],
+    expandedNodes: [...state.expandedNodes],
+    activeHierarchyId: state.activeHierarchyId,
+    activeProductListId: state.activeProductListId,
+    activePane: state.activePane,
+    operation: {
+      ...state.operation,
+      targetExpandedNodes: [...state.operation.targetExpandedNodes]
+    },
+    changes: structuredClone(state.changes)
+  };
+}
+
+function restoreSnapshot(snapshot) {
+  if (snapshot.hierarchies) data.hierarchies.splice(0, data.hierarchies.length, ...snapshot.hierarchies);
+  if (snapshot.productLists) data.productLists.splice(0, data.productLists.length, ...snapshot.productLists);
+  if (snapshot.hierarchyListLinks) data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...snapshot.hierarchyListLinks);
+  data.nodes.splice(0, data.nodes.length, ...snapshot.nodes);
+  data.products.splice(0, data.products.length, ...snapshot.products);
+  state.selectedNode = snapshot.selectedNode;
+  state.selectedProduct = snapshot.selectedProduct;
+  state.selectedProducts = new Set(snapshot.selectedProducts);
+  state.expandedNodes = new Set(snapshot.expandedNodes);
+  state.activeHierarchyId = snapshot.activeHierarchyId || state.activeHierarchyId;
+  state.activeProductListId = snapshot.activeProductListId || state.activeProductListId;
+  state.activePane = snapshot.activePane || "source";
+  if (snapshot.operation) {
+    state.operation = {
+      ...snapshot.operation,
+      targetExpandedNodes: new Set(snapshot.operation.targetExpandedNodes || [])
+    };
+  }
+  state.changes = snapshot.changes;
+}
+
+function pushHistory(label) {
+  invalidateRenderCache();
+  historyStack.push(currentSnapshot(label));
+  redoStack.length = 0;
+  if (historyStack.length > 40) historyStack.shift();
+}
+
+function recordHistoryForLoad(label, rowCount = 0) {
+  const heavyCatalog = data.products.length > 2500 || data.nodes.length > 8000 || rowCount > 3000;
+  if (heavyCatalog) {
+    redoStack.length = 0;
+    return;
+  }
+  pushHistory(label);
+}
+
+function undoLastChange() {
+  const last = historyStack.pop();
+  if (!last) return;
+  redoStack.push(currentSnapshot("rehacer"));
+  restoreSnapshot(last);
+  invalidateRenderCache();
+  markDataDirty();
+  renderAll();
+}
+
+function redoLastChange() {
+  const next = redoStack.pop();
+  if (!next) return;
+  historyStack.push(currentSnapshot("deshacer"));
+  restoreSnapshot(next);
+  invalidateRenderCache();
+  markDataDirty();
+  renderAll();
+}
+
+function setActionStates() {
+  const undoBtn = $("undoBtn");
+  const redoBtn = $("redoBtn");
+  const addChildBtn = $("addChildBtn");
+  const createHint = $("createHint");
+  const deleteHierarchyBtn = $("deleteHierarchyBtn");
+  const deleteListBtn = $("deleteListBtn");
+  const connectListBtn = $("connectListBtn");
+  const loginBtn = $("firebaseLoginBtn");
+  const saveFirebaseBtn = $("saveFirebaseBtn");
+  const loadFirebaseBtn = $("loadFirebaseBtn");
+  const versionFirebaseBtn = $("versionFirebaseBtn");
+  const isSpecialNode = state.selectedNode === UNCLASSIFIED_NODE_ID;
+  const selected = state.selectedNode ? nodeById()[state.selectedNode] : null;
+  if (undoBtn) {
+    undoBtn.disabled = historyStack.length === 0;
+    undoBtn.textContent = historyStack.length ? `Deshacer (${historyStack.length})` : "Deshacer";
+  }
+  if (redoBtn) {
+    redoBtn.disabled = redoStack.length === 0;
+    redoBtn.textContent = redoStack.length ? `Rehacer (${redoStack.length})` : "Rehacer";
+  }
+  if (addChildBtn) {
+    addChildBtn.disabled = isSpecialNode || !selected || selected.level >= 3;
+    addChildBtn.textContent = selected && selected.level < 3 ? `Crear ${levelNames[selected.level + 1]}` : "Crear dentro";
+  }
+  if (deleteHierarchyBtn) {
+    deleteHierarchyBtn.disabled = data.hierarchies.length <= 1;
+  }
+  if (deleteListBtn) {
+    deleteListBtn.disabled = data.productLists.length <= 1 || !activeProductList();
+  }
+  if (connectListBtn) {
+    connectListBtn.disabled = !activeHierarchy() || !activeProductList() || productListCount(activeProductList().id) === 0;
+  }
+  if (loginBtn) {
+    loginBtn.textContent = firebaseUser ? `Salir (${firebaseUser.email || "Google"})` : "Entrar Google";
+  }
+  [saveFirebaseBtn, loadFirebaseBtn, versionFirebaseBtn].forEach((btn) => {
+    if (btn) btn.disabled = !firebaseReady || !firebaseUser;
+  });
+  if (createHint) {
+    if (!selected) {
+      createHint.innerHTML = isSpecialNode
+        ? `<strong>No clasificados</strong> es un nodo de trabajo: selecciona productos y muevelos a una ubicacion real.`
+        : `Selecciona un contenedor para crear un subnodo dentro. Para crear una linea nueva usa el boton <strong>+</strong>.`;
+    } else if (selected.level >= 3) {
+      createHint.innerHTML = `<strong>${selected.name}</strong> es una Familia; debajo ya van productos, no otro nivel.`;
+    } else {
+      createHint.innerHTML = `Se creara un <strong>${levelNames[selected.level + 1]}</strong> dentro de <strong>${selected.name}</strong>.`;
+    }
+  }
+}
+
+function removeNode(nodeId) {
+  const index = data.nodes.findIndex((n) => n.id === nodeId);
+  if (index >= 0) data.nodes.splice(index, 1);
+}
+
+function emptyNodeReason(nodeId) {
+  const childCount = childrenOf(nodeId).length;
+  const productCount = directProductsInNode(nodeId).length;
+  if (!childCount && !productCount) return "";
+  const parts = [];
+  if (childCount) parts.push(`${childCount} subnivel(es)`);
+  if (productCount) parts.push(`${productCount} producto(s) directo(s)`);
+  return parts.join(" y ");
+}
+
+function renderMoveBrowser() {
+  const treeEl = $("moveTreeList");
+  const previewEl = $("movePreviewList");
+  const targetEl = $("moveTargetSummary");
+  if (!treeEl || !previewEl || !targetEl) return;
+
+  const visible = [];
+  const walk = (node) => {
+    visible.push(node);
+    if (moveState.expandedNodes.has(node.id)) childrenOf(node.id).forEach(walk);
+  };
+  childrenOf(null).forEach(walk);
+
+  treeEl.innerHTML = visible.map((node) => {
+    const hasChildren = childrenOf(node.id).length > 0;
+    const allowed = !moveState.allowedTarget || moveState.allowedTarget(node);
+    const active = moveState.targetNode === node.id ? " active" : "";
+    const disabled = allowed ? "" : " disabled";
+    const twisty = hasChildren ? (moveState.expandedNodes.has(node.id) ? "v" : ">") : "";
+    return `
+      <button class="move-node${active}${disabled}" style="padding-left:${8 + node.level * 18}px" data-move-node="${node.id}" ${allowed ? "" : "disabled"}>
+        <span class="twisty" data-move-toggle="${node.id}">${twisty}</span>
+        <span class="name">${node.name}</span>
+        <span class="count">${countProducts(node.id)}</span>
+      </button>
+    `;
+  }).join("");
+
+  const target = nodeById()[moveState.targetNode];
+  targetEl.textContent = target ? pathFor(target.id).map((n) => n.name).join(" / ") : "Selecciona un destino";
+
+  if (!target) {
+    previewEl.innerHTML = `
+      <div class="empty-state">
+        <h3>Elige un destino</h3>
+        <p>Al seleccionarlo veras que nodos y productos contiene.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const childNodes = childrenOf(target.id);
+  const direct = directProductsInNode(target.id);
+  const under = productsUnderNode(target.id).slice(0, 12);
+  const nodeRows = childNodes.map((node) => `
+    <div class="move-product">
+      <strong>${levelNames[node.level]}: ${node.name}</strong>
+      <span>${countProducts(node.id)} producto(s) dentro</span>
+    </div>
+  `);
+  const productRows = (direct.length ? direct : under).map((p) => `
+    <div class="move-product">
+      <strong>${p.name}</strong>
+      <span>${p.id} - ${statusLabels[p.status]}</span>
+    </div>
+  `);
+  previewEl.innerHTML = nodeRows.length || productRows.length ? [...nodeRows, ...productRows].join("") : `
+    <div class="empty-state">
+      <h3>Destino vacio</h3>
+      <p>No contiene subniveles ni productos directos.</p>
+    </div>
+  `;
+}
+function addChange(title, detail) {
+  state.changes.unshift({ title, detail });
+  markDataDirty();
+}
+
+function createNode(parentId) {
+  if (parentId === UNCLASSIFIED_NODE_ID) return;
+  const parent = parentId ? nodeById()[parentId] : null;
+  if (parent && parent.level >= 3) {
+    openModal("No se puede crear dentro", `
+      <div class="empty-state">
+        <h3>Este nivel ya contiene productos</h3>
+        <p>Una Familia es el ultimo nivel de la jerarquia. Para crear algo paralelo, selecciona su contenedor superior.</p>
+      </div>
+    `, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  const nextLevel = parent ? parent.level + 1 : 0;
+  openModal(parent ? `Crear ${levelNames[nextLevel]} dentro` : "Crear Linea", `
+    ${parent ? `<div class="rule-note">Se creara un <strong>${levelNames[nextLevel]}</strong> dentro de <strong>${parent.name}</strong>. Si querias crear algo paralelo, selecciona el contenedor superior.</div>` : `<div class="rule-note">Se creara una nueva <strong>Linea</strong> en la raiz de la jerarquia.</div>`}
+    <div class="form-row">
+      <label>Nivel</label>
+      <input value="${levelNames[nextLevel]}" disabled>
+    </div>
+    <div class="form-row">
+      <label>Nombre</label>
+      <input id="nodeNameInput" placeholder="Nombre del nuevo elemento">
+    </div>
+  `, () => {
+    const name = $("nodeNameInput").value.trim();
+    if (!name) return;
+    pushHistory("crear nodo");
+    const id = `n-${Date.now()}`;
+    data.nodes.push({ id, parent: parentId, level: nextLevel, name, hierarchyId: state.activeHierarchyId });
+    state.selectedNode = id;
+    if (parentId) state.expandedNodes.add(parentId);
+    addChange("Nuevo nodo", `${levelNames[nextLevel]} "${name}" creado en "${activeHierarchy().name}".`);
+  });
+}
+
+function renameNode() {
+  if (!state.selectedNode || state.selectedNode === UNCLASSIFIED_NODE_ID) return;
+  const node = nodeById()[state.selectedNode];
+  openModal("Renombrar elemento", `
+    <div class="form-row">
+      <label>Nombre actual</label>
+      <input value="${node.name}" disabled>
+    </div>
+    <div class="form-row">
+      <label>Nuevo nombre</label>
+      <input id="renameInput" value="${node.name}">
+    </div>
+  `, () => {
+    const old = node.name;
+    const name = $("renameInput").value.trim();
+    if (!name) return;
+    pushHistory("renombrar nodo");
+    node.name = name;
+    addChange("Renombre", `"${old}" ahora se llama "${name}".`);
+  });
+}
+
+function mergeNode() {
+  if (!state.selectedNode || state.selectedNode === UNCLASSIFIED_NODE_ID) return;
+  startOperation("merge");
+}
+
+function moveSelectedNode() {
+  if (!state.selectedNode || state.selectedNode === UNCLASSIFIED_NODE_ID) return;
+  startOperation("move-node");
+}
+
+function startOperation(type) {
+  if (state.selectedNode === UNCLASSIFIED_NODE_ID) return;
+  const source = nodeById()[state.selectedNode];
+  if (!source) return;
+  state.operation = {
+    type,
+    sourceNode: source.id,
+    targetNode: null,
+    targetSearch: "",
+    targetExpandedNodes: new Set([...state.expandedNodes, ...pathFor(source.id).map((n) => n.id)]),
+    mergeName: "",
+    mergeLocation: "source"
+  };
+  state.activePane = "source";
+  state.selectedProducts.clear();
+  renderAll();
+}
+
+function cancelOperation() {
+  state.operation = {
+    type: null,
+    sourceNode: null,
+    targetNode: null,
+    targetSearch: "",
+    targetExpandedNodes: new Set(),
+    mergeName: "",
+    mergeLocation: "source"
+  };
+  state.activePane = "source";
+  renderAll();
+}
+
+function confirmOperation() {
+  if (state.operation.type === "merge") mergeOperationNodes();
+  if (state.operation.type === "move-node") moveOperationNode();
+}
+
+function mergeOperationNodes() {
+  const op = state.operation;
+  const map = nodeById();
+  const source = map[op.sourceNode];
+  const target = map[op.targetNode];
+  if (!source || !target || !isValidOperationTarget(target.id)) return;
+  const name = (op.mergeName || `${source.name} y ${target.name}`).trim();
+  if (!name) return;
+  const parent = op.mergeLocation === "target" ? target.parent : source.parent;
+  const newId = `n-${Date.now()}`;
+
+  pushHistory("fusionar nodos");
+  data.nodes.push({ id: newId, parent, level: source.level, name, hierarchyId: state.activeHierarchyId });
+  data.products.forEach((p) => {
+    if (p.node === source.id || p.node === target.id) {
+      p.node = newId;
+      p.status = "corrected";
+    }
+  });
+  childrenOf(source.id).forEach((child) => { child.parent = newId; });
+  childrenOf(target.id).forEach((child) => { child.parent = newId; });
+  removeNode(source.id);
+  removeNode(target.id);
+  state.selectedNode = newId;
+  if (parent) state.expandedNodes.add(parent);
+  state.expandedNodes.add(newId);
+  addChange("Fusion de nodos", `"${source.name}" y "${target.name}" crearon "${name}".`);
+  cancelOperation();
+}
+
+function moveOperationNode() {
+  const op = state.operation;
+  const map = nodeById();
+  const source = map[op.sourceNode];
+  const target = map[op.targetNode];
+  if (!source || !target || !isValidOperationTarget(target.id)) return;
+  const newLevel = target.level + 1;
+  const delta = newLevel - source.level;
+
+  pushHistory("mover nodo");
+  subtreeNodeIds(source.id).forEach((id) => {
+    map[id].level += delta;
+  });
+  source.parent = target.id;
+  state.selectedNode = source.id;
+  state.expandedNodes.add(target.id);
+  addChange("Nodo movido", `"${source.name}" ahora queda dentro de "${target.name}".`);
+  cancelOperation();
+}
+
+function deleteEmptyNode() {
+  if (!state.selectedNode || state.selectedNode === UNCLASSIFIED_NODE_ID) return;
+  const node = nodeById()[state.selectedNode];
+  const reason = emptyNodeReason(node.id);
+  if (reason) {
+    openModal("No se puede eliminar", `
+      <div class="empty-state">
+        <h3>Este nodo no esta vacio</h3>
+        <p>Contiene ${reason}. Primero mueve o fusiona ese contenido.</p>
+      </div>
+    `, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  openModal("Eliminar nodo vacio", `
+    <div class="form-row">
+      <label>Nodo</label>
+      <input value="${node.name}" disabled>
+    </div>
+    <div class="rule-note">
+      Esta accion elimina solo el nodo vacio. Puedes deshacerla despues.
+    </div>
+  `, () => {
+    pushHistory("eliminar nodo");
+    removeNode(node.id);
+    state.selectedNode = node.parent;
+    addChange("Nodo eliminado", `"${node.name}" fue eliminado porque estaba vacio.`);
+  });
+}
+
+function optionsFrom(items, selected = "") {
+  return items.map((item) => `<option value="${item.id}" ${item.id === selected ? "selected" : ""}>${item.name}</option>`).join("");
+}
+
+function renderLoadConfig(type) {
+  pendingHierarchyLoad = null;
+  pendingProductLoad = null;
+  selectedLoadType = type;
+  const config = $("loadConfig");
+  if (!config) return;
+  const hierarchyOptions = optionsFrom(data.hierarchies, state.activeHierarchyId);
+  const listOptions = optionsFrom(data.productLists, "base");
+  const sharedPreview = `
+    <div class="load-next-step">
+      <strong>Siguiente paso</strong>
+      <span>Selecciona el archivo y presiona Preparar carga. La app leera las columnas, mostrara una vista previa y no guardara cambios hasta que confirmes el mapeo.</span>
+    </div>
+  `;
+  if (type === "hierarchy") {
+    config.innerHTML = `
+      <div class="load-flow">
+        <span class="active">1. Tipo de carga</span>
+        <span>2. Leer archivo</span>
+        <span>3. Mapear columnas</span>
+        <span>4. Cargar</span>
+      </div>
+      <div class="rule-note">Carga una jerarquia. Puede venir sola o con codigos de producto ubicados en cada ruta. Esta carga solo toca la jerarquia elegida.</div>
+      <div class="load-settings">
+        <div class="form-row">
+          <label>Tipo de archivo</label>
+          <select id="hierarchyLoadShape">
+            <option value="withProducts">Jerarquia con productos</option>
+            <option value="only">Jerarquia sola</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Que quieres hacer</label>
+          <select id="hierarchyUnifiedAction">
+            <option value="new">Crear nueva jerarquia</option>
+            <option value="complement">Complementar jerarquia existente</option>
+            <option value="replace">Reemplazar jerarquia existente</option>
+          </select>
+        </div>
+        <div class="form-row" data-visible-when="hierarchyUnifiedAction:new">
+          <label>Nombre nueva jerarquia</label>
+          <input id="hierarchyUnifiedName" placeholder="Ej: Jerarquia comercial 2026">
+        </div>
+        <div class="form-row" data-visible-when="hierarchyUnifiedAction:complement,replace">
+          <label>Jerarquia existente</label>
+          <select id="hierarchyUnifiedTarget">${hierarchyOptions}</select>
+        </div>
+        <div class="form-row">
+          <label>Archivo Excel, CSV o TSV</label>
+          <input id="loadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+        </div>
+      </div>
+      <div class="rule-note" id="hierarchyProductHelp">La jerarquia sola no toca productos. Si eliges jerarquia con productos, los codigos se ubican solo en esa jerarquia.</div>
+      <div class="rule-note" id="productCodePolicy">Los codigos no se duplican: si un producto ya existe, solo se agrega su ubicacion en esta jerarquia.</div>
+      ${sharedPreview}
+    `;
+    syncLoadActionFields();
+    return;
+  }
+  if (type === "products") {
+    config.innerHTML = `
+      <div class="load-flow">
+        <span class="active">1. Tipo de carga</span>
+        <span>2. Leer archivo</span>
+        <span>3. Mapear columnas</span>
+        <span>4. Cargar lista</span>
+      </div>
+      <div class="rule-note">Carga productos como lista. No los asigna automaticamente a ninguna jerarquia ni cambia ubicaciones existentes.</div>
+      <div class="load-settings">
+        <div class="form-row">
+          <label>Tipo de tabla</label>
+          <select id="productTableShape">
+            <option value="attributes">Tabla con atributos</option>
+            <option value="simple">Tabla simple</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Que quieres hacer</label>
+          <select id="productListAction"><option value="new">Crear lista nueva</option><option value="complement">Complementar lista existente</option><option value="replace">Reemplazar lista existente</option></select>
+        </div>
+        <div class="form-row" data-visible-when="productListAction:new">
+          <label>Nombre lista nueva</label>
+          <input id="newProductListName" placeholder="Ej: Productos precios y costos">
+        </div>
+        <div class="form-row" data-visible-when="productListAction:complement,replace">
+          <label>Lista existente</label>
+          <select id="loadProductList">${listOptions}</select>
+        </div>
+        <div class="form-row">
+          <label>Archivo Excel, CSV o TSV</label>
+          <input id="productLoadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+        </div>
+      </div>
+      ${sharedPreview}
+    `;
+    syncLoadActionFields();
+    return;
+  }
+  if (type === "hierarchyOnly") {
+    config.innerHTML = `
+      <div class="rule-note">La carga espera columnas de jerarquia. No busca productos ni codigos.</div>
+      <div class="form-row">
+        <label>Accion</label>
+        <select id="loadMode"><option value="new">Crear nueva jerarquia</option><option value="update">Complementar jerarquia existente</option><option value="replace">Reemplazar jerarquia existente</option></select>
+      </div>
+      <div class="form-row" data-visible-when="loadMode:update,replace">
+        <label>Jerarquia existente</label>
+        <select id="loadTargetHierarchy">${hierarchyOptions}</select>
+      </div>
+      <div class="form-row" data-visible-when="loadMode:new">
+        <label>Nombre de la nueva jerarquia</label>
+        <input id="loadName" placeholder="Ej: Jerarquia comercial 2026">
+      </div>
+      <div class="form-row">
+        <label>Archivo Excel, CSV o TSV</label>
+        <input id="loadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+      </div>
+      ${sharedPreview}
+    `;
+    syncLoadActionFields();
+    return;
+  }
+  if (type === "hierarchyProducts") {
+    config.innerHTML = `
+      <div class="rule-note" id="hierarchyProductHelp">Crea una jerarquia nueva desde el archivo y asigna los productos a la ruta mas profunda disponible.</div>
+      <div class="load-settings">
+        <div class="form-row">
+          <label>Que quieres hacer</label>
+          <select id="hierarchyProductAction"><option value="new">Crear jerarquia nueva</option><option value="complement">Complementar jerarquia existente</option><option value="replace">Reemplazar jerarquia existente</option></select>
+        </div>
+        <div class="form-row" data-visible-when="hierarchyProductAction:new">
+          <label>Nombre jerarquia nueva</label>
+          <input id="newHierarchyProductName" placeholder="Ej: Maestro productos mayo 2026">
+        </div>
+        <div class="form-row" data-visible-when="hierarchyProductAction:complement,replace">
+          <label>Jerarquia existente</label>
+          <select id="loadHierarchy">${hierarchyOptions}</select>
+        </div>
+        <div class="form-row">
+          <label>Archivo Excel, CSV o TSV</label>
+          <input id="loadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+        </div>
+      </div>
+      <div class="rule-note" id="productCodePolicy">Los codigos de producto no se duplican en la base: si un codigo ya existe, se reutiliza su ficha y se agrega esta nueva ubicacion.</div>
+      ${sharedPreview}
+    `;
+    syncLoadActionFields();
+    return;
+  }
+  if (type === "enrichProducts") {
+    config.innerHTML = `
+      <div class="rule-note">Carga una lista de productos con codigo, descripcion y atributos. Puedes crear una lista nueva, complementar una existente o reemplazar una existente.</div>
+      <div class="load-settings">
+        <div class="form-row">
+          <label>Que quieres hacer</label>
+          <select id="productListAction"><option value="new">Crear lista nueva</option><option value="complement">Complementar lista existente</option><option value="replace">Reemplazar lista existente</option></select>
+        </div>
+        <div class="form-row" data-visible-when="productListAction:complement,replace">
+          <label>Lista existente</label>
+          <select id="loadProductList">${listOptions}</select>
+        </div>
+        <div class="form-row" data-visible-when="productListAction:new">
+          <label>Nombre lista nueva</label>
+          <input id="newProductListName" placeholder="Ej: Maestro mayo 2026">
+        </div>
+        <div class="form-row">
+          <label>Archivo Excel, CSV o TSV</label>
+          <input id="productLoadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+        </div>
+      </div>
+      ${sharedPreview}
+    `;
+    syncLoadActionFields();
+    return;
+  }
+  config.innerHTML = `
+    <div class="rule-note">La carga puede venir con todo el maestro, pero la app compara codigos y agrega solo los nuevos. Los existentes quedan intactos y se informa el resumen.</div>
+    <div class="form-row">
+      <label>Lista donde se agregaran los nuevos</label>
+      <select id="loadLinkedList">${listOptions}</select>
+    </div>
+    <div class="form-row">
+      <label>Archivo Excel, CSV o TSV</label>
+      <input id="productLoadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+    </div>
+    <div class="rule-note">En esta carga solo se incorporan codigos nuevos. Los codigos que ya existan quedan registrados como omitidos para evitar duplicados.</div>
+    ${sharedPreview}
+  `;
+}
+
+function syncLoadActionFields() {
+  document.querySelectorAll("[data-visible-when]").forEach((block) => {
+    const [controlId, valuesText] = block.dataset.visibleWhen.split(":");
+    const control = $(controlId);
+    const values = valuesText.split(",");
+    const show = control && values.includes(control.value);
+    block.hidden = !show;
+    block.querySelectorAll("input, select, textarea").forEach((field) => {
+      field.disabled = !show;
+    });
+  });
+  const hierarchyShape = $("hierarchyLoadShape")?.value;
+  const hierarchyAction = $("hierarchyUnifiedAction")?.value || $("hierarchyProductAction")?.value;
+  const help = $("hierarchyProductHelp");
+  const productPolicy = $("productCodePolicy");
+  if (help) {
+    if (hierarchyShape === "only") {
+      help.textContent = "La jerarquia sola crea, complementa o reemplaza estructura. No toca productos ni listas.";
+    } else if (hierarchyAction) {
+      help.textContent = {
+        new: "Crea una jerarquia nueva desde el archivo y asigna los productos a la ruta mas profunda disponible.",
+        complement: "Agrega a la jerarquia existente solo los nodos, rutas o asignaciones que no existan.",
+        replace: "Borra la estructura de la jerarquia elegida y la reconstruye con el archivo antes de asignar productos."
+      }[hierarchyAction];
+    }
+  }
+  if (productPolicy && hierarchyAction) {
+    productPolicy.hidden = hierarchyShape !== "withProducts";
+  }
+}
+
+function openLoadModal() {
+  const selectedType = "hierarchy";
+  loadDebug.length = 0;
+  logLoad("modal", "Apertura de carga");
+  openModal("Cargar datos", `
+    <div class="rule-note">Elige una ruta simple. Jerarquia clasifica productos; Productos solo crea o actualiza listas. <strong>Build ${APP_BUILD}</strong></div>
+    <div class="load-maintenance">
+      <button class="ghost-btn" data-clear-local-state>Limpiar datos locales</button>
+      <button class="ghost-btn" data-copy-load-debug>Copiar debug</button>
+      <span>Usalo si una carga anterior dejo la app lenta o pegada. Borra solo el estado guardado en este navegador.</span>
+    </div>
+    <div class="load-grid">
+      ${Object.entries(loadTypes).map(([key, item]) => `
+        <button class="load-card ${key === selectedType ? "active" : ""}" data-load-type="${key}">
+          <strong>${item.title}</strong>
+          <span>${item.detail}</span>
+        </button>
+      `).join("")}
+    </div>
+    <div class="load-config" id="loadConfig"></div>
+    <details class="load-debug-box">
+      <summary>Diagnostico tecnico de esta carga</summary>
+      <div id="loadDebug" class="load-debug"></div>
+    </details>
+  `, () => {
+    return runLoadStep(prepareLoad);
+  }, { confirmText: "Leer archivo", keepOpen: true });
+  renderLoadConfig(selectedType);
+}
+
+async function prepareLoad() {
+  if (!pendingHierarchyLoad && !pendingProductLoad && $("modalConfirm")?.textContent === "Nueva carga") {
+    openLoadModal();
+    return;
+  }
+  updateProcessingStatus("Preparando decision de carga...");
+  if (pendingHierarchyLoad) {
+    const shape = pendingHierarchyLoad.loadOptions?.shape || ($("productCodeCol") ? "withProducts" : "only");
+    logLoad("prepareLoad pendiente", { pending: "hierarchy", shape, hasProductCodeCol: !!$("productCodeCol") });
+    if (shape === "withProducts") applyMappedHierarchyProductsLoad();
+    else applyMappedHierarchyLoad();
+    return;
+  }
+  if (pendingProductLoad) {
+    logLoad("prepareLoad pendiente", { pending: "products" });
+    applyMappedProductLoad(pendingProductLoad.type || "products");
+    return;
+  }
+  const type = selectedLoadType || "hierarchy";
+  logLoad("prepareLoad", {
+    type,
+    hierarchyLoadShape: $("hierarchyLoadShape")?.value || null,
+    hierarchyAction: $("hierarchyUnifiedAction")?.value || null,
+    productTableShape: $("productTableShape")?.value || null,
+    productAction: $("productListAction")?.value || null
+  });
+  if (type === "hierarchy") {
+    if (($("hierarchyLoadShape")?.value || "only") === "withProducts") await loadHierarchyProductsFromFile();
+    else await loadHierarchyFromFile();
+    return;
+  }
+  if (type === "products") {
+    await loadProductsFromFile("products");
+    return;
+  }
+  if (type === "hierarchyOnly") {
+    await loadHierarchyFromFile();
+    return;
+  }
+  if (type === "hierarchyProducts") {
+    await loadHierarchyProductsFromFile();
+    return;
+  }
+  if (type === "enrichProducts" || type === "newProductsLinked") {
+    await loadProductsFromFile(type);
+    return;
+  }
+  const config = $("loadConfig");
+  const item = loadTypes[type];
+  const resultText = {
+    hierarchyOnly: "Se revisara una estructura de jerarquia. Si esta correcta, se creara o actualizara una jerarquia editable sin tocar productos.",
+    hierarchyProducts: "Se revisara la jerarquia y los codigos asignados. Los productos existentes no se reemplazan; se agrega una nueva ubicacion en esa jerarquia.",
+    enrichProducts: "Se revisaran atributos contra la lista base. Las diferencias de nombre o datos quedaran como advertencias antes de aplicar.",
+    newProductsLinked: "Se compararan codigos contra la lista elegida. Solo se agregaran codigos nuevos; los existentes quedaran registrados como omitidos o enriquecibles."
+  }[type];
+  if (config) {
+    config.innerHTML = `
+      <div class="load-result">
+        <strong>${item.title}</strong><br>
+        ${resultText}
+      </div>
+      <div class="load-preview">
+        <div class="load-pill"><strong>14</strong> filas simuladas</div>
+        <div class="load-pill"><strong>3</strong> advertencias posibles</div>
+        <div class="load-pill"><strong>0</strong> cambios guardados</div>
+      </div>
+    `;
+  }
+  $("modalConfirm").textContent = "Volver a preparar";
+  addChange("Carga preparada", `${item.title}: lista para seleccionar archivo, previsualizar cambios y resolver advertencias.`);
+  renderChanges();
+}
+
+function clearLocalCatalogState() {
+  clearTimeout(saveTimer);
+  dataDirty = false;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn("No se pudo limpiar localStorage", error);
+  }
+  if ("indexedDB" in window) {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onerror = () => console.warn("No se pudo limpiar IndexedDB", request.error);
+  }
+  logLoad("limpieza", "Datos locales solicitados para limpiar");
+  const body = $("loadConfig") || $("modalBody");
+  if (body) {
+    body.insertAdjacentHTML("afterbegin", `
+      <div class="load-result">
+        <strong>Datos locales limpiados</strong><br>
+        Refresca la app. Volvera a abrir con la base inicial del archivo y sin cargas guardadas en este navegador.
+      </div>
+    `);
+  }
+}
+
+function parseDelimited(text) {
+  const delimiter = text.includes("\t") ? "\t" : ";";
+  const fallbackDelimiter = ",";
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  const activeDelimiter = text.split("\n")[0].includes(delimiter) ? delimiter : fallbackDelimiter;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+    if (char === '"' && quoted && next === '"') {
+      cell += '"';
+      i += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === activeDelimiter && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") i += 1;
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  row.push(cell.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function parseHtmlTable(text) {
+  const doc = new DOMParser().parseFromString(text, "text/html");
+  const table = doc.querySelector("table");
+  if (!table) return [];
+  return [...table.querySelectorAll("tr")]
+    .map((tr) => [...tr.querySelectorAll("th,td")].map((cell) => cell.textContent.trim()))
+    .filter((row) => row.some(Boolean));
+}
+
+function parseExcelXml(text) {
+  const doc = xmlDoc(text);
+  const rowEls = [...doc.getElementsByTagName("Row")];
+  if (!rowEls.length) return [];
+  return rowEls.map((rowEl) => {
+    const row = [];
+    [...rowEl.getElementsByTagName("Cell")].forEach((cell) => {
+      const indexAttr = cell.getAttribute("ss:Index") || cell.getAttribute("Index");
+      const targetIndex = indexAttr ? Number(indexAttr) - 1 : row.length;
+      const dataEl = cell.getElementsByTagName("Data")[0];
+      row[targetIndex] = dataEl ? dataEl.textContent.trim() : "";
+    });
+    return row;
+  }).filter((row) => row.some(Boolean));
+}
+
+function decodeWorkbookText(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder("utf-16le").decode(buffer);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder("utf-16be").decode(buffer);
+  const sampleLength = Math.min(bytes.length, 4000);
+  let oddNulls = 0;
+  let evenNulls = 0;
+  for (let i = 0; i < sampleLength; i += 1) {
+    if (bytes[i] === 0 && i % 2 === 0) evenNulls += 1;
+    if (bytes[i] === 0 && i % 2 === 1) oddNulls += 1;
+  }
+  if (oddNulls > sampleLength * 0.2) return new TextDecoder("utf-16le").decode(buffer);
+  if (evenNulls > sampleLength * 0.2) return new TextDecoder("utf-16be").decode(buffer);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buffer);
+  }
+}
+
+function looksLikeBinaryExcel(text) {
+  const sample = text.slice(0, 4000);
+  if (!sample) return false;
+  const replacementChars = (sample.match(/\uFFFD/g) || []).length;
+  const controlChars = (sample.match(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g) || []).length;
+  const hasTextStructure = /<html|<table|<Workbook|<ss:Workbook|[\t;,]\w+/i.test(sample);
+  return !hasTextStructure && (replacementChars > 20 || controlChars > sample.length * 0.05);
+}
+
+function readUInt16(bytes, offset) {
+  return bytes[offset] | (bytes[offset + 1] << 8);
+}
+
+function readUInt32(bytes, offset) {
+  return (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0;
+}
+
+function readInt32(bytes, offset) {
+  return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
+}
+
+function decodeExcelText(bytes, isUtf16) {
+  if (!bytes.length) return "";
+  return new TextDecoder(isUtf16 ? "utf-16le" : "windows-1252").decode(bytes);
+}
+
+function sectorOffset(sectorId, sectorSize) {
+  return (sectorId + 1) * sectorSize;
+}
+
+function readSectorChain(bytes, startSector, fat, sectorSize, maxBytes = Infinity) {
+  const parts = [];
+  let sector = startSector;
+  let guard = 0;
+  let read = 0;
+  while (sector >= 0 && sector < fat.length && sector !== 0xfffffffe && guard < fat.length + 10 && read < maxBytes) {
+    const offset = sectorOffset(sector, sectorSize);
+    const available = Math.min(sectorSize, bytes.length - offset, maxBytes - read);
+    if (available <= 0) break;
+    parts.push(bytes.slice(offset, offset + available));
+    read += available;
+    sector = fat[sector];
+    guard += 1;
+  }
+  const out = new Uint8Array(read);
+  let cursor = 0;
+  parts.forEach((part) => {
+    out.set(part, cursor);
+    cursor += part.length;
+  });
+  return out;
+}
+
+function extractOleWorkbookStream(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (!(bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0)) return null;
+  const sectorSize = 1 << readUInt16(bytes, 30);
+  const firstDirSector = readInt32(bytes, 48);
+  const difat = [];
+  for (let offset = 76; offset < 512; offset += 4) {
+    const sector = readUInt32(bytes, offset);
+    if (sector !== 0xffffffff) difat.push(sector);
+  }
+  const fat = [];
+  difat.forEach((fatSector) => {
+    const offset = sectorOffset(fatSector, sectorSize);
+    for (let i = 0; i < sectorSize; i += 4) fat.push(readUInt32(bytes, offset + i));
+  });
+  const directory = readSectorChain(bytes, firstDirSector, fat, sectorSize);
+  const entries = [];
+  for (let offset = 0; offset + 128 <= directory.length; offset += 128) {
+    const nameLength = readUInt16(directory, offset + 64);
+    if (!nameLength) continue;
+    const nameBytes = directory.slice(offset, offset + Math.max(0, nameLength - 2));
+    const name = decodeExcelText(nameBytes, true).replace(/\0/g, "");
+    entries.push({
+      name,
+      type: directory[offset + 66],
+      startSector: readInt32(directory, offset + 116),
+      size: readUInt32(directory, offset + 120)
+    });
+  }
+  const workbook = entries.find((entry) => /^(Workbook|Book)$/i.test(entry.name));
+  if (!workbook) return null;
+  return readSectorChain(bytes, workbook.startSector, fat, sectorSize, workbook.size);
+}
+
+class BiffChunkReader {
+  constructor(chunks) {
+    this.chunks = chunks.filter((chunk) => chunk?.length);
+    this.chunkIndex = 0;
+    this.offset = 0;
+  }
+  ensureChunk() {
+    while (this.chunkIndex < this.chunks.length && this.offset >= this.chunks[this.chunkIndex].length) {
+      this.chunkIndex += 1;
+      this.offset = 0;
+    }
+  }
+  readByte() {
+    this.ensureChunk();
+    if (this.chunkIndex >= this.chunks.length) return 0;
+    return this.chunks[this.chunkIndex][this.offset++];
+  }
+  readUInt16() {
+    const a = this.readByte();
+    const b = this.readByte();
+    return a | (b << 8);
+  }
+  readUInt32() {
+    const a = this.readByte();
+    const b = this.readByte();
+    const c = this.readByte();
+    const d = this.readByte();
+    return (a | (b << 8) | (c << 16) | (d << 24)) >>> 0;
+  }
+  readBytes(length) {
+    const out = new Uint8Array(length);
+    for (let i = 0; i < length; i += 1) out[i] = this.readByte();
+    return out;
+  }
+  skip(length) {
+    for (let i = 0; i < length; i += 1) this.readByte();
+  }
+  readChars(charCount, isUtf16) {
+    const bytes = [];
+    let wide = isUtf16;
+    for (let i = 0; i < charCount; i += 1) {
+      this.ensureChunk();
+      if (this.chunkIndex >= this.chunks.length) break;
+      if (this.offset >= this.chunks[this.chunkIndex].length) {
+        this.chunkIndex += 1;
+        this.offset = 0;
+        wide = !!(this.readByte() & 0x01);
+      }
+      if (wide) {
+        bytes.push(this.readByte(), this.readByte());
+      } else {
+        bytes.push(this.readByte());
+      }
+    }
+    return decodeExcelText(new Uint8Array(bytes), wide);
+  }
+}
+
+function parseBiffString(reader) {
+  const charCount = reader.readUInt16();
+  const flags = reader.readByte();
+  const isUtf16 = !!(flags & 0x01);
+  const hasRichText = !!(flags & 0x08);
+  const hasExt = !!(flags & 0x04);
+  const richRuns = hasRichText ? reader.readUInt16() : 0;
+  const extSize = hasExt ? reader.readUInt32() : 0;
+  const text = reader.readChars(charCount, isUtf16);
+  if (richRuns) reader.skip(richRuns * 4);
+  if (extSize) reader.skip(extSize);
+  return text;
+}
+
+function decodeRk(raw) {
+  const divide = raw & 0x01;
+  const isInteger = raw & 0x02;
+  let value;
+  if (isInteger) {
+    value = raw >> 2;
+  } else {
+    const buffer = new ArrayBuffer(8);
+    const view = new DataView(buffer);
+    view.setUint32(0, 0, true);
+    view.setUint32(4, raw & 0xfffffffc, true);
+    value = view.getFloat64(0, true);
+  }
+  return divide ? value / 100 : value;
+}
+
+function formatExcelNumber(value) {
+  if (!Number.isFinite(value)) return "";
+  if (Number.isInteger(value)) return String(value);
+  return String(value).replace(/\.?0+$/, "");
+}
+
+function parseBiffWorkbook(workbookBytes) {
+  const records = [];
+  for (let offset = 0; offset + 4 <= workbookBytes.length;) {
+    const type = readUInt16(workbookBytes, offset);
+    const length = readUInt16(workbookBytes, offset + 2);
+    const data = workbookBytes.slice(offset + 4, offset + 4 + length);
+    records.push({ type, data, offset });
+    offset += 4 + length;
+  }
+  const sheetOffsets = [];
+  const sstChunks = [];
+  let collectingSst = false;
+  records.forEach((record) => {
+    if (record.type === 0x0085 && record.data.length >= 8) sheetOffsets.push(readUInt32(record.data, 0));
+    if (record.type === 0x00fc) {
+      collectingSst = true;
+      sstChunks.push(record.data.slice(8));
+      return;
+    }
+    if (collectingSst && record.type === 0x003c) {
+      sstChunks.push(record.data);
+      return;
+    }
+    if (collectingSst && record.type !== 0x003c) collectingSst = false;
+  });
+  const sst = [];
+  if (sstChunks.length) {
+    const reader = new BiffChunkReader(sstChunks);
+    const uniqueCount = records.find((record) => record.type === 0x00fc)?.data ? readUInt32(records.find((record) => record.type === 0x00fc).data, 4) : 0;
+    for (let i = 0; i < uniqueCount; i += 1) sst.push(parseBiffString(reader));
+  }
+  const startOffset = sheetOffsets[0] || records.find((record) => record.type === 0x0809 && record.offset > 0)?.offset || 0;
+  const rows = [];
+  const setCell = (rowIndex, colIndex, value) => {
+    if (rowIndex == null || colIndex == null) return;
+    rows[rowIndex] = rows[rowIndex] || [];
+    rows[rowIndex][colIndex] = String(value ?? "").trim();
+  };
+  let inSheet = false;
+  let lastFormulaCell = null;
+  for (const record of records) {
+    if (record.offset < startOffset) continue;
+    if (record.type === 0x0809) {
+      if (inSheet) break;
+      inSheet = true;
+      continue;
+    }
+    if (!inSheet) continue;
+    const d = record.data;
+    if (record.type === 0x000a) break;
+    if (record.type === 0x00fd && d.length >= 10) {
+      setCell(readUInt16(d, 0), readUInt16(d, 2), sst[readUInt32(d, 6)] || "");
+    } else if (record.type === 0x0204 && d.length >= 8) {
+      const reader = new BiffChunkReader([d.slice(6)]);
+      setCell(readUInt16(d, 0), readUInt16(d, 2), parseBiffString(reader));
+    } else if (record.type === 0x0203 && d.length >= 14) {
+      setCell(readUInt16(d, 0), readUInt16(d, 2), formatExcelNumber(new DataView(d.buffer, d.byteOffset + 6, 8).getFloat64(0, true)));
+    } else if (record.type === 0x027e && d.length >= 10) {
+      setCell(readUInt16(d, 0), readUInt16(d, 2), formatExcelNumber(decodeRk(readUInt32(d, 6))));
+    } else if (record.type === 0x00bd && d.length >= 8) {
+      const row = readUInt16(d, 0);
+      const firstCol = readUInt16(d, 2);
+      const lastCol = readUInt16(d, d.length - 2);
+      for (let col = firstCol, pos = 4; col <= lastCol && pos + 6 <= d.length - 2; col += 1, pos += 6) {
+        setCell(row, col, formatExcelNumber(decodeRk(readUInt32(d, pos + 2))));
+      }
+    } else if (record.type === 0x0006 && d.length >= 14) {
+      const row = readUInt16(d, 0);
+      const col = readUInt16(d, 2);
+      lastFormulaCell = { row, col };
+      const result = d.slice(6, 14);
+      if (!(result[6] === 0xff && result[7] === 0xff)) {
+        setCell(row, col, formatExcelNumber(new DataView(result.buffer, result.byteOffset, 8).getFloat64(0, true)));
+      }
+    } else if (record.type === 0x0207 && lastFormulaCell) {
+      const reader = new BiffChunkReader([d]);
+      setCell(lastFormulaCell.row, lastFormulaCell.col, parseBiffString(reader));
+      lastFormulaCell = null;
+    } else if (record.type === 0x0205 && d.length >= 8) {
+      setCell(readUInt16(d, 0), readUInt16(d, 2), d[6] ? "TRUE" : "FALSE");
+    }
+  }
+  return rows
+    .map((row) => {
+      const last = row.reduce((max, value, index) => value ? index : max, -1);
+      return Array.from({ length: last + 1 }, (_, index) => row[index] || "");
+    })
+    .filter((row) => row.some(Boolean));
+}
+
+async function inflateRaw(bytes) {
+  if (!("DecompressionStream" in window)) {
+    throw new Error("Este navegador no permite descomprimir XLSX localmente. Usa Chrome/Edge actualizado o guarda como CSV.");
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function unzipXlsx(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const decoder = new TextDecoder("utf-8");
+  const files = {};
+  for (let i = bytes.length - 22; i >= 0; i -= 1) {
+    if (view.getUint32(i, true) !== 0x06054b50) continue;
+    const entries = view.getUint16(i + 10, true);
+    let offset = view.getUint32(i + 16, true);
+    for (let entry = 0; entry < entries; entry += 1) {
+      if (view.getUint32(offset, true) !== 0x02014b50) break;
+      const method = view.getUint16(offset + 10, true);
+      const compressedSize = view.getUint32(offset + 20, true);
+      const nameLength = view.getUint16(offset + 28, true);
+      const extraLength = view.getUint16(offset + 30, true);
+      const commentLength = view.getUint16(offset + 32, true);
+      const localOffset = view.getUint32(offset + 42, true);
+      const name = decoder.decode(bytes.slice(offset + 46, offset + 46 + nameLength));
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const compressed = bytes.slice(dataStart, dataStart + compressedSize);
+      const content = method === 0 ? compressed : await inflateRaw(compressed);
+      files[name] = decoder.decode(content);
+      offset += 46 + nameLength + extraLength + commentLength;
+    }
+    return files;
+  }
+  throw new Error("No se pudo abrir el archivo XLSX.");
+}
+
+function xmlDoc(text) {
+  return new DOMParser().parseFromString(text, "application/xml");
+}
+
+function cellRefToIndexes(ref) {
+  const match = /^([A-Z]+)(\d+)/i.exec(ref || "");
+  if (!match) return [0, 0];
+  const col = match[1].toUpperCase().split("").reduce((sum, char) => sum * 26 + char.charCodeAt(0) - 64, 0) - 1;
+  return [Number(match[2]) - 1, col];
+}
+
+function parseSharedStrings(xml) {
+  if (!xml) return [];
+  return [...xmlDoc(xml).getElementsByTagName("si")].map((si) => [...si.getElementsByTagName("t")].map((t) => t.textContent).join(""));
+}
+
+function parseSheetRows(xml, sharedStrings) {
+  const rows = [];
+  const doc = xmlDoc(xml);
+  let maxCol = 0;
+  [...doc.getElementsByTagName("row")].forEach((rowEl) => {
+    const row = [];
+    [...rowEl.getElementsByTagName("c")].forEach((cell) => {
+      const [, col] = cellRefToIndexes(cell.getAttribute("r"));
+      maxCol = Math.max(maxCol, col);
+      const type = cell.getAttribute("t");
+      const valueEl = cell.getElementsByTagName("v")[0] || cell.getElementsByTagName("t")[0];
+      let value = valueEl ? valueEl.textContent : "";
+      if (type === "s") value = sharedStrings[Number(value)] || "";
+      if (type === "inlineStr") value = [...cell.getElementsByTagName("t")].map((t) => t.textContent).join("");
+      row[col] = value.trim();
+    });
+    if (row.some(Boolean)) {
+      for (let i = 0; i <= maxCol; i += 1) row[i] = row[i] || "";
+      rows.push(row);
+    }
+  });
+  return rows;
+}
+
+async function readRowsFromFile(file) {
+  logLoad("archivo", { name: file.name, sizeMB: (file.size / 1024 / 1024).toFixed(2) });
+  updateProcessingStatus(`Leyendo archivo ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
+  const buffer = await file.arrayBuffer();
+  updateProcessingStatus("Archivo en memoria. Detectando formato...");
+  const signature = new Uint8Array(buffer.slice(0, 8));
+  const isZip = signature[0] === 0x50 && signature[1] === 0x4b;
+  const isOldBinaryXls = signature[0] === 0xd0 && signature[1] === 0xcf && signature[2] === 0x11 && signature[3] === 0xe0;
+  if (/\.xlsx$/i.test(file.name) || isZip) {
+    logLoad("formato", "xlsx/zip");
+    updateProcessingStatus("Leyendo XLSX. Descomprimiendo hojas...");
+    const files = await unzipXlsx(buffer);
+    updateProcessingStatus("XLSX descomprimido. Leyendo primera hoja...");
+    const sharedStrings = parseSharedStrings(files["xl/sharedStrings.xml"]);
+    const sheetName = Object.keys(files).find((name) => /^xl\/worksheets\/sheet\d+\.xml$/.test(name));
+    if (!sheetName) throw new Error("No encontre hojas dentro del XLSX.");
+    const rows = parseSheetRows(files[sheetName], sharedStrings);
+    logLoad("filas leidas", { sheetName, rows: rows.length, columns: rows.reduce((max, row) => Math.max(max, row.length), 0) });
+    updateProcessingStatus(`Hoja leida: ${rows.length} fila(s). Preparando vista previa...`);
+    return rows;
+  }
+  if (/\.xls$/i.test(file.name) && isOldBinaryXls) {
+    logLoad("formato", "xls binario");
+    updateProcessingStatus("Leyendo XLS antiguo/protegido...");
+    const workbook = extractOleWorkbookStream(buffer);
+    if (!workbook) throw new Error("No pude encontrar la hoja de datos dentro del XLS protegido.");
+    const rows = parseBiffWorkbook(workbook);
+    if (rows.length) {
+      updateProcessingStatus(`XLS leido: ${rows.length} fila(s). Preparando vista previa...`);
+      logLoad("filas leidas", { rows: rows.length, columns: rows.reduce((max, row) => Math.max(max, row.length), 0) });
+      return rows;
+    }
+    throw new Error("Pude abrir el XLS, pero no encontre filas legibles en la primera hoja.");
+  }
+  const text = decodeWorkbookText(buffer);
+  if (/\.xls$/i.test(file.name) && looksLikeBinaryExcel(text)) {
+    throw new Error("No pude leer este XLS como tabla. Probablemente es un Excel antiguo binario: abre el archivo en Excel, guardalo como .xlsx y vuelve a cargarlo.");
+  }
+  const trimmed = text.trimStart();
+  if (/\.xls$/i.test(file.name) && /^</.test(trimmed)) {
+    if (/<html|<table/i.test(trimmed)) {
+      const rows = parseHtmlTable(text);
+      if (rows.length) {
+        updateProcessingStatus(`Tabla HTML leida: ${rows.length} fila(s).`);
+        logLoad("filas leidas", { type: "html", rows: rows.length });
+        return rows;
+      }
+    }
+    if (/<Workbook|<ss:Workbook/i.test(trimmed)) {
+      const rows = parseExcelXml(text);
+      if (rows.length) {
+        updateProcessingStatus(`XML de Excel leido: ${rows.length} fila(s).`);
+        logLoad("filas leidas", { type: "xml", rows: rows.length });
+        return rows;
+      }
+    }
+  }
+  const rows = parseDelimited(text);
+  updateProcessingStatus(`Archivo de texto leido: ${rows.length} fila(s).`);
+  logLoad("filas leidas", { type: "texto", rows: rows.length });
+  return rows;
+}
+
+function normalizeHeader(value) {
+  return value.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeNodeText(value) {
+  return normalizeHeader(String(value || "").replace(/^\s*\d+\s*[-.)]*\s*/, ""));
+}
+
+function hierarchyColumnIndexes(headers) {
+  const normalized = headers.map(normalizeHeader);
+  const aliases = [
+    ["linea", "lineadenegocio", "negocio"],
+    ["sistema", "sistemas"],
+    ["categoria", "categorias"],
+    ["familia", "familias"]
+  ];
+  return aliases.map((group, index) => {
+    const found = normalized.findIndex((header) => group.includes(header));
+    return found >= 0 ? found : index;
+  });
+}
+
+function suggestedColumn(headers, aliases) {
+  const normalized = headers.map(normalizeHeader);
+  const found = normalized.findIndex((header) => aliases.some((alias) => header.includes(alias)));
+  return found >= 0 ? found : "";
+}
+
+function columnOptions(headers, selected = "") {
+  return [`<option value="">Sin columna</option>`]
+    .concat(headers.map((header, index) => `<option value="${index}" ${String(index) === String(selected) ? "selected" : ""}>${header || `Columna ${index + 1}`}</option>`))
+    .join("");
+}
+
+function roleColumnOptions(headers, role, selected = "") {
+  const allowed = headers
+    .map((header, index) => ({ header, index, role: $(`colRole${index}`)?.value || "ignore" }))
+    .filter((col) => col.role === role);
+  return [`<option value="">Sin columna</option>`]
+    .concat(allowed.map((col) => `<option value="${col.index}" ${String(col.index) === String(selected) ? "selected" : ""}>${col.header || `Columna ${excelColumnName(col.index)}`}</option>`))
+    .join("");
+}
+
+function refreshHierarchyMappingOptions() {
+  if (!pendingHierarchyLoad || !$("codeCol0")) return;
+  const { headers } = pendingHierarchyLoad;
+  levelNames.forEach((_, level) => {
+    const codeSelect = $(`codeCol${level}`);
+    const descSelect = $(`descCol${level}`);
+    const oldCode = codeSelect.value;
+    const oldDesc = descSelect.value;
+    codeSelect.innerHTML = roleColumnOptions(headers, "code", oldCode);
+    descSelect.innerHTML = roleColumnOptions(headers, "value", oldDesc);
+  });
+}
+
+function excelColumnName(index) {
+  let name = "";
+  let n = index + 1;
+  while (n > 0) {
+    const mod = (n - 1) % 26;
+    name = String.fromCharCode(65 + mod) + name;
+    n = Math.floor((n - mod) / 26);
+  }
+  return name;
+}
+
+function internalNodeCode(level, name) {
+  const base = normalizeHeader(name).slice(0, 18) || "nodo";
+  return `INT-L${level + 1}-${base}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
+}
+
+function hierarchyNodeKey(parent, level, name, code, hierarchyId) {
+  const cleanCode = normalizeHeader(code);
+  const cleanName = normalizeNodeText(name);
+  return `${hierarchyId}|${parent || ""}|${level}|${cleanCode ? `c:${cleanCode}` : `n:${cleanName}`}`;
+}
+
+function buildHierarchyNodeIndex(hierarchyId) {
+  const index = new Map();
+  data.nodes.forEach((node) => {
+    if (nodeHierarchy(node) !== hierarchyId) return;
+    if (node.code && !node.internalCode) {
+      index.set(hierarchyNodeKey(node.parent, node.level, node.name, node.code, hierarchyId), node.id);
+    }
+    index.set(hierarchyNodeKey(node.parent, node.level, node.name, "", hierarchyId), node.id);
+  });
+  return index;
+}
+
+function mergeNodeInto(duplicateId, keepId) {
+  data.nodes.forEach((node) => {
+    if (node.parent === duplicateId) node.parent = keepId;
+  });
+  data.products.forEach((product) => {
+    if (product.assignments) {
+      Object.keys(product.assignments).forEach((hierarchyId) => {
+        if (product.assignments[hierarchyId] === duplicateId) product.assignments[hierarchyId] = keepId;
+      });
+    }
+    if (product.node === duplicateId) product.node = keepId;
+    if (product.originalNode === duplicateId) product.originalNode = keepId;
+    if (product.suggestion === duplicateId) product.suggestion = keepId;
+  });
+  data.nodes.splice(0, data.nodes.length, ...data.nodes.filter((node) => node.id !== duplicateId));
+}
+
+function consolidateEquivalentNodes(hierarchyId) {
+  let merged = 0;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const seen = new Map();
+    const nodes = data.nodes
+      .filter((node) => nodeHierarchy(node) === hierarchyId)
+      .sort((a, b) => a.level - b.level);
+    for (let i = 0; i < nodes.length; i += 1) {
+      const node = nodes[i];
+      const nameKey = `${node.parent || ""}|${node.level}|n:${normalizeNodeText(node.name)}`;
+      const codeKey = node.code && !node.internalCode ? `${node.parent || ""}|${node.level}|c:${normalizeHeader(node.code)}` : "";
+      const existingId = seen.get(nameKey) || (codeKey ? seen.get(codeKey) : "");
+      if (existingId && existingId !== node.id) {
+        mergeNodeInto(node.id, existingId);
+        merged += 1;
+        changed = true;
+        break;
+      }
+      seen.set(nameKey, node.id);
+      if (codeKey) seen.set(codeKey, node.id);
+    }
+  }
+  return merged;
+}
+
+function upsertHierarchyNode(parent, level, name, code = "", hierarchyId = state.activeHierarchyId, nodeIndex = null) {
+  const cleanName = name.trim();
+  if (!cleanName) return parent;
+  const cleanCode = code.trim() || internalNodeCode(level, cleanName);
+  const key = hierarchyNodeKey(parent, level, cleanName, code, hierarchyId);
+  if (nodeIndex?.has(key)) return nodeIndex.get(key);
+  const existing = data.nodes.find((node) => {
+    const samePlace = nodeHierarchy(node) === hierarchyId && node.parent === parent && node.level === level;
+    if (!samePlace) return false;
+    const sameCode = code.trim() && node.code && normalizeHeader(node.code) === normalizeHeader(code);
+    const sameName = normalizeNodeText(node.name) === normalizeNodeText(cleanName);
+    return sameCode || sameName;
+  });
+  if (existing) {
+    if (nodeIndex) nodeIndex.set(key, existing.id);
+    return existing.id;
+  }
+  const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  data.nodes.push({ id, parent, level, name: cleanName, code: cleanCode, internalCode: !code.trim(), hierarchyId });
+  if (nodeIndex) {
+    nodeIndex.set(key, id);
+    nodeIndex.set(hierarchyNodeKey(parent, level, cleanName, "", hierarchyId), id);
+  }
+  return id;
+}
+
+async function loadHierarchyFromFile() {
+  const fileInput = $("loadFile");
+  const config = $("loadConfig");
+  const file = fileInput?.files?.[0];
+  if (pendingHierarchyLoad && $("descCol0")) {
+    if (pendingHierarchyLoad.loadOptions?.shape === "withProducts" || $("productCodeCol")) {
+      applyMappedHierarchyProductsLoad();
+      return;
+    }
+    applyMappedHierarchyLoad();
+    return;
+  }
+  if (!file) {
+    if (config) {
+      config.insertAdjacentHTML("beforeend", `<div class="load-result"><strong>Falta archivo</strong><br>Selecciona un CSV o TSV con columnas Linea, Sistema, Categoria y Familia.</div>`);
+    }
+    return;
+  }
+  const loadOptions = {
+    mode: ($("hierarchyUnifiedAction")?.value === "complement" ? "update" : $("hierarchyUnifiedAction")?.value) || $("loadMode")?.value || "new",
+    targetHierarchyId: $("hierarchyUnifiedTarget")?.value || $("loadTargetHierarchy")?.value || state.activeHierarchyId,
+    name: $("hierarchyUnifiedName")?.value.trim() || $("loadName")?.value.trim() || "",
+    shape: "only"
+  };
+  logLoad("carga jerarquia sola", loadOptions);
+  let rows = [];
+  try {
+    setProcessingState(true, "Leyendo archivo y detectando columnas...");
+    rows = await readRowsFromFile(file);
+  } catch (error) {
+    setProcessingState(false);
+    config.innerHTML = `<div class="load-result"><strong>No se pudo leer</strong><br>${error.message}</div>`;
+    return;
+  }
+  updateProcessingStatus(`Archivo leido. Preparando vista previa de ${rows.length} fila(s)...`);
+  if (rows.length < 2) {
+    setProcessingState(false);
+    config.innerHTML = `<div class="load-result"><strong>No se pudo leer</strong><br>El archivo no tiene filas suficientes para cargar una jerarquia.</div>`;
+    return;
+  }
+  const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  const normalizedRows = rows.map((row) => Array.from({ length: colCount }, (_, index) => row[index] || ""));
+  pendingHierarchyLoad = {
+    fileName: file.name,
+    headers: normalizedRows[0].map((header, index) => header || `Columna ${excelColumnName(index)}`),
+    rows: normalizedRows.slice(1),
+    previewRows: normalizedRows.slice(0, 9),
+    totalRows: normalizedRows.length,
+    colCount,
+    loadOptions
+  };
+  logLoad("mapeo preparado", { type: "hierarchyOnly", rows: pendingHierarchyLoad.rows.length, columns: colCount, headers: pendingHierarchyLoad.headers.slice(0, 12) });
+  setTimeout(() => {
+    renderHierarchyMapping();
+    setProcessingState(false);
+  }, 0);
+}
+
+function renderHierarchyMapping() {
+  const config = $("loadConfig");
+  const { fileName, headers, rows, previewRows, totalRows, colCount } = pendingHierarchyLoad;
+  const isHierarchyWithProducts = pendingHierarchyLoad.loadOptions?.shape === "withProducts";
+  const descSuggestions = [
+    suggestedColumn(headers, ["linea", "lineadenegocio"]),
+    suggestedColumn(headers, ["sistema"]),
+    suggestedColumn(headers, ["categoria"]),
+    suggestedColumn(headers, ["familia"])
+  ];
+  const codeSuggestions = [
+    suggestedColumn(headers, ["codigolinea", "codlinea", "idlinea"]),
+    suggestedColumn(headers, ["codigosistema", "codsistema", "idsistema"]),
+    suggestedColumn(headers, ["codigocategoria", "codcategoria", "idcategoria"]),
+    suggestedColumn(headers, ["codigofamilia", "codfamilia", "idfamilia"])
+  ];
+  config.innerHTML = `
+    <div class="load-flow">
+      <span>1. Tipo de carga</span>
+      <span class="active">2. Archivo leido</span>
+      <span class="active">3. Mapear columnas</span>
+      <span>4. Cargar</span>
+    </div>
+    <div class="load-result">
+      <strong>Archivo leido: ${fileName}</strong><br>
+      Detecte ${colCount} columna(s) y ${totalRows} fila(s) incluyendo encabezado. Abajo ves las columnas tal como vienen en el archivo.
+    </div>
+    <div class="excel-preview-wrap">
+      <table class="excel-preview">
+        <thead>
+          <tr>
+            <th></th>
+            ${headers.map((_, index) => `<th>${excelColumnName(index)}</th>`).join("")}
+          </tr>
+          <tr>
+            <th>Columna</th>
+            ${headers.map((header, index) => `
+              <th>
+                <div class="excel-col-title">${header || `Columna ${excelColumnName(index)}`}</div>
+                <select id="colRole${index}">
+                  <option value="ignore">No cargar</option>
+                  <option value="code">Codigo</option>
+                  <option value="value">Valor</option>
+                </select>
+              </th>
+            `).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${previewRows.map((row, rowIndex) => `
+            <tr>
+              <th>${rowIndex + 1}</th>
+              ${headers.map((_, colIndex) => `<td>${row[colIndex] || ""}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="rule-note">Primero marca visualmente si una columna es codigo, valor o no se carga. Luego relaciona abajo el codigo con su valor para cada nivel.</div>
+    ${isHierarchyWithProducts ? `<div class="load-error"><strong>Modo activo: Jerarquia con productos</strong><span>Esta carga debe terminar con productos asociados. Si el resultado queda en cero, la app lo tratara como error de carga.</span></div>` : ""}
+    <div class="load-config">
+      ${levelNames.map((level, index) => `
+        <div class="load-map-row">
+          <strong>${index + 1}. ${level}</strong>
+          <label>Codigo
+            <select id="codeCol${index}"></select>
+          </label>
+          <label>Descripcion
+            <select id="descCol${index}"></select>
+          </label>
+        </div>
+      `).join("")}
+    </div>
+    <div class="rule-note">Si un nivel no tiene codigo, la app le asignara un codigo interno. Si no quieres cargar un nivel, deja su descripcion en blanco.</div>
+  `;
+  codeSuggestions.forEach((col) => { if (col !== "") $(`colRole${col}`).value = "code"; });
+  descSuggestions.forEach((col) => { if (col !== "") $(`colRole${col}`).value = "value"; });
+  refreshHierarchyMappingOptions();
+  codeSuggestions.forEach((col, index) => { if (col !== "") $(`codeCol${index}`).value = String(col); });
+  descSuggestions.forEach((col, index) => { if (col !== "") $(`descCol${index}`).value = String(col); });
+  $("modalConfirm").textContent = "Cargar jerarquia";
+}
+
+function applyMappedHierarchyLoad() {
+  const startedAt = performance.now();
+  const config = $("loadConfig");
+  const { fileName, rows } = pendingHierarchyLoad;
+  const options = pendingHierarchyLoad.loadOptions || {};
+  const mode = options.mode || $("loadMode")?.value || "new";
+  const existingHierarchyId = options.targetHierarchyId || $("loadTargetHierarchy")?.value || state.activeHierarchyId;
+  const newHierarchyId = `h-${Date.now()}`;
+  const hierarchyId = mode === "new" ? newHierarchyId : existingHierarchyId;
+  const hierarchyName = options.name || $("loadName")?.value.trim() || fileName.replace(/\.[^.]+$/, "");
+  const mappings = levelNames.map((_, level) => ({
+    code: $(`codeCol${level}`).value,
+    desc: $(`descCol${level}`).value
+  }));
+  logLoad("aplicar jerarquia sola", { mode, hierarchyId, hierarchyName, rows: rows.length, mappings });
+  if (!mappings.some((mapping) => mapping.desc !== "")) {
+    config.insertAdjacentHTML("beforeend", `<div class="load-result"><strong>Falta descripcion</strong><br>Selecciona al menos una columna de descripcion.</div>`);
+    return;
+  }
+  let added = 0;
+  let touched = 0;
+  recordHistoryForLoad("cargar jerarquia", rows.length);
+  if (mode === "replace") {
+    const removeIds = new Set(data.nodes.filter((node) => nodeHierarchy(node) === hierarchyId).map((node) => node.id));
+    data.nodes = data.nodes.filter((node) => !removeIds.has(node.id));
+    data.products.forEach((product) => {
+      if (product.assignments) delete product.assignments[hierarchyId];
+    });
+  }
+  if (mode === "new") {
+    data.hierarchies.push({ id: hierarchyId, name: hierarchyName, status: "Editable", products: 0 });
+  }
+  processHierarchyRows(rows, mappings, hierarchyId, (result) => {
+    added = result.added;
+    touched = result.touched;
+    const merged = consolidateEquivalentNodes(hierarchyId);
+    finishHierarchyLoad(config, fileName, hierarchyId, added, touched, performance.now() - startedAt, merged);
+  });
+}
+
+function processHierarchyRows(rows, mappings, hierarchyId, done) {
+  let added = 0;
+  let touched = 0;
+  let index = 0;
+  const total = rows.length;
+  const nodeIndex = buildHierarchyNodeIndex(hierarchyId);
+  setProcessingState(true, progressMessage("Cargando jerarquia", 0, total, "Creando nodos sin duplicar."));
+  const step = () => {
+    const end = Math.min(index + 1000, total);
+    for (; index < end; index += 1) {
+      const row = rows[index];
+      let parent = null;
+      let hasLevel = false;
+      mappings.forEach((mapping, level) => {
+        if (mapping.desc === "") return;
+        const before = data.nodes.length;
+        const value = row[Number(mapping.desc)] || "";
+        const code = mapping.code === "" ? "" : row[Number(mapping.code)] || "";
+        if (value.trim()) {
+          hasLevel = true;
+          parent = upsertHierarchyNode(parent, level, value, code, hierarchyId, nodeIndex);
+          if (data.nodes.length > before) added += 1;
+        }
+      });
+      if (hasLevel) touched += 1;
+    }
+    updateProcessingStatus(progressMessage("Cargando jerarquia", index, total, "Creando nodos sin duplicar."));
+    if (index < total) {
+      setTimeout(step, 0);
+    } else {
+      setProcessingState(false);
+      done({ added, touched });
+    }
+  };
+  setTimeout(step, 0);
+}
+
+function finishHierarchyLoad(config, fileName, hierarchyId, added, touched, elapsedMs = 0, merged = 0) {
+  setProcessingState(false);
+  state.activeHierarchyId = hierarchyId;
+  state.selectedNode = null;
+  state.selectedProducts.clear();
+  state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
+  const finalNodeCount = data.nodes.filter((node) => nodeHierarchy(node) === hierarchyId).length;
+  const finalProductCount = data.products.filter((product) => product.assignments?.[hierarchyId]).length;
+  logLoad("resultado jerarquia sola", { hierarchyId, added, touched, finalNodeCount, finalProductCount, activeHierarchyId: state.activeHierarchyId });
+  addChange("Jerarquia cargada", `${fileName}: ${added} nodo(s) nuevos desde ${touched} fila(s)${merged ? `; ${merged} duplicado(s) consolidados` : ""}.`);
+  config.innerHTML = `
+    <div class="load-flow">
+      <span>1. Tipo de carga</span>
+      <span>2. Archivo leido</span>
+      <span>3. Columnas mapeadas</span>
+      <span class="active">4. Cargado</span>
+    </div>
+    <div class="load-result">
+      <strong>Jerarquia cargada</strong><br>
+      Se agregaron ${added} nodo(s) nuevos desde ${touched} fila(s). ${merged ? `Se consolidaron ${merged} nodo(s) equivalentes.` : "No se detectaron duplicados equivalentes."}
+    </div>
+    <div class="load-preview">
+      <div class="load-pill"><strong>${pendingHierarchyLoad?.totalRows || touched}</strong> filas del archivo</div>
+      <div class="load-pill"><strong>${added}</strong> nodos nuevos</div>
+      <div class="load-pill"><strong>${finalNodeCount}</strong> nodos en jerarquia</div>
+      <div class="load-pill"><strong>${finalProductCount}</strong> productos en jerarquia</div>
+      <div class="load-pill"><strong>${merged}</strong> duplicados consolidados</div>
+      <div class="load-pill"><strong>${(elapsedMs / 1000).toFixed(1)}s</strong> tiempo de carga</div>
+    </div>
+    ${finalProductCount === 0 ? `<div class="rule-note"><strong>Diagnostico:</strong> esta carga fue de <strong>Jerarquia sola</strong>, por eso no hay productos asociados. Si esperabas productos, debes elegir <strong>Jerarquia con productos</strong> antes de leer el archivo.</div>` : ""}
+  `;
+  $("modalConfirm").textContent = "Nueva carga";
+  pendingHierarchyLoad = null;
+  renderChanges();
+  renderAll();
+}
+
+async function loadHierarchyProductsFromFile() {
+  const fileInput = $("loadFile");
+  const config = $("loadConfig");
+  const file = fileInput?.files?.[0];
+  if (pendingHierarchyLoad && $("productCodeCol")) {
+    applyMappedHierarchyProductsLoad();
+    return;
+  }
+  if (!file) {
+    config.insertAdjacentHTML("beforeend", `<div class="load-result"><strong>Falta archivo</strong><br>Selecciona un Excel, CSV o TSV con jerarquia y productos.</div>`);
+    return;
+  }
+  const loadOptions = {
+    action: $("hierarchyUnifiedAction")?.value || $("hierarchyProductAction")?.value || "new",
+    targetHierarchyId: $("hierarchyUnifiedTarget")?.value || $("loadHierarchy")?.value || state.activeHierarchyId,
+    name: $("hierarchyUnifiedName")?.value.trim() || $("newHierarchyProductName")?.value.trim() || "",
+    shape: "withProducts"
+  };
+  logLoad("carga jerarquia con productos", loadOptions);
+  let rows = [];
+  try {
+    setProcessingState(true, "Leyendo archivo y buscando niveles de jerarquia...");
+    rows = await readRowsFromFile(file);
+  } catch (error) {
+    setProcessingState(false);
+    config.innerHTML = `<div class="load-result"><strong>No se pudo leer</strong><br>${error.message}</div>`;
+    return;
+  }
+  updateProcessingStatus(`Archivo leido. Preparando mapeo de ${rows.length} fila(s)...`);
+  if (rows.length < 2) {
+    setProcessingState(false);
+    config.innerHTML = `<div class="load-result"><strong>No se pudo leer</strong><br>El archivo no tiene filas suficientes.</div>`;
+    return;
+  }
+  const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  const normalizedRows = rows.map((row) => Array.from({ length: colCount }, (_, index) => row[index] || ""));
+  pendingHierarchyLoad = {
+    fileName: file.name,
+    headers: normalizedRows[0].map((header, index) => header || `Columna ${excelColumnName(index)}`),
+    rows: normalizedRows.slice(1),
+    previewRows: normalizedRows.slice(0, 9),
+    totalRows: normalizedRows.length,
+    colCount,
+    loadOptions
+  };
+  logLoad("mapeo preparado", { type: "hierarchyProducts", rows: pendingHierarchyLoad.rows.length, columns: colCount, headers: pendingHierarchyLoad.headers.slice(0, 12) });
+  setTimeout(() => {
+    renderHierarchyProductsMapping();
+    setProcessingState(false);
+  }, 0);
+}
+
+function renderHierarchyProductsMapping() {
+  renderHierarchyMapping();
+  const config = $("loadConfig");
+  const { headers } = pendingHierarchyLoad;
+  const codeSuggestion = suggestedColumn(headers, ["codigo", "codproducto", "sku", "idproducto"]);
+  const descSuggestion = suggestedColumn(headers, ["descripcion", "nombreproducto", "producto", "glosa"]);
+  config.insertAdjacentHTML("beforeend", `
+    <div class="load-config">
+      <div class="load-map-row">
+        <strong>Producto</strong>
+        <label>Codigo
+          <select id="productCodeCol">${columnOptions(headers, codeSuggestion)}</select>
+        </label>
+        <label>Descripcion
+          <select id="productDescCol">${columnOptions(headers, descSuggestion)}</select>
+        </label>
+      </div>
+    </div>
+    <div class="rule-note">Cada producto se asignara al nodo mas profundo disponible en su fila.</div>
+  `);
+  if (codeSuggestion === "") {
+    config.insertAdjacentHTML("beforeend", `
+      <div class="load-error">
+        <strong>No detecte automaticamente el codigo de producto</strong>
+        <span>Debes seleccionar manualmente la columna de codigo de producto antes de cargar. Sin esa columna, la app no puede asociar productos a la jerarquia.</span>
+      </div>
+    `);
+  }
+  logLoad("producto detectado", { codeSuggestion, descSuggestion, codeHeader: headers[codeSuggestion] || null, descHeader: headers[descSuggestion] || null });
+  $("modalConfirm").textContent = "Cargar jerarquia y productos";
+}
+
+function applyMappedHierarchyProductsLoad() {
+  const startedAt = performance.now();
+  const config = $("loadConfig");
+  const { fileName, rows } = pendingHierarchyLoad;
+  const options = pendingHierarchyLoad.loadOptions || {};
+  const action = options.action || $("hierarchyProductAction")?.value || "new";
+  const existingHierarchyId = options.targetHierarchyId || $("loadHierarchy")?.value || state.activeHierarchyId;
+  const hierarchyId = action === "new" ? `h-${Date.now()}` : existingHierarchyId;
+  const hierarchyName = options.name || $("newHierarchyProductName")?.value.trim() || fileName.replace(/\.[^.]+$/, "");
+  const mode = action === "replace" ? "replace" : "complement";
+  const productCodeCol = $("productCodeCol").value;
+  const productDescCol = $("productDescCol").value;
+  if (productCodeCol === "") {
+    config.insertAdjacentHTML("beforeend", `<div class="load-result"><strong>Falta codigo de producto</strong><br>Selecciona la columna del codigo de producto.</div>`);
+    logLoad("bloqueado", "Falta codigo de producto");
+    return;
+  }
+  const mappings = levelNames.map((_, level) => ({ code: $(`codeCol${level}`).value, desc: $(`descCol${level}`).value }));
+  if (!mappings.some((mapping) => mapping.desc !== "")) {
+    config.insertAdjacentHTML("beforeend", `<div class="load-error"><strong>Falta ruta de jerarquia</strong><span>Selecciona al menos una columna de descripcion de nivel. Sin ruta, los productos no tienen donde ubicarse.</span></div>`);
+    logLoad("bloqueado", "Falta ruta de jerarquia");
+    return;
+  }
+  logLoad("aplicar jerarquia con productos", { action, hierarchyId, hierarchyName, rows: rows.length, productCodeCol, productDescCol, productCodeHeader: pendingHierarchyLoad.headers[productCodeCol] || null, mappings });
+  recordHistoryForLoad("cargar jerarquia con productos", rows.length);
+  if (action === "new") {
+    data.hierarchies.push({ id: hierarchyId, name: hierarchyName, status: "Editable", products: 0 });
+  }
+  if (mode === "replace") {
+    const removeIds = new Set(data.nodes.filter((node) => nodeHierarchy(node) === hierarchyId).map((node) => node.id));
+    data.nodes = data.nodes.filter((node) => !removeIds.has(node.id));
+    data.products.forEach((product) => {
+      if (product.assignments) delete product.assignments[hierarchyId];
+    });
+  }
+  processHierarchyProductRows(rows, mappings, hierarchyId, productCodeCol, productDescCol, (result) => {
+    setProcessingState(false);
+    const mergedNodes = consolidateEquivalentNodes(hierarchyId);
+    state.activeHierarchyId = hierarchyId;
+    state.selectedNode = null;
+    state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
+    const omitted = result.skippedNoCode + result.skippedNoNode;
+    const finalAssigned = data.products.filter((product) => product.assignments?.[hierarchyId]).length;
+    logLoad("resultado jerarquia con productos", { hierarchyId, uniqueAssigned: result.uniqueAssigned, finalAssigned, addedProducts: result.addedProducts, reusedProducts: result.reusedProducts, skippedNoCode: result.skippedNoCode, skippedNoNode: result.skippedNoNode, mergedNodes, samples: result.samples });
+    const productLoadFailed = finalAssigned === 0 || result.uniqueAssigned === 0;
+    addChange("Jerarquia con productos cargada", `${fileName}: ${result.uniqueAssigned} codigo(s) ubicados, ${result.addedProducts} nuevo(s), ${result.reusedProducts} reutilizado(s), ${omitted} fila(s) omitida(s)${mergedNodes ? `, ${mergedNodes} nodo(s) duplicados consolidados` : ""}.`);
+    config.innerHTML = `
+      <div class="load-flow">
+        <span>1. Tipo de carga</span>
+        <span>2. Archivo leido</span>
+        <span>3. Columnas mapeadas</span>
+        <span class="active">4. Cargado</span>
+      </div>
+      <div class="load-result">
+        <strong>${productLoadFailed ? "La jerarquia cargo, pero los productos no" : "Jerarquia con productos cargada"}</strong><br>
+        Se ubicaron <strong>${finalAssigned}</strong> producto(s) en esta jerarquia.
+      </div>
+      <div class="load-preview">
+        <div class="load-pill"><strong>${result.totalRows}</strong> filas revisadas</div>
+        <div class="load-pill"><strong>${result.addedProducts}</strong> productos nuevos</div>
+        <div class="load-pill"><strong>${result.reusedProducts}</strong> productos ya existentes reutilizados</div>
+        <div class="load-pill"><strong>${result.duplicateRows}</strong> filas con codigo repetido</div>
+        <div class="load-pill"><strong>${omitted}</strong> filas omitidas</div>
+        <div class="load-pill"><strong>${result.addedNodes}</strong> nodos nuevos</div>
+        <div class="load-pill"><strong>${mergedNodes}</strong> duplicados consolidados</div>
+        <div class="load-pill"><strong>${finalAssigned}</strong> productos en jerarquia</div>
+        <div class="load-pill"><strong>${((performance.now() - startedAt) / 1000).toFixed(1)}s</strong> tiempo de carga</div>
+      </div>
+      ${productLoadFailed ? `<div class="load-error"><strong>No quedaron productos asociados</strong><span>Esto es un error de carga, no una carga exitosa. Revisa en el diagnostico si hubo filas sin codigo (${result.skippedNoCode}) o sin ruta (${result.skippedNoNode}).</span></div>` : ""}
+      ${omitted || result.duplicateRows ? `
+        <div class="rule-note">
+          Omitidas: ${result.skippedNoCode} sin codigo de producto y ${result.skippedNoNode} sin ruta de jerarquia. 
+          Repetidas: ${result.duplicateRows} fila(s) traian un codigo ya visto en el mismo archivo; queda una sola ubicacion final por codigo dentro de esta jerarquia.
+        </div>
+      ` : ""}
+    `;
+    pendingHierarchyLoad = null;
+    $("modalConfirm").textContent = "Nueva carga";
+    renderChanges();
+    renderAll();
+  });
+}
+
+function processHierarchyProductRows(rows, mappings, hierarchyId, productCodeCol, productDescCol, done) {
+  let addedNodes = 0;
+  let addedProducts = 0;
+  let reusedProducts = 0;
+  let duplicateRows = 0;
+  let skippedNoCode = 0;
+  let skippedNoNode = 0;
+  let index = 0;
+  const total = rows.length;
+  const nodeIndex = buildHierarchyNodeIndex(hierarchyId);
+  const productIndex = new Map(data.products.map((product) => [product.id, product]));
+  const existingCodesBeforeLoad = new Set(productIndex.keys());
+  const assignedCodes = new Set();
+  const reusedCodes = new Set();
+  const samples = { noCode: [], noNode: [], assigned: [] };
+  setProcessingState(true, progressMessage("Cargando jerarquia y productos", 0, total, "Asignando cada producto a su ruta."));
+  const step = () => {
+    const end = Math.min(index + 1000, total);
+    for (; index < end; index += 1) {
+      const row = rows[index];
+      let parent = null;
+      let deepest = null;
+      mappings.forEach((mapping, level) => {
+        if (mapping.desc === "") return;
+        const value = row[Number(mapping.desc)] || "";
+        const code = mapping.code === "" ? "" : row[Number(mapping.code)] || "";
+        if (value.trim()) {
+          const before = data.nodes.length;
+          parent = upsertHierarchyNode(parent, level, value, code, hierarchyId, nodeIndex);
+          deepest = parent;
+          if (data.nodes.length > before) addedNodes += 1;
+        }
+      });
+      const productCode = cellText(row[Number(productCodeCol)]);
+      if (!productCode) {
+        if (samples.noCode.length < 3) samples.noCode.push(index + 2);
+        skippedNoCode += 1;
+        continue;
+      }
+      if (!deepest) {
+        if (samples.noNode.length < 3) samples.noNode.push({ row: index + 2, code: productCode });
+        skippedNoNode += 1;
+        continue;
+      }
+      if (assignedCodes.has(productCode)) duplicateRows += 1;
+      let product = productIndex.get(productCode);
+      if (!product) {
+        product = { id: productCode, name: productDescCol === "" ? productCode : (cellText(row[Number(productDescCol)]) || productCode), originalNode: null, node: deepest, status: "pending", price: 0, listIds: ["base"], listAttributes: {}, assignments: {} };
+        data.products.push(product);
+        productIndex.set(productCode, product);
+        addedProducts += 1;
+      } else if (existingCodesBeforeLoad.has(productCode) && !reusedCodes.has(productCode)) {
+        reusedProducts += 1;
+        reusedCodes.add(productCode);
+      }
+      product.assignments = product.assignments || {};
+      product.assignments[hierarchyId] = deepest;
+      assignedCodes.add(productCode);
+      if (samples.assigned.length < 3) samples.assigned.push({ row: index + 2, code: productCode, node: deepest });
+    }
+    updateProcessingStatus(progressMessage("Cargando jerarquia y productos", index, total, "Asignando cada producto a su ruta."));
+    if (index < total) setTimeout(step, 0);
+    else {
+      setProcessingState(false);
+      done({
+        addedNodes,
+        assigned: assignedCodes.size,
+        uniqueAssigned: assignedCodes.size,
+        addedProducts,
+        reusedProducts,
+        duplicateRows,
+        skippedNoCode,
+        skippedNoNode,
+        totalRows: total,
+        samples
+      });
+    }
+  };
+  setTimeout(step, 0);
+}
+
+async function loadProductsFromFile(type) {
+  const fileInput = $("productLoadFile");
+  const config = $("loadConfig");
+  const file = fileInput?.files?.[0];
+  if (pendingProductLoad && $("productCodeCol")) {
+    applyMappedProductLoad(type);
+    return;
+  }
+  if (!file) {
+    config.insertAdjacentHTML("beforeend", `<div class="load-result"><strong>Falta archivo</strong><br>Selecciona un Excel, CSV o TSV con productos.</div>`);
+    return;
+  }
+  const loadOptions = {
+    action: $("productListAction")?.value || (type === "newProductsLinked" ? "complement" : "new"),
+    targetListId: $("loadProductList")?.value || $("loadLinkedList")?.value || "base",
+    name: $("newProductListName")?.value.trim() || "",
+    tableShape: $("productTableShape")?.value || "attributes"
+  };
+  let rows = [];
+  try {
+    setProcessingState(true, "Leyendo lista de productos y atributos...");
+    rows = await readRowsFromFile(file);
+  } catch (error) {
+    setProcessingState(false);
+    config.innerHTML = `<div class="load-result"><strong>No se pudo leer</strong><br>${error.message}</div>`;
+    return;
+  }
+  updateProcessingStatus(`Archivo leido. Preparando columnas de ${rows.length} fila(s)...`);
+  if (rows.length < 2) {
+    setProcessingState(false);
+    config.innerHTML = `<div class="load-result"><strong>No se pudo leer</strong><br>El archivo no tiene filas suficientes.</div>`;
+    return;
+  }
+  const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  const headerRow = rows[0] || [];
+  const bodyRows = rows.slice(1);
+  pendingProductLoad = {
+    type,
+    fileName: file.name,
+    headers: Array.from({ length: colCount }, (_, index) => headerRow[index] || `Columna ${excelColumnName(index)}`),
+    rows: bodyRows,
+    previewRows: bodyRows.slice(0, 9),
+    totalRows: rows.length,
+    colCount,
+    loadOptions
+  };
+  setTimeout(() => {
+    renderProductMapping();
+    setProcessingState(false);
+  }, 0);
+}
+
+function renderProductMapping() {
+  const config = $("loadConfig");
+  const { fileName, headers, rows, previewRows, totalRows, colCount } = pendingProductLoad;
+  const tableShape = pendingProductLoad.loadOptions?.tableShape || "attributes";
+  const codeSuggestion = suggestedColumn(headers, ["codigo", "codproducto", "sku", "idproducto"]);
+  const descSuggestion = suggestedColumn(headers, ["descripcion", "nombre", "producto", "glosa"]);
+  config.innerHTML = `
+    <div class="load-flow">
+      <span>1. Tipo de carga</span>
+      <span class="active">2. Archivo leido</span>
+      <span class="active">3. Mapear columnas</span>
+      <span>4. Cargar lista</span>
+    </div>
+      <div class="load-result">
+        <strong>Archivo leido: ${fileName}</strong><br>
+      Detecte ${colCount} columna(s) y ${totalRows} fila(s) incluyendo encabezado. La primera fila se usa solo como nombre de columna.
+    </div>
+    <div class="excel-preview-wrap">
+      <table class="excel-preview">
+        <thead>
+          <tr><th></th>${headers.map((_, index) => `<th>${excelColumnName(index)}</th>`).join("")}</tr>
+          <tr>
+            <th>Columna</th>
+            ${headers.map((header, index) => `
+              <th>
+                <div class="excel-col-title">${header}</div>
+                <select id="productRole${index}">
+                  <option value="ignore">No cargar</option>
+                  <option value="code">Codigo</option>
+                  <option value="description">Descripcion</option>
+                  <option value="attribute">Atributo</option>
+                </select>
+              </th>
+            `).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${previewRows.map((row, rowIndex) => `
+            <tr><th>${rowIndex + 2}</th>${headers.map((_, colIndex) => `<td>${row[colIndex] || ""}</td>`).join("")}</tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="load-config">
+      <div class="load-map-row">
+        <strong>Producto</strong>
+        <label>Codigo
+          <select id="productCodeCol"></select>
+        </label>
+        <label>Descripcion
+          <select id="productDescCol"></select>
+        </label>
+      </div>
+    </div>
+    <div class="rule-note">Marca arriba que columna es Codigo y cual es Descripcion. Abajo queda la relacion final que se cargara.</div>
+  `;
+  headers.forEach((_, index) => {
+    if (String(index) === String(codeSuggestion)) $(`productRole${index}`).value = "code";
+    else if (String(index) === String(descSuggestion)) $(`productRole${index}`).value = "description";
+    else $(`productRole${index}`).value = tableShape === "attributes" ? "attribute" : "ignore";
+  });
+  refreshProductMappingOptions();
+  if (codeSuggestion !== "") $("productCodeCol").value = String(codeSuggestion);
+  if (descSuggestion !== "") $("productDescCol").value = String(descSuggestion);
+  $("modalConfirm").textContent = "Cargar productos";
+}
+
+function productRoleColumnOptions(headers, role, selected = "") {
+  const allowed = headers
+    .map((header, index) => ({ header, index, role: $(`productRole${index}`)?.value || "ignore" }))
+    .filter((col) => col.role === role);
+  return [`<option value="">Sin columna</option>`]
+    .concat(allowed.map((col) => `<option value="${col.index}" ${String(col.index) === String(selected) ? "selected" : ""}>${col.header || `Columna ${excelColumnName(col.index)}`}</option>`))
+    .join("");
+}
+
+function refreshProductMappingOptions() {
+  if (!pendingProductLoad || !$("productCodeCol")) return;
+  const { headers } = pendingProductLoad;
+  const codeSelect = $("productCodeCol");
+  const descSelect = $("productDescCol");
+  const oldCode = codeSelect.value;
+  const oldDesc = descSelect.value;
+  codeSelect.innerHTML = productRoleColumnOptions(headers, "code", oldCode);
+  descSelect.innerHTML = productRoleColumnOptions(headers, "description", oldDesc);
+}
+
+function applyMappedProductLoad(type) {
+  const startedAt = performance.now();
+  const config = $("loadConfig");
+  const { fileName, headers, rows } = pendingProductLoad;
+  const options = pendingProductLoad.loadOptions || {};
+  const action = options.action || $("productListAction")?.value || (type === "newProductsLinked" ? "complement" : "new");
+  let listId = options.targetListId || $("loadProductList")?.value || $("loadLinkedList")?.value || "base";
+  if (action === "new") {
+    const name = options.name || $("newProductListName")?.value.trim() || pendingProductLoad.fileName.replace(/\.[^.]+$/, "");
+    listId = `pl-${Date.now()}`;
+    data.productLists.push({ id: listId, name, products: 0 });
+  }
+  const mode = action === "replace" ? "replace" : "complement";
+  const codeCol = $("productCodeCol").value;
+  const descCol = $("productDescCol").value;
+  if (codeCol === "") {
+    config.insertAdjacentHTML("beforeend", `<div class="load-result"><strong>Falta codigo</strong><br>Selecciona la columna que identifica el producto.</div>`);
+    return;
+  }
+  const attrCols = headers
+    .map((header, index) => ({ header, index, role: $(`productRole${index}`)?.value }))
+    .filter((col) => col.role === "attribute" && String(col.index) !== String(codeCol) && String(col.index) !== String(descCol));
+  let added = 0;
+  let skipped = 0;
+  let enriched = 0;
+  let conflicts = 0;
+  recordHistoryForLoad("cargar productos", rows.length);
+  if (mode === "replace") {
+    data.products.forEach((product) => {
+      product.listIds = (product.listIds || []).filter((id) => id !== listId);
+      if (product.listAttributes) delete product.listAttributes[listId];
+    });
+    data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...(data.hierarchyListLinks || []).filter((link) => link.listId !== listId));
+  }
+  processProductRows(rows, { type, listId, codeCol, descCol, attrCols, headers }, (result) => {
+    setProcessingState(false);
+    added = result.added;
+    skipped = result.skipped;
+    enriched = result.enriched;
+    conflicts = result.conflicts;
+    const list = data.productLists.find((item) => item.id === listId);
+    if (list) list.products = result.listProductCount;
+    state.activeProductListId = listId;
+    addChange("Productos cargados", `${fileName}: ${added} nuevo(s), ${enriched} enriquecido(s), ${skipped} omitido(s), ${conflicts} advertencia(s).`);
+    config.innerHTML = `
+      <div class="load-flow">
+        <span>1. Tipo de carga</span>
+        <span>2. Archivo leido</span>
+        <span>3. Columnas mapeadas</span>
+        <span class="active">4. Lista cargada</span>
+      </div>
+      <div class="load-result">
+        <strong>Productos cargados</strong><br>
+        ${added} nuevo(s), ${enriched} enriquecido(s), ${skipped} omitido(s), ${conflicts} advertencia(s). No se duplicaron codigos.
+      </div>
+      <div class="load-preview">
+        <div class="load-pill"><strong>${rows.length}</strong> filas revisadas</div>
+        <div class="load-pill"><strong>${added}</strong> nuevos</div>
+        <div class="load-pill"><strong>${conflicts}</strong> advertencias</div>
+        <div class="load-pill"><strong>${((performance.now() - startedAt) / 1000).toFixed(1)}s</strong> tiempo de carga</div>
+      </div>
+    `;
+    $("modalConfirm").textContent = "Nueva carga";
+    pendingProductLoad = null;
+    renderChanges();
+    renderHierarchySelector();
+    renderProductListSelector();
+    setActionStates();
+  });
+}
+
+function processProductRows(rows, settings, done) {
+  let added = 0;
+  let skipped = 0;
+  let enriched = 0;
+  let conflicts = 0;
+  let index = 0;
+  const total = rows.length;
+  const productIndex = new Map(data.products.map((product) => [product.id, product]));
+  let listProductCount = data.products.reduce((count, product) => (product.listIds || []).includes(settings.listId) ? count + 1 : count, 0);
+  const attrReaders = settings.attrCols.map((col) => ({ header: col.header, index: col.index }));
+  const codeIndex = Number(settings.codeCol);
+  const descIndex = settings.descCol === "" ? -1 : Number(settings.descCol);
+  const codeHeader = normalizeHeader(settings.headers?.[codeIndex] || "");
+  const descHeader = descIndex < 0 ? "" : normalizeHeader(settings.headers?.[descIndex] || "");
+  setProcessingState(true, progressMessage("Cargando productos", 0, total, "Actualizando lista; no se toca ninguna jerarquia."));
+  const step = () => {
+    const end = Math.min(index + 5000, total);
+    for (; index < end; index += 1) {
+      const row = rows[index];
+      const code = cellText(row[codeIndex]);
+      const desc = descIndex < 0 ? "" : cellText(row[descIndex]);
+      const looksLikeHeader = codeHeader && normalizeHeader(code) === codeHeader && (!descHeader || normalizeHeader(desc) === descHeader);
+      if (looksLikeHeader) {
+        skipped += 1;
+        continue;
+      }
+      if (!code) continue;
+      const attrs = {};
+      for (let i = 0; i < attrReaders.length; i += 1) {
+        const attr = attrReaders[i];
+        attrs[attr.header] = row[attr.index] || "";
+      }
+      let product = productIndex.get(code);
+      if (!product) {
+        product = { id: code, name: desc || code, originalNode: null, node: null, status: "pending", price: 0, attributes: { ...attrs }, listAttributes: { [settings.listId]: { ...attrs } }, listIds: [settings.listId], assignments: {} };
+        data.products.push(product);
+        productIndex.set(code, product);
+        listProductCount += 1;
+        added += 1;
+        continue;
+      }
+      if (settings.type === "newProductsLinked") {
+        skipped += 1;
+        continue;
+      }
+      product.listIds = product.listIds || [];
+      if (!product.listIds.includes(settings.listId)) {
+        product.listIds.push(settings.listId);
+        listProductCount += 1;
+      }
+      product.listAttributes = product.listAttributes || {};
+      product.listAttributes[settings.listId] = Object.assign(product.listAttributes[settings.listId] || {}, attrs);
+      product.attributes = Object.assign(product.attributes || {}, attrs);
+      if (desc && product.name && product.name !== desc && normalizeHeader(product.name) !== normalizeHeader(desc)) {
+        product.altNames = Array.from(new Set([...(product.altNames || []), desc]));
+        conflicts += 1;
+      }
+      enriched += 1;
+    }
+    updateProcessingStatus(progressMessage("Cargando productos", index, total, "Actualizando lista; no se toca ninguna jerarquia."));
+    if (index < total) {
+      setTimeout(step, 0);
+    } else {
+      setProcessingState(false);
+      done({ added, skipped, enriched, conflicts, listProductCount });
+    }
+  };
+  setTimeout(step, 0);
+}
+
+function openExportModal() {
+  openModal("Exportar", `
+    <div class="rule-note">Puedes sacar estructuras limpias o enriquecidas segun el uso que necesites fuera de la app.</div>
+    <div class="export-list">
+      <div class="export-row">
+        <div><strong>Exportar jerarquia</strong><span>Solo Linea, Sistema, Categoria y Familia, sin productos.</span></div>
+        <button class="ghost-btn" data-export-kind="hierarchy">Preparar</button>
+      </div>
+      <div class="export-row">
+        <div><strong>Exportar jerarquia enriquecida</strong><span>Jerarquia con productos asignados y atributos disponibles.</span></div>
+        <button class="ghost-btn" data-export-kind="enriched">Preparar</button>
+      </div>
+      <div class="export-row">
+        <div><strong>Exportar lista de productos</strong><span>Codigos, nombres, atributos, estados, notas e historial disponible.</span></div>
+        <button class="ghost-btn" data-export-kind="products">Preparar</button>
+      </div>
+    </div>
+  `, () => {
+    addChange("Exportacion preparada", "Se preparo la configuracion de exportacion seleccionada.");
+  }, { confirmText: "Cerrar", hideCancel: true });
+}
+
+function escapeCell(value) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function downloadText(filename, text, type = "application/vnd.ms-excel") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function firebaseAvailable() {
+  return !!(window.firebaseDb && window.firebaseDoc && window.firebaseSetDoc && window.firebaseGetDoc);
+}
+
+function firebaseUserLabel() {
+  return firebaseUser?.email || firebaseUser?.name || "Sin sesion";
+}
+
+function requireFirebaseSession() {
+  if (!firebaseAvailable()) throw new Error("Firebase no esta listo. Revisa conexion a internet o recarga la app.");
+  if (!firebaseUser) throw new Error("Debes entrar con Google antes de guardar o cargar desde Firebase.");
+}
+
+function adminSnapshot() {
+  return {
+    schema: "catalog-admin-state-v1",
+    environment: ADMIN_ENV,
+    savedAt: new Date().toISOString(),
+    savedBy: firebaseUserLabel(),
+    activeHierarchyId: state.activeHierarchyId,
+    activeProductListId: state.activeProductListId,
+    changes: state.changes.slice(0, 200),
+    data: {
+      hierarchies: data.hierarchies,
+      productLists: data.productLists,
+      hierarchyListLinks: data.hierarchyListLinks || [],
+      nodes: data.nodes,
+      products: data.products
+    }
+  };
+}
+
+function splitText(text, size) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks;
+}
+
+async function deleteCollectionDocs(collectionName) {
+  const docs = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, collectionName));
+  const deletes = [];
+  docs.forEach((item) => deletes.push(window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, collectionName, item.id))));
+  await Promise.all(deletes);
+}
+
+async function saveAdminStateToFirebase({ createVersion = false } = {}) {
+  try {
+    requireFirebaseSession();
+    setProcessingState(true, createVersion ? "Creando version DEV en Firebase..." : "Guardando estado DEV en Firebase...");
+    const snapshot = adminSnapshot();
+    const version = `catalog-admin-${snapshot.savedAt}`;
+    const json = JSON.stringify(snapshot);
+    const chunks = splitText(json, ADMIN_CHUNK_SIZE);
+    await deleteCollectionDocs(ADMIN_STATE_CHUNKS);
+    for (let i = 0; i < chunks.length; i += 1) {
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, chunkId(i)), {
+        index: i,
+        version,
+        value: chunks[i]
+      });
+      updateProcessingStatus(`Guardando estado DEV... ${i + 1}/${chunks.length} chunk(s).`);
+    }
+    const meta = {
+      version,
+      updatedAt: snapshot.savedAt,
+      updatedBy: snapshot.savedBy,
+      environment: ADMIN_ENV,
+      schema: snapshot.schema,
+      chunksCollection: ADMIN_STATE_CHUNKS,
+      chunks: chunks.length,
+      chunkSize: ADMIN_CHUNK_SIZE,
+      hierarchies: data.hierarchies.length,
+      nodes: data.nodes.length,
+      products: data.products.length,
+      productLists: data.productLists.length,
+      hierarchyListLinks: (data.hierarchyListLinks || []).length
+    };
+    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC), meta);
+    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_AUDIT, `log-${Date.now()}`), {
+      action: createVersion ? "create_version" : "save_state",
+      environment: ADMIN_ENV,
+      version,
+      createdAt: snapshot.savedAt,
+      createdBy: snapshot.savedBy,
+      counts: meta
+    });
+    if (createVersion) {
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_VERSIONS, version.replace(/[^a-zA-Z0-9_-]/g, "_")), {
+        ...meta,
+        snapshot
+      });
+    }
+    setProcessingState(false);
+    addChange(createVersion ? "Version DEV creada" : "Estado DEV guardado", `${meta.products} producto(s), ${meta.nodes} nodo(s), ${meta.chunks} chunk(s).`);
+    renderAll();
+  } catch (error) {
+    showLoadError("No se pudo guardar en Firebase", error);
+  }
+}
+
+async function loadAdminStateFromFirebase() {
+  try {
+    requireFirebaseSession();
+    setProcessingState(true, "Leyendo metadata DEV desde Firebase...");
+    const metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC));
+    if (!metaSnap.exists()) throw new Error("No existe config_dev/catalog_admin_meta todavia.");
+    const meta = metaSnap.data();
+    const parts = [];
+    for (let i = 0; i < meta.chunks; i += 1) {
+      const snap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, meta.chunksCollection || ADMIN_STATE_CHUNKS, chunkId(i)));
+      if (!snap.exists()) throw new Error(`Falta chunk ${chunkId(i)} en Firebase.`);
+      const chunk = snap.data();
+      if (chunk.version !== meta.version) throw new Error(`El chunk ${chunkId(i)} tiene otra version.`);
+      parts.push(chunk.value || "");
+      updateProcessingStatus(`Cargando estado DEV... ${i + 1}/${meta.chunks} chunk(s).`);
+    }
+    const payload = JSON.parse(parts.join(""));
+    applySavedCatalogState(payload);
+    normalizeProductSources();
+    data.hierarchies.forEach((hierarchy) => consolidateEquivalentNodes(hierarchy.id));
+    state.selectedNode = null;
+    state.selectedProduct = null;
+    state.selectedProducts.clear();
+    invalidateRenderCache();
+    setProcessingState(false);
+    addChange("Estado DEV cargado", `Version ${meta.version} cargada desde Firebase.`);
+    markDataDirty();
+    renderAll();
+  } catch (error) {
+    showLoadError("No se pudo cargar desde Firebase", error);
+  }
+}
+
+async function loginFirebase() {
+  try {
+    if (!firebaseAvailable() || !window.firebaseSignIn) throw new Error("Firebase Auth no esta listo.");
+    if (firebaseUser && window.firebaseSignOut) await window.firebaseSignOut();
+    else await window.firebaseSignIn();
+  } catch (error) {
+    openModal("Sesion Firebase", `<div class="load-error"><strong>No se pudo iniciar sesion</strong><span>${error.message}</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+  }
+}
+
+function hierarchyExportRows(includeProducts = false) {
+  const rows = [["Jerarquia", "Nivel", "Codigo", "Nombre", "Padre", "Ruta"]];
+  activeNodes().forEach((node) => {
+    rows.push([activeHierarchy().name, levelNames[node.level], node.code || "", node.name, node.parent || "", pathFor(node.id).map((n) => n.name).join(" > ")]);
+  });
+  if (includeProducts) {
+    rows.push([]);
+    const linkedIds = activeHierarchyLinkedListIds();
+    const attrHeaders = Array.from(new Set(data.products.flatMap((product) => linkedIds.flatMap((listId) => Object.keys(productListAttributes(product, listId))))));
+    rows.push(["Codigo producto", "Descripcion", "Nodo", "Ruta", "Estado clasificacion", ...attrHeaders]);
+    visibleProducts().forEach((product) => {
+      const nodeId = productNode(product);
+      const attrs = Object.assign({}, ...linkedIds.map((listId) => productListAttributes(product, listId)));
+      rows.push([product.id, product.name, nodeId || "", nodeId ? pathFor(nodeId).map((n) => n.name).join(" > ") : "", nodeId ? "Clasificado" : "No clasificado", ...attrHeaders.map((header) => attrs[header] || "")]);
+    });
+  }
+  return rows;
+}
+
+function exportRows(filename, rows) {
+  const html = `<table>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeCell(cell)}</td>`).join("")}</tr>`).join("")}</table>`;
+  downloadText(filename, html);
+}
+
+function exportCurrent(kind) {
+  if (kind === "hierarchy") exportRows(`${activeHierarchy().name}-jerarquia.xls`, hierarchyExportRows(false));
+  if (kind === "enriched") exportRows(`${activeHierarchy().name}-jerarquia-enriquecida.xls`, hierarchyExportRows(true));
+  if (kind === "products") {
+    const attrHeaders = Array.from(new Set(data.products.flatMap((product) => Object.values(product.listAttributes || {}).flatMap((attrs) => Object.keys(attrs)))));
+    exportRows(`productos.xls`, [["Codigo", "Descripcion", "Listas", "Estado", ...attrHeaders]].concat(data.products.map((p) => {
+      const attrs = Object.assign({}, ...Object.values(p.listAttributes || {}));
+      return [p.id, p.name, (p.listIds || []).join(", "), p.status, ...attrHeaders.map((header) => attrs[header] || "")];
+    })));
+  }
+  addChange("Exportacion generada", `Se genero archivo ${kind}.`);
+  renderChanges();
+}
+
+function chunkArray(items, size) {
+  const chunks = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
+function chunkId(index) {
+  return String(index).padStart(4, "0");
+}
+
+function catalogMasterRoutes(env = "dev") {
+  if (env === "prod") {
+    return {
+      chunksCollection: "catalog_master_chunks",
+      metaCollection: "config_prod",
+      metaDoc: "catalog_master_meta",
+      duplicatesDoc: "catalog_master_duplicates"
+    };
+  }
+  return {
+    chunksCollection: "catalog_master_chunks_dev",
+    metaCollection: "config_dev",
+    metaDoc: "catalog_master_meta",
+    duplicatesDoc: "catalog_master_duplicates"
+  };
+}
+
+function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "Administrador" } = {}) {
+  const hierarchy = activeHierarchy();
+  const routes = catalogMasterRoutes(env);
+  const version = `catalog-master-${new Date().toISOString()}`;
+  const productsByCode = new Map();
+  const duplicates = [];
+  const withoutCode = [];
+  const unclassified = [];
+  data.products.forEach((product) => {
+    const cod = cellText(product.id);
+    if (!cod) {
+      withoutCode.push(product.name || "");
+      return;
+    }
+    const nodeId = product.assignments?.[state.activeHierarchyId];
+    const node = nodeId ? nodeById()[nodeId] : null;
+    if (!node || nodeHierarchy(node) !== state.activeHierarchyId) {
+      if (isProductLinkedToActiveHierarchy(product)) unclassified.push(cod);
+      return;
+    }
+    const groups = pathFor(nodeId).map((item) => item.name);
+    const item = {
+      id: `prod-${String(productsByCode.size + 1).padStart(5, "0")}-${cod}`,
+      cod,
+      nom: product.name || "",
+      groups,
+      cat1: groups[0] || "",
+      cat2: groups[1] || ""
+    };
+    if (productsByCode.has(cod)) {
+      duplicates.push({ cod, kept: productsByCode.get(cod), duplicate: item });
+      return;
+    }
+    productsByCode.set(cod, item);
+  });
+  const products = [...productsByCode.values()];
+  const chunks = chunkArray(products, chunkSize).map((value, index) => ({
+    id: chunkId(index),
+    path: `${routes.chunksCollection}/${chunkId(index)}`,
+    data: { index, version, value }
+  }));
+  const meta = {
+    version,
+    updatedAt: new Date().toISOString(),
+    updatedBy,
+    sourceApp: "catalog-admin",
+    sourceHierarchyId: hierarchy.id,
+    sourceHierarchyName: hierarchy.name,
+    schema: "catalog-master-v1",
+    count: products.length,
+    chunks: chunks.length,
+    chunkSize,
+    totalRows: data.products.length,
+    loaded: products.length,
+    withoutCode: withoutCode.length,
+    repeatedCodes: duplicates.length,
+    repeatedRows: duplicates.length,
+    invalidRows: withoutCode.length + unclassified.length,
+    unclassified: unclassified.length
+  };
+  const duplicateReport = { version, updatedAt: meta.updatedAt, count: duplicates.length, items: duplicates };
+  return {
+    env,
+    routes,
+    metaPath: `${routes.metaCollection}/${routes.metaDoc}`,
+    duplicatesPath: `${routes.metaCollection}/${routes.duplicatesDoc}`,
+    chunksCollection: routes.chunksCollection,
+    meta,
+    chunks,
+    duplicates: duplicateReport,
+    unclassifiedSample: unclassified.slice(0, 50)
+  };
+}
+
+async function writeCatalogMasterToFirestore(payload) {
+  if (!(window.firebaseDb && window.firebaseDoc && window.firebaseSetDoc)) return false;
+  if (!firebaseUser) throw new Error("Debes entrar con Google antes de publicar en Firestore.");
+  const db = window.firebaseDb;
+  updateProcessingStatus(`Limpiando chunks anteriores en ${payload.routes.chunksCollection}...`);
+  await deleteCollectionDocs(payload.routes.chunksCollection);
+  await window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.metaDoc), payload.meta);
+  await window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.duplicatesDoc), payload.duplicates);
+  for (let i = 0; i < payload.chunks.length; i += 1) {
+    const chunk = payload.chunks[i];
+    updateProcessingStatus(`Publicando maestro FitFlow DEV... ${i + 1}/${payload.chunks.length} chunk(s).`);
+    await window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.chunksCollection, chunk.id), chunk.data);
+  }
+  return true;
+}
+
+async function publishToFirebase() {
+  const payload = buildCatalogMasterPayload({ env: "dev", chunkSize: 250 });
+  openModal("Publicar maestro FitFlow DEV", `
+    <div class="rule-note">
+      Se preparara la base maestra de agrupaciones para Firestore DEV. FitFlow leera primero
+      <strong>${payload.metaPath}</strong> y luego <strong>${payload.chunksCollection}/0000...</strong>.
+    </div>
+    <div class="load-preview">
+      <div class="load-pill"><strong>${payload.meta.count}</strong> productos publicados</div>
+      <div class="load-pill"><strong>${payload.meta.chunks}</strong> chunks</div>
+      <div class="load-pill"><strong>${payload.meta.unclassified}</strong> no clasificados fuera del maestro</div>
+      <div class="load-pill"><strong>${payload.meta.repeatedCodes}</strong> codigos duplicados</div>
+    </div>
+    <div class="rule-note">
+      El campo <strong>cod</strong> se publica como texto exacto usando solo trim(). No se convierten numeros ni se alteran ceros a la izquierda.
+    </div>
+  `, async () => {
+    setProcessingState(true, "Preparando publicacion FitFlow DEV...");
+    const wrote = await writeCatalogMasterToFirestore(payload);
+    setProcessingState(false);
+    if (wrote) {
+      addChange("Maestro FitFlow publicado", `${payload.meta.count} producto(s) en ${payload.meta.chunks} chunk(s), version ${payload.meta.version}.`);
+    } else {
+      downloadText(`catalog_master_firestore_dev_${payload.meta.version}.json`, JSON.stringify(payload, null, 2), "application/json");
+      addChange("Maestro FitFlow preparado", "No hay conexion Firestore activa en esta pantalla; se descargo un JSON con meta, chunks y duplicados.");
+    }
+  }, { confirmText: "Publicar DEV" });
+}
+
+function moveProducts(productIds) {
+  if (!productIds.length) return;
+  const first = data.products.find((p) => p.id === productIds[0]);
+  const hasValidated = productIds.some((id) => data.products.find((p) => p.id === id)?.status === "validated");
+  if (hasValidated && !confirm("Hay productos validados en la seleccion. ¿Seguro que quieres moverlos?")) return;
+  moveState.mode = "product";
+  moveState.allowedTarget = null;
+  moveState.sourceNode = null;
+  moveState.targetNode = state.selectedNode || first?.node || data.nodes[0].id;
+  moveState.expandedNodes = new Set(pathFor(moveState.targetNode).map((n) => n.id));
+  openModal("Mover productos", `
+    <div class="move-target">
+      <strong>Destino seleccionado</strong>
+      <div id="moveTargetSummary"></div>
+    </div>
+    <div class="move-layout">
+      <div class="move-tree">
+        <div class="move-column-head">
+          <strong>Navegar jerarquia</strong>
+          <span>Abre niveles y elige donde dejar los productos</span>
+        </div>
+        <div class="move-tree-list" id="moveTreeList"></div>
+      </div>
+      <div class="move-preview">
+        <div class="move-column-head">
+          <strong>Productos en destino</strong>
+          <span>Referencia para validar que el lugar calza</span>
+        </div>
+        <div class="move-preview-list" id="movePreviewList"></div>
+      </div>
+    </div>
+  `, () => {
+    const target = moveState.targetNode;
+    if (!target) return;
+    pushHistory("mover productos");
+    productIds.forEach((id) => {
+      const p = data.products.find((x) => x.id === id);
+      if (p) {
+        p.assignments = p.assignments || {};
+        p.assignments[state.activeHierarchyId] = target;
+        p.node = target;
+        p.status = "corrected";
+      }
+    });
+    state.selectedProducts.clear();
+    addChange("Movimiento por lote", `${productIds.length} producto(s) movidos a "${nodeById()[target].name}".`);
+  });
+  renderMoveBrowser();
+}
+function validateProducts(ids) {
+  if (!ids.length) return;
+  pushHistory("validar productos");
+  ids.forEach((id) => {
+    const p = data.products.find((x) => x.id === id);
+    if (p) p.status = "validated";
+  });
+  addChange("Validacion", `${ids.length} producto(s) marcados como validados.`);
+}
+
+document.addEventListener("click", (event) => {
+  const loadCard = event.target.closest("[data-load-type]");
+  if (loadCard) {
+    document.querySelectorAll(".load-card").forEach((card) => card.classList.toggle("active", card === loadCard));
+    renderLoadConfig(loadCard.dataset.loadType);
+    return;
+  }
+  if (event.target.closest("[data-clear-local-state]")) {
+    clearLocalCatalogState();
+    return;
+  }
+  if (event.target.closest("[data-copy-load-debug]")) {
+    copyLoadDebug();
+    return;
+  }
+  const exportBtn = event.target.closest("[data-export-kind]");
+  if (exportBtn) {
+    exportCurrent(exportBtn.dataset.exportKind);
+    return;
+  }
+  if (event.target.closest("[data-operation-cancel]")) {
+    cancelOperation();
+    return;
+  }
+  if (event.target.closest("[data-operation-confirm]")) {
+    confirmOperation();
+    return;
+  }
+  const targetToggle = event.target.closest("[data-target-toggle]");
+  if (targetToggle) {
+    event.stopPropagation();
+    const id = targetToggle.dataset.targetToggle;
+    if (state.operation.targetExpandedNodes.has(id)) state.operation.targetExpandedNodes.delete(id);
+    else state.operation.targetExpandedNodes.add(id);
+    renderAll();
+    return;
+  }
+  const targetNode = event.target.closest("[data-target-node]");
+  if (targetNode) {
+    state.operation.targetNode = targetNode.dataset.targetNode;
+    state.activePane = "target";
+    if (childrenOf(state.operation.targetNode).length && !state.operation.targetExpandedNodes.has(state.operation.targetNode)) {
+      state.operation.targetExpandedNodes.add(state.operation.targetNode);
+    }
+    if (state.operation.type === "merge") {
+      const source = nodeById()[state.operation.sourceNode];
+      const target = nodeById()[state.operation.targetNode];
+      if (source && target) state.operation.mergeName = `${source.name} y ${target.name}`;
+    }
+    state.selectedProducts.clear();
+    renderAll();
+    return;
+  }
+  const toggle = event.target.closest("[data-toggle-node]");
+  if (toggle) {
+    event.stopPropagation();
+    const id = toggle.dataset.toggleNode;
+    if (state.expandedNodes.has(id)) state.expandedNodes.delete(id);
+    else state.expandedNodes.add(id);
+    renderAll();
+    return;
+  }
+  const moveToggle = event.target.closest("[data-move-toggle]");
+  if (moveToggle) {
+    event.stopPropagation();
+    const id = moveToggle.dataset.moveToggle;
+    if (moveState.expandedNodes.has(id)) moveState.expandedNodes.delete(id);
+    else moveState.expandedNodes.add(id);
+    renderMoveBrowser();
+    return;
+  }
+  const moveNode = event.target.closest("[data-move-node]");
+  if (moveNode) {
+    if (moveNode.disabled) return;
+    moveState.targetNode = moveNode.dataset.moveNode;
+    if (childrenOf(moveState.targetNode).length && !moveState.expandedNodes.has(moveState.targetNode)) {
+      moveState.expandedNodes.add(moveState.targetNode);
+    }
+    renderMoveBrowser();
+    return;
+  }
+  const nodeBtn = event.target.closest("[data-node]");
+  if (nodeBtn) {
+    state.selectedNode = nodeBtn.dataset.node;
+    state.activePane = "source";
+    if (state.operation.type) {
+      state.operation.sourceNode = state.selectedNode;
+      state.operation.targetNode = null;
+      state.operation.mergeName = "";
+    }
+    state.selectedProducts.clear();
+    renderAll();
+    return;
+  }
+  const row = event.target.closest("[data-product]");
+  if (row && !event.target.matches("input[type='checkbox']")) {
+    state.selectedProduct = row.dataset.product;
+    renderAll();
+    return;
+  }
+  const action = event.target.dataset.action;
+  if (action) {
+    const p = data.products.find((x) => x.id === state.selectedProduct);
+    if (!p) return;
+    if (action === "validate-product") validateProducts([p.id]);
+    if (action === "move-product") moveProducts([p.id]);
+    if (action === "apply-suggestion" && p.suggestion) {
+      pushHistory("aplicar sugerencia");
+      p.assignments = p.assignments || {};
+      p.assignments[state.activeHierarchyId] = p.suggestion;
+      p.node = p.suggestion;
+      p.status = "corrected";
+      addChange("Sugerencia aplicada", `${p.id} movido a "${nodeById()[p.node].name}".`);
+    }
+    if (action === "mark-pending") {
+      pushHistory("marcar pendiente");
+      p.status = "pending";
+      addChange("Pendiente", `${p.id} queda pendiente de revision.`);
+    }
+    renderAll();
+  }
+});
+
+$("productRows").addEventListener("click", (event) => {
+  if (event.target.matches("input[type='checkbox']")) return;
+  const row = event.target.closest("[data-product]");
+  if (!row) return;
+  state.selectedProduct = row.dataset.product;
+  renderAll();
+});
+
+document.addEventListener("change", (event) => {
+  const check = event.target.dataset.check;
+  if (check) {
+    if (event.target.checked) state.selectedProducts.add(check);
+    else state.selectedProducts.delete(check);
+    renderAll();
+  }
+  if (event.target.id === "mergeLocationSelect") {
+    state.operation.mergeLocation = event.target.value;
+    renderOperationCard();
+  }
+  if (event.target.id?.startsWith("colRole")) {
+    refreshHierarchyMappingOptions();
+  }
+  if (event.target.id?.startsWith("productRole")) {
+    refreshProductMappingOptions();
+  }
+  if (["loadMode", "hierarchyProductAction", "hierarchyUnifiedAction", "productListAction", "hierarchyLoadShape", "productTableShape"].includes(event.target.id)) {
+    syncLoadActionFields();
+  }
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.id === "mergeNameInput") {
+    state.operation.mergeName = event.target.value;
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || $("modalBackdrop").hidden) return;
+  if (event.target && event.target.tagName === "TEXTAREA") return;
+  const confirmBtn = $("modalConfirm");
+  if (!confirmBtn || confirmBtn.disabled) return;
+  event.preventDefault();
+  confirmBtn.click();
+});
+
+$("hierarchySelect").addEventListener("change", (e) => {
+  state.activeHierarchyId = e.target.value;
+  state.selectedNode = null;
+  state.selectedProduct = null;
+  state.selectedProducts.clear();
+  state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
+  markDataDirty();
+  cancelOperation();
+});
+$("productListSelect").addEventListener("change", (e) => {
+  state.activeProductListId = e.target.value;
+  markDataDirty();
+  renderAll();
+});
+$("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; renderAll(); });
+$("targetTreeSearch").addEventListener("input", (e) => { state.operation.targetSearch = e.target.value; renderAll(); });
+$("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; renderAll(); });
+$("statusFilter").addEventListener("change", (e) => { state.status = e.target.value; renderAll(); });
+$("addRootBtn").addEventListener("click", () => createNode(null));
+$("addChildBtn").addEventListener("click", () => createNode(state.selectedNode));
+$("renameNodeBtn").addEventListener("click", renameNode);
+$("mergeNodeBtn").addEventListener("click", mergeNode);
+$("moveNodeBtn").addEventListener("click", moveSelectedNode);
+$("deleteNodeBtn").addEventListener("click", deleteEmptyNode);
+$("expandBranchBtn").addEventListener("click", () => expandBranch());
+$("collapseBranchBtn").addEventListener("click", () => collapseBranch());
+$("hideRedundantToggle").addEventListener("change", (e) => { state.hideRedundant = e.target.checked; renderAll(); });
+$("undoBtn").addEventListener("click", undoLastChange);
+$("redoBtn").addEventListener("click", redoLastChange);
+$("moveSelectedBtn").addEventListener("click", () => moveProducts([...state.selectedProducts]));
+$("validateSelectedBtn").addEventListener("click", () => validateProducts([...state.selectedProducts]));
+$("modalClose").addEventListener("click", closeModal);
+$("modalCancel").addEventListener("click", closeModal);
+$("selectAll").addEventListener("change", (e) => {
+  visibleProducts().forEach((p) => e.target.checked ? state.selectedProducts.add(p.id) : state.selectedProducts.delete(p.id));
+  renderAll();
+});
+$("loadBtn").addEventListener("click", openLoadModal);
+$("exportBtn").addEventListener("click", openExportModal);
+$("duplicateHierarchyBtn").addEventListener("click", duplicateActiveHierarchy);
+$("deleteHierarchyBtn").addEventListener("click", deleteActiveHierarchy);
+$("connectListBtn").addEventListener("click", connectActiveListToHierarchy);
+$("deleteListBtn").addEventListener("click", deleteActiveProductList);
+$("firebaseLoginBtn").addEventListener("click", loginFirebase);
+$("saveFirebaseBtn").addEventListener("click", () => saveAdminStateToFirebase());
+$("loadFirebaseBtn").addEventListener("click", loadAdminStateFromFirebase);
+$("versionFirebaseBtn").addEventListener("click", () => saveAdminStateToFirebase({ createVersion: true }));
+$("publishFirebaseBtn").addEventListener("click", publishToFirebase);
+window.addEventListener("beforeunload", () => {
+  if (dataDirty) saveLocalCatalogState();
+});
+window.addEventListener("catalog-admin-firebase-ready", () => {
+  firebaseReady = true;
+  setActionStates();
+});
+window.addEventListener("catalog-admin-auth", (event) => {
+  firebaseReady = firebaseAvailable();
+  firebaseUser = event.detail || null;
+  setActionStates();
+});
+
+renderAll();
+
+
