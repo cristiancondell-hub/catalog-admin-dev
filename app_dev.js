@@ -133,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "attrs-speed-dev-20260523-01";
+const APP_BUILD = "product-columns-dev-20260523-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -924,13 +924,13 @@ function sortButton(label, key, sort) {
 function renderProductTableHead(attrKeys) {
   const head = $("productTableHead");
   if (!head) return;
-  const columns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
+  const columns = `54px 130px minmax(300px,1.4fr) minmax(260px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
   head.style.gridTemplateColumns = columns;
   head.innerHTML = `
     <label class="checkline">
       <input id="selectAll" type="checkbox">
-      <span>Seleccion</span>
     </label>
+    ${sortButton("Codigo", "cod", state.productSort)}
     ${sortButton("Producto", "nom", state.productSort)}
     ${sortButton("Clasificacion", "ruta", state.productSort)}
     ${sortButton("Estado", "estado", state.productSort)}
@@ -957,10 +957,10 @@ function renderProducts() {
       const attrMap = mergedProductAttributes(p, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
       return `
         <div class="product-row${selected}" data-product="${productId}" style="grid-template-columns:${columns}">
-          <label class="checkline" data-stop>
+          <label class="checkline compact-check" data-stop>
             <input type="checkbox" data-check="${productId}" ${checked}>
-            <span class="code">${productId}</span>
           </label>
+          <div class="code">${productId}</div>
           <div><div class="product-name">${cellText(p.name)}</div></div>
           <div class="location">${loc}</div>
           <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
