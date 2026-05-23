@@ -133,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "render-safe-dev-20260523-01";
+const APP_BUILD = "attrs-speed-dev-20260523-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -556,6 +556,19 @@ function productListAttributes(product, listId) {
   return product.listAttributes?.[listId] || {};
 }
 
+function mergedProductAttributes(product, preferredListIds = []) {
+  const merged = {};
+  const sources = product.listAttributes || {};
+  preferredListIds.forEach((listId) => Object.assign(merged, sources[listId] || {}));
+  Object.values(sources).forEach((attrs) => Object.assign(merged, attrs || {}));
+  Object.assign(merged, product.attributes || {});
+  return merged;
+}
+
+function hasAttributeValue(attrs, key) {
+  return attrs && Object.prototype.hasOwnProperty.call(attrs, key) && cellText(attrs[key]) !== "";
+}
+
 function visibleProductAttributeEntries(product, limit = 4) {
   const linkedIds = activeHierarchyLinkedListIds();
   const preferredIds = linkedIds.includes(state.activeProductListId)
@@ -564,7 +577,7 @@ function visibleProductAttributeEntries(product, limit = 4) {
   const entries = [];
   preferredIds.forEach((listId) => {
     const list = data.productLists.find((item) => item.id === listId);
-    const attrs = productListAttributes(product, listId);
+    const attrs = mergedProductAttributes(product, [listId]);
     Object.entries(attrs).forEach(([key, value]) => {
       const text = cellText(value);
       if (text && entries.length < limit) entries.push({ key, value: text, listName: list?.name || "Lista" });
@@ -880,11 +893,10 @@ function sortedRows(rows, sort, valueGetter) {
 
 function activeCatalogAttributeKeys(limit = 8) {
   const keys = [];
+  const preferred = [state.activeProductListId, ...activeHierarchyLinkedListIds()].filter(Boolean);
   visibleProducts().forEach((product) => {
-    activeHierarchyLinkedListIds().forEach((listId) => {
-      Object.keys(productListAttributes(product, listId)).forEach((key) => {
-        if (!keys.includes(key)) keys.push(key);
-      });
+    Object.keys(mergedProductAttributes(product, preferred)).forEach((key) => {
+      if (!keys.includes(key)) keys.push(key);
     });
   });
   return keys.slice(0, limit);
@@ -899,7 +911,7 @@ function productSortValue(product, key) {
     return node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado";
   }
   if (key === "estado") return statusLabels[product.status] || "Pendiente";
-  const attrs = Object.assign({}, ...activeHierarchyLinkedListIds().map((listId) => productListAttributes(product, listId)));
+  const attrs = mergedProductAttributes(product, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
   return attrs[key] || "";
 }
 
@@ -912,7 +924,8 @@ function sortButton(label, key, sort) {
 function renderProductTableHead(attrKeys) {
   const head = $("productTableHead");
   if (!head) return;
-  head.style.gridTemplateColumns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
+  const columns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
+  head.style.gridTemplateColumns = columns;
   head.innerHTML = `
     <label class="checkline">
       <input id="selectAll" type="checkbox">
@@ -923,25 +936,25 @@ function renderProductTableHead(attrKeys) {
     ${sortButton("Estado", "estado", state.productSort)}
     ${attrKeys.map((key) => sortButton(key, key, state.productSort)).join("")}
   `;
+  return columns;
 }
 
 function renderProducts() {
   try {
     const attrKeys = activeCatalogAttributeKeys();
-    renderProductTableHead(attrKeys);
+    const columns = renderProductTableHead(attrKeys);
     const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
     if (!rows.length) {
       $("productRows").innerHTML = `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div>`;
       return;
     }
-    const columns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
     $("productRows").innerHTML = rows.map((p) => {
       const node = nodeById()[productNode(p)];
       const loc = node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado en esta jerarquia";
       const productId = cellText(p.id);
       const checked = state.selectedProducts.has(productId) ? "checked" : "";
       const selected = state.selectedProduct === productId ? " selected" : "";
-      const attrMap = Object.assign({}, ...activeHierarchyLinkedListIds().map((listId) => productListAttributes(p, listId)));
+      const attrMap = mergedProductAttributes(p, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
       return `
         <div class="product-row${selected}" data-product="${productId}" style="grid-template-columns:${columns}">
           <label class="checkline" data-stop>
@@ -951,7 +964,7 @@ function renderProducts() {
           <div><div class="product-name">${cellText(p.name)}</div></div>
           <div class="location">${loc}</div>
           <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
-          ${attrKeys.map((key) => `<div class="table-cell">${attrMap[key] || ""}</div>`).join("")}
+          ${attrKeys.map((key) => `<div class="table-cell">${hasAttributeValue(attrMap, key) ? attrMap[key] : ""}</div>`).join("")}
         </div>
       `;
     }).join("");
@@ -965,6 +978,8 @@ function renderInspector() {
   const product = data.products.find((p) => p.id === state.selectedProduct);
   const workspace = $("workspace");
   if (workspace) workspace.classList.toggle("no-inspector", !product);
+  const rightPanel = document.querySelector(".right-panel");
+  if (rightPanel) rightPanel.hidden = !product;
   if (!product) {
     const h = activeHierarchy();
     const productCount = activeHierarchyProductCount();
@@ -1048,7 +1063,7 @@ function listAttributeKeys(listId, limit = 18) {
   const keys = [];
   data.products.forEach((product) => {
     if (!(product.listIds || []).includes(listId)) return;
-    Object.keys(productListAttributes(product, listId)).forEach((key) => {
+    Object.keys(mergedProductAttributes(product, [listId])).forEach((key) => {
       if (!keys.includes(key)) keys.push(key);
     });
   });
@@ -1058,7 +1073,7 @@ function listAttributeKeys(listId, limit = 18) {
 function listSortValue(product, key) {
   if (key === "cod") return cellText(product.id);
   if (key === "nom") return cellText(product.name);
-  return productListAttributes(product, state.activeProductListId)[key] || "";
+  return mergedProductAttributes(product, [state.activeProductListId])[key] || "";
 }
 
 function renderListView() {
@@ -1094,12 +1109,12 @@ function renderListView() {
     head.style.gridTemplateColumns = columns;
     head.innerHTML = `${sortButton("Codigo", "cod", state.listSort)}${sortButton("Descripcion", "nom", state.listSort)}${attrKeys.map((key) => sortButton(key, key, state.listSort)).join("")}`;
     rowsEl.innerHTML = rows.length ? rows.map((product) => {
-      const attrs = productListAttributes(product, list.id);
+      const attrs = mergedProductAttributes(product, [list.id]);
       return `
         <div class="product-row list-row" data-product="${cellText(product.id)}" style="grid-template-columns:${columns}">
           <div class="code">${cellText(product.id)}</div>
           <div><div class="product-name">${cellText(product.name)}</div></div>
-          ${attrKeys.map((key) => `<div class="table-cell">${attrs[key] || ""}</div>`).join("")}
+          ${attrKeys.map((key) => `<div class="table-cell">${hasAttributeValue(attrs, key) ? attrs[key] : ""}</div>`).join("")}
         </div>
       `;
     }).join("") : `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div>`;
@@ -1110,17 +1125,18 @@ function renderListView() {
 }
 
 function renderAll() {
-  normalizeProductSources();
   buildRenderCache();
   renderAppView();
   renderHierarchySelector();
   renderProductListSelector();
-  renderTree();
-  renderTargetTree();
-  renderHeader();
-  renderProducts();
-  renderInspector();
-  renderListView();
+  if (state.activeView === "catalog") {
+    renderTree();
+    renderTargetTree();
+    renderHeader();
+    renderProducts();
+    renderInspector();
+  }
+  if (state.activeView === "lists") renderListView();
   renderChanges();
   setActionStates();
   if (dataDirty) markDataDirty();
