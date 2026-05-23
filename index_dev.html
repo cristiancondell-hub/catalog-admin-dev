@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=product-columns-dev-20260523-01">
+  <link rel="stylesheet" href="./styles_dev.css?v=real-table-dev-20260523-01">
 </head>
 <body>
   <div class="app-shell">
@@ -140,16 +140,10 @@
         </div>
 
         <div class="table-card">
-          <div class="table-head" id="productTableHead">
-            <label class="checkline">
-              <input id="selectAll" type="checkbox">
-              <span>Seleccion</span>
-            </label>
-            <span>Producto</span>
-            <span>Clasificacion actual</span>
-            <span>Estado</span>
-          </div>
-          <div id="productRows" class="product-rows"></div>
+          <table class="data-table">
+            <thead><tr id="productTableHead"></tr></thead>
+            <tbody id="productRows"></tbody>
+          </table>
         </div>
       </section>
 
@@ -308,7 +302,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=product-columns-dev-20260523-01"></script>
+  <script src="./app_dev.js?v=real-table-dev-20260523-01"></script>
 </body>
 </html>
 

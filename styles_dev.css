@@ -323,13 +323,25 @@ select{
   border:1px solid var(--line);background:#fff;border-radius:11px;
   padding:10px 12px;color:var(--ink);font-weight:750;
 }
-.table-card{border:1px solid var(--line);border-radius:14px;overflow:auto;min-height:0;display:flex;flex-direction:column}
-.table-head{
-  display:grid;grid-template-columns:150px minmax(220px,1.2fr) minmax(210px,1fr) 122px;
-  gap:12px;padding:12px 14px;background:#eef3ef;border-bottom:1px solid var(--line);
-  font-size:12px;font-weight:850;color:#425049;
-  min-width:max-content;position:sticky;top:0;z-index:1;
+.table-card{border:1px solid var(--line);border-radius:14px;overflow:auto;min-height:0;display:block}
+.data-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0}
+.data-table thead th{
+  position:sticky;top:0;z-index:1;
+  background:#eef3ef;border-bottom:1px solid var(--line);
+  padding:12px 14px;text-align:left;font-size:12px;font-weight:850;color:#425049;
 }
+.data-table td{
+  padding:12px 14px;border-bottom:1px solid #edf0ed;
+  vertical-align:middle;background:#fff;
+}
+.data-table tr:hover td{background:#fbfcfa}
+.data-table tr.selected td{background:#f1fbf5}
+.select-col{width:54px;text-align:center}
+.code-col{width:130px}
+.name-col{min-width:300px;max-width:520px}
+.path-col{min-width:260px;max-width:520px}
+.state-col{width:120px}
+.attr-col{min-width:140px;max-width:220px}
 .sort-head{
   border:0;background:transparent;text-align:left;padding:4px 0;color:#425049;
   font-weight:900;font-size:12px;white-space:nowrap;cursor:pointer;
@@ -337,14 +349,6 @@ select{
 .sort-head:hover,.sort-head.active{color:var(--green)}
 .checkline{display:flex;align-items:center;gap:8px}
 .compact-check{justify-content:center}
-.product-rows{overflow:visible;min-width:max-content}
-.product-row{
-  display:grid;grid-template-columns:150px minmax(220px,1.2fr) minmax(210px,1fr) 122px;
-  gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid #edf0ed;
-  min-width:max-content;
-}
-.product-row:hover{background:#fbfcfa}
-.product-row.selected{background:#f1fbf5}
 .code{font-family:"SFMono-Regular",Consolas,monospace;color:#607069;font-size:12px}
 .product-name{font-weight:780;line-height:1.25}
 .product-meta,.location{font-size:12px;color:var(--muted);line-height:1.35;margin-top:3px}

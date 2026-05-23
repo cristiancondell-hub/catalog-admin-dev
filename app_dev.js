@@ -133,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "product-columns-dev-20260523-01";
+const APP_BUILD = "real-table-dev-20260523-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -924,28 +924,23 @@ function sortButton(label, key, sort) {
 function renderProductTableHead(attrKeys) {
   const head = $("productTableHead");
   if (!head) return;
-  const columns = `54px 130px minmax(300px,1.4fr) minmax(260px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
-  head.style.gridTemplateColumns = columns;
   head.innerHTML = `
-    <label class="checkline">
-      <input id="selectAll" type="checkbox">
-    </label>
-    ${sortButton("Codigo", "cod", state.productSort)}
-    ${sortButton("Producto", "nom", state.productSort)}
-    ${sortButton("Clasificacion", "ruta", state.productSort)}
-    ${sortButton("Estado", "estado", state.productSort)}
-    ${attrKeys.map((key) => sortButton(key, key, state.productSort)).join("")}
+    <th class="select-col"><input id="selectAll" type="checkbox"></th>
+    <th class="code-col">${sortButton("Codigo", "cod", state.productSort)}</th>
+    <th class="name-col">${sortButton("Producto", "nom", state.productSort)}</th>
+    <th class="path-col">${sortButton("Clasificacion", "ruta", state.productSort)}</th>
+    <th class="state-col">${sortButton("Estado", "estado", state.productSort)}</th>
+    ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.productSort)}</th>`).join("")}
   `;
-  return columns;
 }
 
 function renderProducts() {
   try {
     const attrKeys = activeCatalogAttributeKeys();
-    const columns = renderProductTableHead(attrKeys);
+    renderProductTableHead(attrKeys);
     const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
     if (!rows.length) {
-      $("productRows").innerHTML = `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div>`;
+      $("productRows").innerHTML = `<tr><td colspan="${5 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div></td></tr>`;
       return;
     }
     $("productRows").innerHTML = rows.map((p) => {
@@ -956,21 +951,19 @@ function renderProducts() {
       const selected = state.selectedProduct === productId ? " selected" : "";
       const attrMap = mergedProductAttributes(p, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
       return `
-        <div class="product-row${selected}" data-product="${productId}" style="grid-template-columns:${columns}">
-          <label class="checkline compact-check" data-stop>
-            <input type="checkbox" data-check="${productId}" ${checked}>
-          </label>
-          <div class="code">${productId}</div>
-          <div><div class="product-name">${cellText(p.name)}</div></div>
-          <div class="location">${loc}</div>
-          <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
-          ${attrKeys.map((key) => `<div class="table-cell">${hasAttributeValue(attrMap, key) ? attrMap[key] : ""}</div>`).join("")}
-        </div>
+        <tr class="product-row${selected}" data-product="${productId}">
+          <td class="select-col"><input type="checkbox" data-check="${productId}" ${checked}></td>
+          <td class="code code-col">${productId}</td>
+          <td class="name-col"><div class="product-name">${cellText(p.name)}</div></td>
+          <td class="location path-col">${loc}</td>
+          <td class="state-col"><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></td>
+          ${attrKeys.map((key) => `<td class="table-cell attr-col">${hasAttributeValue(attrMap, key) ? attrMap[key] : ""}</td>`).join("")}
+        </tr>
       `;
     }).join("");
   } catch (error) {
     console.error("No se pudo renderizar productos", error);
-    $("productRows").innerHTML = `<div class="load-error"><strong>No se pudo mostrar la tabla</strong><span>${error.message}</span></div>`;
+    $("productRows").innerHTML = `<tr><td><div class="load-error"><strong>No se pudo mostrar la tabla</strong><span>${error.message}</span></div></td></tr>`;
   }
 }
 
