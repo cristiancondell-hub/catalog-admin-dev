@@ -133,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "real-table-dev-20260523-01";
+const APP_BUILD = "table-ux-dev-20260523-02";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -569,6 +569,14 @@ function hasAttributeValue(attrs, key) {
   return attrs && Object.prototype.hasOwnProperty.call(attrs, key) && cellText(attrs[key]) !== "";
 }
 
+function isUsableAttributeKey(key) {
+  const text = cellText(key);
+  if (!text) return false;
+  if (/^\d+([.,]\d+)?$/.test(text)) return false;
+  if (/^columna\s*\d+$/i.test(text)) return false;
+  return true;
+}
+
 function visibleProductAttributeEntries(product, limit = 4) {
   const linkedIds = activeHierarchyLinkedListIds();
   const preferredIds = linkedIds.includes(state.activeProductListId)
@@ -895,7 +903,7 @@ function activeCatalogAttributeKeys(limit = 8) {
   const keys = [];
   const preferred = [state.activeProductListId, ...activeHierarchyLinkedListIds()].filter(Boolean);
   visibleProducts().forEach((product) => {
-    Object.keys(mergedProductAttributes(product, preferred)).forEach((key) => {
+    Object.keys(mergedProductAttributes(product, preferred)).filter(isUsableAttributeKey).forEach((key) => {
       if (!keys.includes(key)) keys.push(key);
     });
   });
@@ -926,10 +934,9 @@ function renderProductTableHead(attrKeys) {
   if (!head) return;
   head.innerHTML = `
     <th class="select-col"><input id="selectAll" type="checkbox"></th>
+    <th class="status-mini-col">${sortButton("E", "estado", state.productSort)}</th>
     <th class="code-col">${sortButton("Codigo", "cod", state.productSort)}</th>
     <th class="name-col">${sortButton("Producto", "nom", state.productSort)}</th>
-    <th class="path-col">${sortButton("Clasificacion", "ruta", state.productSort)}</th>
-    <th class="state-col">${sortButton("Estado", "estado", state.productSort)}</th>
     ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.productSort)}</th>`).join("")}
   `;
 }
@@ -940,23 +947,22 @@ function renderProducts() {
     renderProductTableHead(attrKeys);
     const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
     if (!rows.length) {
-      $("productRows").innerHTML = `<tr><td colspan="${5 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div></td></tr>`;
+      $("productRows").innerHTML = `<tr><td colspan="${4 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div></td></tr>`;
       return;
     }
     $("productRows").innerHTML = rows.map((p) => {
-      const node = nodeById()[productNode(p)];
-      const loc = node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado en esta jerarquia";
       const productId = cellText(p.id);
       const checked = state.selectedProducts.has(productId) ? "checked" : "";
       const selected = state.selectedProduct === productId ? " selected" : "";
       const attrMap = mergedProductAttributes(p, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
+      const status = p.status || "pending";
+      const statusLetter = { pending: "P", suggested: "S", corrected: "C", validated: "V" }[status] || "P";
       return `
         <tr class="product-row${selected}" data-product="${productId}">
           <td class="select-col"><input type="checkbox" data-check="${productId}" ${checked}></td>
+          <td class="status-mini-col"><span class="status-dot ${status}" title="${statusLabels[status] || "Pendiente"}">${statusLetter}</span></td>
           <td class="code code-col">${productId}</td>
           <td class="name-col"><div class="product-name">${cellText(p.name)}</div></td>
-          <td class="location path-col">${loc}</td>
-          <td class="state-col"><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></td>
           ${attrKeys.map((key) => `<td class="table-cell attr-col">${hasAttributeValue(attrMap, key) ? attrMap[key] : ""}</td>`).join("")}
         </tr>
       `;
@@ -1003,6 +1009,9 @@ function renderInspector() {
   `;
   $("inspector").innerHTML = `
     <div class="detail-card">
+      <div class="detail-close-row">
+        <button class="ghost-btn" data-action="close-inspector">Cerrar</button>
+      </div>
       <div>
         <div class="code">${product.id}</div>
         <div class="detail-title">${product.name}</div>
@@ -1056,7 +1065,7 @@ function listAttributeKeys(listId, limit = 18) {
   const keys = [];
   data.products.forEach((product) => {
     if (!(product.listIds || []).includes(listId)) return;
-    Object.keys(mergedProductAttributes(product, [listId])).forEach((key) => {
+    Object.keys(mergedProductAttributes(product, [listId])).filter(isUsableAttributeKey).forEach((key) => {
       if (!keys.includes(key)) keys.push(key);
     });
   });
@@ -1098,23 +1107,31 @@ function renderListView() {
       if (!q) return true;
       return cellText(product.id).toLowerCase().includes(q) || cellText(product.name).toLowerCase().includes(q);
     }), state.listSort, listSortValue);
-    const columns = `140px minmax(280px,1.2fr) ${attrKeys.map(() => "minmax(150px,.8fr)").join(" ")}`;
-    head.style.gridTemplateColumns = columns;
-    head.innerHTML = `${sortButton("Codigo", "cod", state.listSort)}${sortButton("Descripcion", "nom", state.listSort)}${attrKeys.map((key) => sortButton(key, key, state.listSort)).join("")}`;
+    head.innerHTML = `
+      <th class="code-col">${sortButton("Codigo", "cod", state.listSort)}</th>
+      <th class="name-col">${sortButton("Descripcion", "nom", state.listSort)}</th>
+      ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.listSort)}</th>`).join("")}
+    `;
     rowsEl.innerHTML = rows.length ? rows.map((product) => {
       const attrs = mergedProductAttributes(product, [list.id]);
       return `
-        <div class="product-row list-row" data-product="${cellText(product.id)}" style="grid-template-columns:${columns}">
-          <div class="code">${cellText(product.id)}</div>
-          <div><div class="product-name">${cellText(product.name)}</div></div>
-          ${attrKeys.map((key) => `<div class="table-cell">${hasAttributeValue(attrs, key) ? attrs[key] : ""}</div>`).join("")}
-        </div>
+        <tr class="list-row" data-product="${cellText(product.id)}">
+          <td class="code code-col">${cellText(product.id)}</td>
+          <td class="name-col"><div class="product-name">${cellText(product.name)}</div></td>
+          ${attrKeys.map((key) => `<td class="table-cell attr-col">${hasAttributeValue(attrs, key) ? attrs[key] : ""}</td>`).join("")}
+        </tr>
       `;
-    }).join("") : `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div>`;
+    }).join("") : `<tr><td colspan="${2 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div></td></tr>`;
   } catch (error) {
     console.error("No se pudo renderizar lista", error);
-    if ($("listRows")) $("listRows").innerHTML = `<div class="load-error"><strong>No se pudo mostrar la lista</strong><span>${error.message}</span></div>`;
+    if ($("listRows")) $("listRows").innerHTML = `<tr><td><div class="load-error"><strong>No se pudo mostrar la lista</strong><span>${error.message}</span></div></td></tr>`;
   }
+}
+
+function updateProductRowSelection() {
+  document.querySelectorAll("#productRows [data-product]").forEach((row) => {
+    row.classList.toggle("selected", row.dataset.product === state.selectedProduct);
+  });
 }
 
 function renderAll() {
@@ -4045,13 +4062,23 @@ document.addEventListener("click", (event) => {
     return;
   }
   const row = event.target.closest("[data-product]");
-  if (row && !event.target.matches("input[type='checkbox']")) {
-    state.selectedProduct = row.dataset.product;
-    renderAll();
+  if (row && row.closest("#productRows") && !event.target.matches("input[type='checkbox']")) {
+    return;
+  }
+  if (row && !row.closest("#listRows") && !event.target.matches("input[type='checkbox']")) {
+    state.selectedProduct = state.selectedProduct === row.dataset.product ? null : row.dataset.product;
+    updateProductRowSelection();
+    renderInspector();
     return;
   }
   const action = event.target.dataset.action;
   if (action) {
+    if (action === "close-inspector") {
+      state.selectedProduct = null;
+      updateProductRowSelection();
+      renderInspector();
+      return;
+    }
     const p = data.products.find((x) => x.id === state.selectedProduct);
     if (!p) return;
     if (action === "validate-product") validateProducts([p.id]);
@@ -4077,21 +4104,23 @@ $("productRows").addEventListener("click", (event) => {
   if (event.target.matches("input[type='checkbox']")) return;
   const row = event.target.closest("[data-product]");
   if (!row) return;
-  state.selectedProduct = row.dataset.product;
-  renderAll();
+  event.stopPropagation();
+  state.selectedProduct = state.selectedProduct === row.dataset.product ? null : row.dataset.product;
+  updateProductRowSelection();
+  renderInspector();
 });
 
 document.addEventListener("change", (event) => {
   if (event.target.id === "selectAll") {
     visibleProducts().forEach((p) => event.target.checked ? state.selectedProducts.add(p.id) : state.selectedProducts.delete(p.id));
-    renderAll();
+    renderProducts();
     return;
   }
   const check = event.target.dataset.check;
   if (check) {
     if (event.target.checked) state.selectedProducts.add(check);
     else state.selectedProducts.delete(check);
-    renderAll();
+    return;
   }
   if (event.target.id === "mergeLocationSelect") {
     state.operation.mergeLocation = event.target.value;

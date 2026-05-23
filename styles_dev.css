@@ -325,6 +325,7 @@ select{
 }
 .table-card{border:1px solid var(--line);border-radius:14px;overflow:auto;min-height:0;display:block}
 .data-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0}
+.data-table tr{height:40px}
 .data-table thead th{
   position:sticky;top:0;z-index:1;
   background:#eef3ef;border-bottom:1px solid var(--line);
@@ -333,15 +334,16 @@ select{
 .data-table td{
   padding:12px 14px;border-bottom:1px solid #edf0ed;
   vertical-align:middle;background:#fff;
+  font-size:12px;line-height:1.25;
 }
 .data-table tr:hover td{background:#fbfcfa}
 .data-table tr.selected td{background:#f1fbf5}
 .select-col{width:54px;text-align:center}
+.status-mini-col{width:42px;text-align:center}
 .code-col{width:130px}
 .name-col{min-width:300px;max-width:520px}
-.path-col{min-width:260px;max-width:520px}
-.state-col{width:120px}
 .attr-col{min-width:140px;max-width:220px}
+.table-cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sort-head{
   border:0;background:transparent;text-align:left;padding:4px 0;color:#425049;
   font-weight:900;font-size:12px;white-space:nowrap;cursor:pointer;
@@ -371,6 +373,14 @@ select{
 .badge.validated{background:var(--green-soft);color:var(--green)}
 .badge.corrected{background:var(--blue-soft);color:var(--blue)}
 .badge.suggested{background:var(--rose-soft);color:var(--rose)}
+.status-dot{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:999px;font-size:11px;font-weight:900;
+}
+.status-dot.pending{background:var(--amber-soft);color:var(--amber)}
+.status-dot.validated{background:var(--green-soft);color:var(--green)}
+.status-dot.corrected{background:var(--blue-soft);color:var(--blue)}
+.status-dot.suggested{background:var(--rose-soft);color:var(--rose)}
 
 .inspector{padding:10px 16px 16px;border-bottom:1px solid var(--line);min-height:310px}
 .empty-state{
@@ -389,6 +399,8 @@ select{
 .detail-value{font-size:13px;margin-top:4px;line-height:1.35}
 .detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .detail-actions .primary-btn,.detail-actions .ghost-btn{padding:10px 8px}
+.detail-close-row{display:flex;justify-content:flex-end}
+.detail-close-row .ghost-btn{padding:7px 10px}
 
 .lists-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;min-height:calc(100vh - 190px)}
 .list-sidebar{
@@ -624,9 +636,7 @@ select{
   .top-actions{width:100%;justify-content:space-between;flex-wrap:wrap}
   .workspace,.workspace.operation-mode{grid-template-columns:1fr;padding:10px}
   .left-panel,.destination-panel,.right-panel,.content-panel{border-radius:14px}
-  .table-head{display:none}
-  .product-row{grid-template-columns:32px 1fr;gap:8px}
-  .product-row>div:nth-child(3),.product-row>div:nth-child(4){grid-column:2}
+  .data-table th,.data-table td{padding:10px 12px}
   .metrics{width:100%;overflow:auto}
   .move-layout{grid-template-columns:1fr;min-height:560px}
   .load-grid,.load-preview,.load-map-row,.load-settings{grid-template-columns:1fr}
