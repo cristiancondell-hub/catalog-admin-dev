@@ -4,49 +4,37 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=firebase-admin-dev-20260520-03">
+  <link rel="stylesheet" href="./styles_dev.css?v=compact-tree-dev-20260523-01">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark">FC</div>
+      <div class="nav-menu-wrap">
+        <button class="menu-btn" id="mainMenuBtn" title="Cambiar seccion">☰</button>
+        <nav class="main-nav" aria-label="Secciones principales">
+          <button class="main-tab active" data-view-tab="catalog">Catalogo</button>
+          <button class="main-tab" data-view-tab="lists">Listas</button>
+          <button class="main-tab" data-view-tab="loads">Cargas</button>
+          <button class="main-tab" data-view-tab="firebase">Firebase</button>
+        </nav>
+      </div>
+      <div class="brand compact-brand">
         <div>
           <div class="brand-title">Administrador de Catalogos</div>
-          <div class="brand-subtitle">Jerarquias y productos multi-origen</div>
+          <div class="brand-subtitle">DEV · FitFlow</div>
         </div>
-      </div>
-      <div class="top-actions">
-        <div class="hierarchy-picker">
-          <label>Jerarquia activa</label>
-          <select id="hierarchySelect"></select>
-        </div>
-        <div class="hierarchy-picker list-picker">
-          <label>Lista activa</label>
-          <select id="productListSelect"></select>
-          <span id="productListCount">0 productos</span>
-        </div>
-        <button class="ghost-btn" id="connectListBtn">Conectar lista</button>
-        <button class="ghost-btn danger-action" id="deleteListBtn">Eliminar lista</button>
-        <button class="ghost-btn" id="loadBtn">Cargar datos</button>
-        <button class="ghost-btn" id="exportBtn">Exportar</button>
-        <button class="ghost-btn" id="duplicateHierarchyBtn">Duplicar jerarquia</button>
-        <button class="ghost-btn danger-action" id="deleteHierarchyBtn">Eliminar jerarquia</button>
-        <button class="ghost-btn" id="firebaseLoginBtn">Entrar Google</button>
-        <button class="ghost-btn" id="saveFirebaseBtn">Guardar DEV</button>
-        <button class="ghost-btn" id="loadFirebaseBtn">Cargar DEV</button>
-        <button class="ghost-btn" id="versionFirebaseBtn">Crear version</button>
-        <button class="primary-btn" id="publishFirebaseBtn">Publicar FitFlow DEV</button>
+        <div class="brand-mark">FC</div>
       </div>
     </header>
 
-    <main class="workspace" id="workspace">
+    <main class="workspace app-view active" id="workspace" data-view="catalog">
       <aside class="left-panel">
         <div class="panel-head">
           <div>
             <h2>Jerarquia</h2>
             <p id="treeCount">0 nodos</p>
           </div>
+          <select id="hierarchySelect" class="context-select"></select>
           <button class="icon-btn" id="addRootBtn" title="Crear linea">+</button>
         </div>
 
@@ -56,22 +44,29 @@
         </div>
 
         <div class="tree-tools">
+          <div class="tool-section-title">Navegacion</div>
+          <div class="tool-group">
+            <button id="expandBranchBtn" title="Abre el nivel seleccionado en toda la jerarquia">++</button>
+            <button id="collapseBranchBtn" title="Cierra el nivel seleccionado y vuelve al nodo superior">--</button>
+          </div>
+          <div class="tool-section-title">Edicion</div>
           <div class="tool-group">
             <button id="undoBtn" disabled title="Deshacer ultimo cambio">Deshacer</button>
             <button id="redoBtn" disabled title="Rehacer cambio deshecho">Rehacer</button>
           </div>
           <div class="tool-group">
-            <button id="expandBranchBtn" title="Abre el nivel seleccionado en toda la jerarquia">Abrir nivel</button>
-            <button id="collapseBranchBtn" title="Cierra el nivel seleccionado y vuelve al nodo superior">Cerrar nivel</button>
-          </div>
-          <div class="tool-group">
             <button id="addChildBtn" title="Crea un subnodo dentro del nodo seleccionado">Crear dentro</button>
             <button id="renameNodeBtn" title="Cambia el nombre del nodo seleccionado">Renombrar</button>
           </div>
-          <div class="tool-group">
+          <div class="tool-group compact-actions">
             <button id="moveNodeBtn" title="Mueve el nodo con todo su contenido">Mover</button>
             <button id="mergeNodeBtn" title="Fusiona dos nodos del mismo nivel">Fusionar</button>
             <button id="deleteNodeBtn" title="Elimina solo si el nodo esta vacio">Eliminar vacio</button>
+          </div>
+          <div class="tool-section-title">Jerarquia</div>
+          <div class="tool-group">
+            <button id="duplicateHierarchyBtn">Duplicar</button>
+            <button id="deleteHierarchyBtn" class="danger-action">Eliminar</button>
           </div>
         </div>
 
@@ -140,10 +135,12 @@
           </select>
           <button class="ghost-btn" id="moveSelectedBtn">Mover seleccionados</button>
           <button class="ghost-btn" id="validateSelectedBtn">Validar</button>
+          <button class="ghost-btn" id="connectListBtn">Conectar lista</button>
+          <button class="ghost-btn" id="exportBtn">Exportar</button>
         </div>
 
         <div class="table-card">
-          <div class="table-head">
+          <div class="table-head" id="productTableHead">
             <label class="checkline">
               <input id="selectAll" type="checkbox">
               <span>Seleccion</span>
@@ -181,6 +178,68 @@
         </section>
       </aside>
     </main>
+
+    <section class="app-view page-panel" id="listsView" data-view="lists" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Listas de productos</h1>
+          <p>Revisa listas cargadas, sus columnas y sus conexiones con jerarquias.</p>
+        </div>
+        <div class="page-actions">
+          <div class="hierarchy-picker list-picker inline-picker">
+            <label>Lista activa</label>
+            <select id="productListSelect"></select>
+            <span id="productListCount">0 productos</span>
+          </div>
+          <button class="ghost-btn danger-action" id="deleteListBtn">Eliminar lista</button>
+        </div>
+      </div>
+      <div class="lists-layout">
+        <aside class="list-sidebar" id="listCards"></aside>
+        <section class="list-detail">
+          <div class="toolbar">
+            <div class="search-box product-search">
+              <span class="search-icon">⌕</span>
+              <input id="listSearch" type="search" placeholder="Buscar en lista activa">
+            </div>
+          </div>
+          <div class="table-card list-table-card">
+            <div class="table-head dynamic-head" id="listTableHead"></div>
+            <div id="listRows" class="product-rows"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="app-view page-panel" id="loadsView" data-view="loads" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Cargas</h1>
+          <p>Carga jerarquias, productos y listas con atributos.</p>
+        </div>
+        <button class="primary-btn" id="loadBtn">Cargar datos</button>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><strong>Jerarquias</strong><span>Solo estructura o estructura con productos clasificados.</span></div>
+        <div class="info-card"><strong>Listas</strong><span>Productos simples o enriquecidos con columnas adicionales.</span></div>
+        <div class="info-card"><strong>Importante</strong><span>Despues de cargar, usa Guardar DEV para persistir en Firebase.</span></div>
+      </div>
+    </section>
+
+    <section class="app-view page-panel" id="firebaseView" data-view="firebase" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Firebase DEV</h1>
+          <p>Guarda el trabajo editable y publica el maestro liviano para FitFlow.</p>
+        </div>
+        <button class="ghost-btn" id="firebaseLoginBtn">Entrar Google</button>
+      </div>
+      <div class="info-grid">
+        <div class="info-card"><strong>Estado editable</strong><span>Jerarquias, listas, productos, conexiones y cambios.</span><button class="ghost-btn" id="saveFirebaseBtn">Guardar DEV</button><button class="ghost-btn" id="loadFirebaseBtn">Cargar DEV</button></div>
+        <div class="info-card"><strong>Version historica</strong><span>Foto congelada del estado actual.</span><button class="ghost-btn" id="versionFirebaseBtn">Crear version</button></div>
+        <div class="info-card"><strong>Maestro FitFlow</strong><span>Publica solo la jerarquia activa con cod, nom, groups, cat1 y cat2.</span><button class="primary-btn" id="publishFirebaseBtn">Publicar FitFlow DEV</button></div>
+      </div>
+    </section>
   </div>
 
   <div class="modal-backdrop" id="modalBackdrop" hidden>
@@ -249,7 +308,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=firebase-admin-dev-20260520-03"></script>
+  <script src="./app_dev.js?v=compact-tree-dev-20260523-01"></script>
 </body>
 </html>
 

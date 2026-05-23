@@ -68,10 +68,14 @@ const state = {
   expandedNodes: new Set(["l-hid", "s-pvc", "f-codos", "fam-collares", "l-riego", "s-mang"]),
   activeHierarchyId: "v16",
   activeProductListId: "base",
+  activeView: "catalog",
   view: "active",
   treeSearch: "",
   productSearch: "",
+  listSearch: "",
   status: "all",
+  productSort: { key: "cod", dir: "asc" },
+  listSort: { key: "cod", dir: "asc" },
   hideRedundant: false,
   changes: [],
   activePane: "source",
@@ -129,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "firebase-admin-dev-20260520-03";
+const APP_BUILD = "compact-tree-dev-20260523-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -835,8 +839,72 @@ function renderHeader() {
   $("validatedCount").textContent = products.filter((p) => p.status === "validated").length;
 }
 
+function compareValues(a, b, dir = "asc") {
+  const av = a ?? "";
+  const bv = b ?? "";
+  const an = Number(String(av).replace(/[.$,\s]/g, "").replace(",", "."));
+  const bn = Number(String(bv).replace(/[.$,\s]/g, "").replace(",", "."));
+  let result;
+  if (String(av).trim() !== "" && String(bv).trim() !== "" && Number.isFinite(an) && Number.isFinite(bn)) result = an - bn;
+  else result = String(av).localeCompare(String(bv), "es", { numeric: true, sensitivity: "base" });
+  return dir === "desc" ? -result : result;
+}
+
+function sortedRows(rows, sort, valueGetter) {
+  return [...rows].sort((a, b) => compareValues(valueGetter(a, sort.key), valueGetter(b, sort.key), sort.dir));
+}
+
+function activeCatalogAttributeKeys(limit = 8) {
+  const keys = [];
+  visibleProducts().forEach((product) => {
+    activeHierarchyLinkedListIds().forEach((listId) => {
+      Object.keys(productListAttributes(product, listId)).forEach((key) => {
+        if (!keys.includes(key)) keys.push(key);
+      });
+    });
+  });
+  return keys.slice(0, limit);
+}
+
+function productSortValue(product, key) {
+  if (key === "select") return "";
+  if (key === "cod") return product.id;
+  if (key === "nom") return product.name;
+  if (key === "ruta") {
+    const node = nodeById()[productNode(product)];
+    return node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado";
+  }
+  if (key === "estado") return statusLabels[product.status] || "Pendiente";
+  const attrs = Object.assign({}, ...activeHierarchyLinkedListIds().map((listId) => productListAttributes(product, listId)));
+  return attrs[key] || "";
+}
+
+function sortButton(label, key, sort) {
+  const active = sort.key === key;
+  const arrow = active ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
+  return `<button class="sort-head${active ? " active" : ""}" data-sort="${key}">${label}${arrow}</button>`;
+}
+
+function renderProductTableHead(attrKeys) {
+  const head = $("productTableHead");
+  if (!head) return;
+  head.style.gridTemplateColumns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
+  head.innerHTML = `
+    <label class="checkline">
+      <input id="selectAll" type="checkbox">
+      <span>Seleccion</span>
+    </label>
+    ${sortButton("Producto", "nom", state.productSort)}
+    ${sortButton("Clasificacion", "ruta", state.productSort)}
+    ${sortButton("Estado", "estado", state.productSort)}
+    ${attrKeys.map((key) => sortButton(key, key, state.productSort)).join("")}
+  `;
+}
+
 function renderProducts() {
-  const rows = visibleProducts();
+  const attrKeys = activeCatalogAttributeKeys();
+  renderProductTableHead(attrKeys);
+  const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
   if (!rows.length) {
     $("productRows").innerHTML = `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div>`;
     return;
@@ -846,10 +914,7 @@ function renderProducts() {
     const loc = node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado en esta jerarquia";
     const checked = state.selectedProducts.has(p.id) ? "checked" : "";
     const selected = state.selectedProduct === p.id ? " selected" : "";
-    const attrs = visibleProductAttributeEntries(p);
-    const meta = attrs.length
-      ? attrs.map((attr) => `<span class="attr-chip"><strong>${attr.key}</strong> ${attr.value}</span>`).join("")
-      : `<span class="muted-meta">Sin atributos conectados</span>`;
+    const attrMap = Object.assign({}, ...activeHierarchyLinkedListIds().map((listId) => productListAttributes(p, listId)));
     return `
       <div class="product-row${selected}" data-product="${p.id}">
         <label class="checkline" data-stop>
@@ -862,13 +927,19 @@ function renderProducts() {
         </div>
         <div class="location">${loc}</div>
         <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
+        ${attrKeys.map((key) => `<div class="table-cell">${attrMap[key] || ""}</div>`).join("")}
       </div>
     `;
   }).join("");
+  document.querySelectorAll(".product-row").forEach((row) => {
+    row.style.gridTemplateColumns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
+  });
 }
 
 function renderInspector() {
   const product = data.products.find((p) => p.id === state.selectedProduct);
+  const workspace = $("workspace");
+  if (workspace) workspace.classList.toggle("no-inspector", !product);
   if (!product) {
     const h = activeHierarchy();
     const productCount = activeHierarchyProductCount();
@@ -938,8 +1009,78 @@ function renderChanges() {
   `).join("") : `<div class="empty-state"><p>No hay cambios preparados.</p></div>`;
 }
 
+function renderAppView() {
+  document.querySelectorAll(".app-view").forEach((view) => {
+    view.hidden = view.dataset.view !== state.activeView;
+    view.classList.toggle("active", view.dataset.view === state.activeView);
+  });
+  document.querySelectorAll("[data-view-tab]").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.viewTab === state.activeView);
+  });
+}
+
+function listAttributeKeys(listId, limit = 18) {
+  const keys = [];
+  data.products.forEach((product) => {
+    if (!(product.listIds || []).includes(listId)) return;
+    Object.keys(productListAttributes(product, listId)).forEach((key) => {
+      if (!keys.includes(key)) keys.push(key);
+    });
+  });
+  return keys.slice(0, limit);
+}
+
+function listSortValue(product, key) {
+  if (key === "cod") return product.id;
+  if (key === "nom") return product.name;
+  return productListAttributes(product, state.activeProductListId)[key] || "";
+}
+
+function renderListView() {
+  const cards = $("listCards");
+  const rowsEl = $("listRows");
+  const head = $("listTableHead");
+  if (!cards || !rowsEl || !head) return;
+  cards.innerHTML = data.productLists.map((list) => {
+    const count = productListCount(list.id);
+    const connected = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id).length;
+    return `
+      <button class="list-card ${list.id === state.activeProductListId ? "active" : ""}" data-list-card="${list.id}">
+        <strong>${list.name}</strong>
+        <span>${count} productos · ${connected} conexion(es)</span>
+      </button>
+    `;
+  }).join("");
+  const list = activeProductList();
+  if (!list) {
+    rowsEl.innerHTML = `<div class="empty-state"><h3>Sin listas</h3></div>`;
+    return;
+  }
+  const attrKeys = listAttributeKeys(list.id);
+  const q = state.listSearch.trim().toLowerCase();
+  const rows = sortedRows(data.products.filter((product) => {
+    if (!(product.listIds || []).includes(list.id)) return false;
+    if (!q) return true;
+    return product.id.toLowerCase().includes(q) || product.name.toLowerCase().includes(q);
+  }), state.listSort, listSortValue);
+  const columns = `140px minmax(280px,1.2fr) ${attrKeys.map(() => "minmax(150px,.8fr)").join(" ")}`;
+  head.style.gridTemplateColumns = columns;
+  head.innerHTML = `${sortButton("Codigo", "cod", state.listSort)}${sortButton("Descripcion", "nom", state.listSort)}${attrKeys.map((key) => sortButton(key, key, state.listSort)).join("")}`;
+  rowsEl.innerHTML = rows.length ? rows.map((product) => {
+    const attrs = productListAttributes(product, list.id);
+    return `
+      <div class="product-row list-row" data-product="${product.id}" style="grid-template-columns:${columns}">
+        <div class="code">${product.id}</div>
+        <div><div class="product-name">${product.name}</div></div>
+        ${attrKeys.map((key) => `<div class="table-cell">${attrs[key] || ""}</div>`).join("")}
+      </div>
+    `;
+  }).join("") : `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div>`;
+}
+
 function renderAll() {
   buildRenderCache();
+  renderAppView();
   renderHierarchySelector();
   renderProductListSelector();
   renderTree();
@@ -947,6 +1088,7 @@ function renderAll() {
   renderHeader();
   renderProducts();
   renderInspector();
+  renderListView();
   renderChanges();
   setActionStates();
   if (dataDirty) markDataDirty();
@@ -3735,6 +3877,39 @@ function validateProducts(ids) {
 }
 
 document.addEventListener("click", (event) => {
+  const viewTab = event.target.closest("[data-view-tab]");
+  if (viewTab) {
+    state.activeView = viewTab.dataset.viewTab;
+    document.querySelector(".nav-menu-wrap")?.classList.remove("open");
+    renderAll();
+    return;
+  }
+  if (event.target.closest("#mainMenuBtn")) {
+    document.querySelector(".nav-menu-wrap")?.classList.toggle("open");
+    return;
+  }
+  const listCard = event.target.closest("[data-list-card]");
+  if (listCard) {
+    state.activeProductListId = listCard.dataset.listCard;
+    state.listSearch = "";
+    markDataDirty();
+    renderAll();
+    return;
+  }
+  if (!event.target.closest(".nav-menu-wrap")) {
+    document.querySelector(".nav-menu-wrap")?.classList.remove("open");
+  }
+  const sortBtn = event.target.closest("[data-sort]");
+  if (sortBtn) {
+    const sort = state.activeView === "lists" ? state.listSort : state.productSort;
+    if (sort.key === sortBtn.dataset.sort) sort.dir = sort.dir === "asc" ? "desc" : "asc";
+    else {
+      sort.key = sortBtn.dataset.sort;
+      sort.dir = "asc";
+    }
+    renderAll();
+    return;
+  }
   const loadCard = event.target.closest("[data-load-type]");
   if (loadCard) {
     document.querySelectorAll(".load-card").forEach((card) => card.classList.toggle("active", card === loadCard));
@@ -3866,6 +4041,11 @@ $("productRows").addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  if (event.target.id === "selectAll") {
+    visibleProducts().forEach((p) => event.target.checked ? state.selectedProducts.add(p.id) : state.selectedProducts.delete(p.id));
+    renderAll();
+    return;
+  }
   const check = event.target.dataset.check;
   if (check) {
     if (event.target.checked) state.selectedProducts.add(check);
@@ -3919,6 +4099,7 @@ $("productListSelect").addEventListener("change", (e) => {
 $("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; renderAll(); });
 $("targetTreeSearch").addEventListener("input", (e) => { state.operation.targetSearch = e.target.value; renderAll(); });
 $("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; renderAll(); });
+$("listSearch").addEventListener("input", (e) => { state.listSearch = e.target.value; renderAll(); });
 $("statusFilter").addEventListener("change", (e) => { state.status = e.target.value; renderAll(); });
 $("addRootBtn").addEventListener("click", () => createNode(null));
 $("addChildBtn").addEventListener("click", () => createNode(state.selectedNode));
@@ -3935,10 +4116,6 @@ $("moveSelectedBtn").addEventListener("click", () => moveProducts([...state.sele
 $("validateSelectedBtn").addEventListener("click", () => validateProducts([...state.selectedProducts]));
 $("modalClose").addEventListener("click", closeModal);
 $("modalCancel").addEventListener("click", closeModal);
-$("selectAll").addEventListener("change", (e) => {
-  visibleProducts().forEach((p) => e.target.checked ? state.selectedProducts.add(p.id) : state.selectedProducts.delete(p.id));
-  renderAll();
-});
 $("loadBtn").addEventListener("click", openLoadModal);
 $("exportBtn").addEventListener("click", openExportModal);
 $("duplicateHierarchyBtn").addEventListener("click", duplicateActiveHierarchy);
