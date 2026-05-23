@@ -133,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "compact-tree-dev-20260523-01";
+const APP_BUILD = "render-safe-dev-20260523-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -158,6 +158,9 @@ function applySavedCatalogState(saved) {
   }
   if (saved.activeProductListId && data.productLists.some((list) => list.id === saved.activeProductListId)) {
     state.activeProductListId = saved.activeProductListId;
+  }
+  if (!data.productLists.some((list) => list.id === state.activeProductListId)) {
+    state.activeProductListId = data.productLists[0]?.id || "base";
   }
   if (Array.isArray(saved.changes)) state.changes = saved.changes.slice(0, 80);
   return true;
@@ -281,8 +284,19 @@ function markDataDirty() {
 loadLocalCatalogState();
 data.nodes.forEach((node) => { if (!node.hierarchyId) node.hierarchyId = "v16"; });
 function normalizeProductSources() {
+  const listIds = new Set(data.productLists.map((list) => list.id));
+  if (!listIds.has("base")) {
+    data.productLists.unshift({ id: "base", name: "Productos base maestro", products: 0 });
+    listIds.add("base");
+  }
   data.products.forEach((product) => {
+    product.id = cellText(product.id);
+    product.name = cellText(product.name || product.nom || product.id);
+    product.status = product.status || "pending";
     product.listIds = product.listIds || ["base"];
+    if (!product.listIds.length) product.listIds = ["base"];
+    product.listIds = Array.from(new Set(product.listIds.filter((listId) => listIds.has(listId))));
+    if (!product.listIds.length) product.listIds = ["base"];
     product.listAttributes = product.listAttributes || {};
     if (product.attributes) {
       product.listIds.forEach((listId) => {
@@ -290,6 +304,9 @@ function normalizeProductSources() {
       });
     }
     product.assignments = product.assignments || { v16: product.originalNode || product.node };
+  });
+  data.productLists.forEach((list) => {
+    list.products = data.products.filter((product) => (product.listIds || []).includes(list.id)).length;
   });
 }
 normalizeProductSources();
@@ -371,7 +388,14 @@ function activeHierarchyProductCount() {
   }).length;
 }
 
+function ensureRenderableFocus() {
+  if (!state.selectedNode || state.selectedNode === UNCLASSIFIED_NODE_ID) return;
+  const node = nodeById()[state.selectedNode];
+  if (!node || nodeHierarchy(node) !== state.activeHierarchyId) state.selectedNode = null;
+}
+
 function visibleProducts() {
+  ensureRenderableFocus();
   const focusNode = focusedNodeId();
   const map = nodeById();
   const linkedIds = activeHierarchyLinkedListIds();
@@ -383,7 +407,7 @@ function visibleProducts() {
       ? linkedOnly
       : (!focusNode || (assignedNode && isDescendantOrSelf(assignedNode, focusNode)));
     const q = state.productSearch.trim().toLowerCase();
-    const matchesQ = !q || p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+    const matchesQ = !q || cellText(p.id).toLowerCase().includes(q) || cellText(p.name).toLowerCase().includes(q);
     const matchesStatus = state.status === "all" || p.status === state.status;
     return (inHierarchy || linkedOnly) && inNode && matchesQ && matchesStatus;
   });
@@ -868,8 +892,8 @@ function activeCatalogAttributeKeys(limit = 8) {
 
 function productSortValue(product, key) {
   if (key === "select") return "";
-  if (key === "cod") return product.id;
-  if (key === "nom") return product.name;
+  if (key === "cod") return cellText(product.id);
+  if (key === "nom") return cellText(product.name);
   if (key === "ruta") {
     const node = nodeById()[productNode(product)];
     return node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado";
@@ -902,38 +926,39 @@ function renderProductTableHead(attrKeys) {
 }
 
 function renderProducts() {
-  const attrKeys = activeCatalogAttributeKeys();
-  renderProductTableHead(attrKeys);
-  const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
-  if (!rows.length) {
-    $("productRows").innerHTML = `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div>`;
-    return;
-  }
-  $("productRows").innerHTML = rows.map((p) => {
-    const node = nodeById()[productNode(p)];
-    const loc = node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado en esta jerarquia";
-    const checked = state.selectedProducts.has(p.id) ? "checked" : "";
-    const selected = state.selectedProduct === p.id ? " selected" : "";
-    const attrMap = Object.assign({}, ...activeHierarchyLinkedListIds().map((listId) => productListAttributes(p, listId)));
-    return `
-      <div class="product-row${selected}" data-product="${p.id}">
-        <label class="checkline" data-stop>
-          <input type="checkbox" data-check="${p.id}" ${checked}>
-          <span class="code">${p.id}</span>
-        </label>
-        <div>
-          <div class="product-name">${p.name}</div>
-          <div class="product-meta">${meta}</div>
+  try {
+    const attrKeys = activeCatalogAttributeKeys();
+    renderProductTableHead(attrKeys);
+    const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
+    if (!rows.length) {
+      $("productRows").innerHTML = `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div>`;
+      return;
+    }
+    const columns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
+    $("productRows").innerHTML = rows.map((p) => {
+      const node = nodeById()[productNode(p)];
+      const loc = node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado en esta jerarquia";
+      const productId = cellText(p.id);
+      const checked = state.selectedProducts.has(productId) ? "checked" : "";
+      const selected = state.selectedProduct === productId ? " selected" : "";
+      const attrMap = Object.assign({}, ...activeHierarchyLinkedListIds().map((listId) => productListAttributes(p, listId)));
+      return `
+        <div class="product-row${selected}" data-product="${productId}" style="grid-template-columns:${columns}">
+          <label class="checkline" data-stop>
+            <input type="checkbox" data-check="${productId}" ${checked}>
+            <span class="code">${productId}</span>
+          </label>
+          <div><div class="product-name">${cellText(p.name)}</div></div>
+          <div class="location">${loc}</div>
+          <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
+          ${attrKeys.map((key) => `<div class="table-cell">${attrMap[key] || ""}</div>`).join("")}
         </div>
-        <div class="location">${loc}</div>
-        <div><span class="badge ${p.status || "pending"}">${statusLabels[p.status] || "Pendiente"}</span></div>
-        ${attrKeys.map((key) => `<div class="table-cell">${attrMap[key] || ""}</div>`).join("")}
-      </div>
-    `;
-  }).join("");
-  document.querySelectorAll(".product-row").forEach((row) => {
-    row.style.gridTemplateColumns = `150px minmax(260px,1.4fr) minmax(240px,1fr) 120px ${attrKeys.map(() => "minmax(140px,.8fr)").join(" ")}`;
-  });
+      `;
+    }).join("");
+  } catch (error) {
+    console.error("No se pudo renderizar productos", error);
+    $("productRows").innerHTML = `<div class="load-error"><strong>No se pudo mostrar la tabla</strong><span>${error.message}</span></div>`;
+  }
 }
 
 function renderInspector() {
@@ -1031,54 +1056,61 @@ function listAttributeKeys(listId, limit = 18) {
 }
 
 function listSortValue(product, key) {
-  if (key === "cod") return product.id;
-  if (key === "nom") return product.name;
+  if (key === "cod") return cellText(product.id);
+  if (key === "nom") return cellText(product.name);
   return productListAttributes(product, state.activeProductListId)[key] || "";
 }
 
 function renderListView() {
-  const cards = $("listCards");
-  const rowsEl = $("listRows");
-  const head = $("listTableHead");
-  if (!cards || !rowsEl || !head) return;
-  cards.innerHTML = data.productLists.map((list) => {
-    const count = productListCount(list.id);
-    const connected = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id).length;
-    return `
-      <button class="list-card ${list.id === state.activeProductListId ? "active" : ""}" data-list-card="${list.id}">
-        <strong>${list.name}</strong>
-        <span>${count} productos · ${connected} conexion(es)</span>
-      </button>
-    `;
-  }).join("");
-  const list = activeProductList();
-  if (!list) {
-    rowsEl.innerHTML = `<div class="empty-state"><h3>Sin listas</h3></div>`;
-    return;
+  try {
+    const cards = $("listCards");
+    const rowsEl = $("listRows");
+    const head = $("listTableHead");
+    if (!cards || !rowsEl || !head) return;
+    const activeId = state.activeProductListId;
+    cards.innerHTML = data.productLists.map((list) => {
+      const count = productListCount(list.id);
+      const connected = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id).length;
+      return `
+        <button class="list-card ${list.id === activeId ? "active" : ""}" data-list-card="${list.id}">
+          <strong>${list.name}</strong>
+          <span>${count} productos · ${connected} conexion(es)</span>
+        </button>
+      `;
+    }).join("");
+    const list = activeProductList();
+    if (!list) {
+      rowsEl.innerHTML = `<div class="empty-state"><h3>Sin listas</h3></div>`;
+      return;
+    }
+    const attrKeys = listAttributeKeys(list.id);
+    const q = state.listSearch.trim().toLowerCase();
+    const rows = sortedRows(data.products.filter((product) => {
+      if (!(product.listIds || []).includes(list.id)) return false;
+      if (!q) return true;
+      return cellText(product.id).toLowerCase().includes(q) || cellText(product.name).toLowerCase().includes(q);
+    }), state.listSort, listSortValue);
+    const columns = `140px minmax(280px,1.2fr) ${attrKeys.map(() => "minmax(150px,.8fr)").join(" ")}`;
+    head.style.gridTemplateColumns = columns;
+    head.innerHTML = `${sortButton("Codigo", "cod", state.listSort)}${sortButton("Descripcion", "nom", state.listSort)}${attrKeys.map((key) => sortButton(key, key, state.listSort)).join("")}`;
+    rowsEl.innerHTML = rows.length ? rows.map((product) => {
+      const attrs = productListAttributes(product, list.id);
+      return `
+        <div class="product-row list-row" data-product="${cellText(product.id)}" style="grid-template-columns:${columns}">
+          <div class="code">${cellText(product.id)}</div>
+          <div><div class="product-name">${cellText(product.name)}</div></div>
+          ${attrKeys.map((key) => `<div class="table-cell">${attrs[key] || ""}</div>`).join("")}
+        </div>
+      `;
+    }).join("") : `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div>`;
+  } catch (error) {
+    console.error("No se pudo renderizar lista", error);
+    if ($("listRows")) $("listRows").innerHTML = `<div class="load-error"><strong>No se pudo mostrar la lista</strong><span>${error.message}</span></div>`;
   }
-  const attrKeys = listAttributeKeys(list.id);
-  const q = state.listSearch.trim().toLowerCase();
-  const rows = sortedRows(data.products.filter((product) => {
-    if (!(product.listIds || []).includes(list.id)) return false;
-    if (!q) return true;
-    return product.id.toLowerCase().includes(q) || product.name.toLowerCase().includes(q);
-  }), state.listSort, listSortValue);
-  const columns = `140px minmax(280px,1.2fr) ${attrKeys.map(() => "minmax(150px,.8fr)").join(" ")}`;
-  head.style.gridTemplateColumns = columns;
-  head.innerHTML = `${sortButton("Codigo", "cod", state.listSort)}${sortButton("Descripcion", "nom", state.listSort)}${attrKeys.map((key) => sortButton(key, key, state.listSort)).join("")}`;
-  rowsEl.innerHTML = rows.length ? rows.map((product) => {
-    const attrs = productListAttributes(product, list.id);
-    return `
-      <div class="product-row list-row" data-product="${product.id}" style="grid-template-columns:${columns}">
-        <div class="code">${product.id}</div>
-        <div><div class="product-name">${product.name}</div></div>
-        ${attrKeys.map((key) => `<div class="table-cell">${attrs[key] || ""}</div>`).join("")}
-      </div>
-    `;
-  }).join("") : `<div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div>`;
 }
 
 function renderAll() {
+  normalizeProductSources();
   buildRenderCache();
   renderAppView();
   renderHierarchySelector();
