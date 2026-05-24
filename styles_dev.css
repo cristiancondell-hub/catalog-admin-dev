@@ -406,7 +406,7 @@ select{
 .status-dot.corrected{background:var(--blue-soft);color:var(--blue)}
 .status-dot.suggested{background:var(--rose-soft);color:var(--rose)}
 
-.inspector{padding:10px 16px 16px;border-bottom:1px solid var(--line);min-height:310px}
+.inspector{padding:10px 16px 16px;min-height:0;overflow:auto}
 .empty-state{
   border:1px dashed #ccd5ce;border-radius:14px;min-height:250px;
   display:flex;align-items:center;justify-content:center;flex-direction:column;
@@ -423,6 +423,7 @@ select{
 .detail-value{font-size:13px;margin-top:4px;line-height:1.35}
 .detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .detail-actions .primary-btn,.detail-actions .ghost-btn{padding:10px 8px}
+.top-actions-detail{order:0}
 .detail-close-row{display:flex;justify-content:flex-end}
 .detail-close-row .ghost-btn{padding:7px 10px}
 
@@ -441,12 +442,21 @@ select{
 .list-detail{display:flex;flex-direction:column;gap:12px;min-width:0}
 .list-table-card{min-height:0}
 
-.change-queue{padding:14px 16px 16px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.queue-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.change-list{overflow:auto;display:flex;flex-direction:column;gap:8px}
-.change-item{border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:#fbfcfa}
-.change-item strong{display:block;font-size:12px;margin-bottom:3px}
-.change-item span{font-size:12px;color:var(--muted);line-height:1.35}
+.toast-stack{
+  position:fixed;right:18px;bottom:18px;z-index:6000;
+  display:grid;gap:10px;width:min(360px,calc(100vw - 36px));
+  pointer-events:none;
+}
+.toast{
+  border:1px solid #c5e2d1;background:#f5fbf7;color:#173c2d;
+  border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;
+  animation:toastIn .18s ease-out both;
+}
+.toast strong{display:block;font-size:13px;margin-bottom:4px}
+.toast span{display:block;font-size:12px;color:#47695a;line-height:1.35}
+.toast.leaving{animation:toastOut .24s ease-in both}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}
 
 .modal-backdrop{
   position:fixed;inset:0;background:rgba(20,28,24,.35);z-index:5000;

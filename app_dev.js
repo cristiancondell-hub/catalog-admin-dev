@@ -509,10 +509,7 @@ function renderHierarchySelector() {
   if (hierarchy) hierarchy.products = productCount;
   const treeCount = $("treeCount");
   if (treeCount) treeCount.textContent = `${activeNodes().length} nodos | ${productCount} productos`;
-  if (subtitle) {
-    const h = activeHierarchy();
-    subtitle.textContent = `${h.name} - ${activeNodes().length} nodos - ${productCount} productos`;
-  }
+  if (subtitle) subtitle.textContent = state.selectedProduct ? "Producto seleccionado" : "Sin producto seleccionado";
 }
 
 function activeProductList() {
@@ -957,6 +954,26 @@ function renderProductTableHead(attrKeys) {
   `;
 }
 
+function visibleProductIds() {
+  return visibleProducts().map((product) => cellText(product.id)).filter(Boolean);
+}
+
+function syncSelectAllState(ids = visibleProductIds()) {
+  const selectAll = $("selectAll");
+  if (!selectAll) return;
+  const total = ids.length;
+  const selected = ids.filter((id) => state.selectedProducts.has(id)).length;
+  selectAll.disabled = total === 0;
+  selectAll.checked = total > 0 && selected === total;
+  selectAll.indeterminate = selected > 0 && selected < total;
+}
+
+function updateVisibleCheckboxes(checked) {
+  document.querySelectorAll("#productRows input[data-check]").forEach((input) => {
+    input.checked = checked;
+  });
+}
+
 function renderProducts() {
   try {
     const attrKeys = activeCatalogAttributeKeys();
@@ -964,6 +981,7 @@ function renderProducts() {
     const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
     if (!rows.length) {
       $("productRows").innerHTML = `<tr><td colspan="${4 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div></td></tr>`;
+      syncSelectAllState([]);
       return;
     }
     $("productRows").innerHTML = rows.map((p) => {
@@ -983,6 +1001,7 @@ function renderProducts() {
         </tr>
       `;
     }).join("");
+    syncSelectAllState(rows.map((product) => cellText(product.id)).filter(Boolean));
   } catch (error) {
     console.error("No se pudo renderizar productos", error);
     $("productRows").innerHTML = `<tr><td><div class="load-error"><strong>No se pudo mostrar la tabla</strong><span>${error.message}</span></div></td></tr>`;
@@ -995,6 +1014,8 @@ function renderInspector() {
   if (workspace) workspace.classList.toggle("no-inspector", !product);
   const rightPanel = document.querySelector(".right-panel");
   if (rightPanel) rightPanel.hidden = !product;
+  const subtitle = $("rightPanelSubtitle");
+  if (subtitle) subtitle.textContent = product ? "Producto seleccionado" : "Sin producto seleccionado";
   if (!product) {
     const h = activeHierarchy();
     const productCount = activeHierarchyProductCount();
@@ -1028,6 +1049,12 @@ function renderInspector() {
       <div class="detail-close-row">
         <button class="ghost-btn" data-action="close-inspector">Cerrar</button>
       </div>
+      <div class="detail-actions top-actions-detail">
+        <button class="primary-btn" data-action="validate-product">Validar</button>
+        <button class="ghost-btn" data-action="move-product">Mover</button>
+        <button class="ghost-btn" data-action="apply-suggestion">Aplicar sugerencia</button>
+        <button class="ghost-btn" data-action="mark-pending">Dejar pendiente</button>
+      </div>
       <div>
         <div class="code">${product.id}</div>
         <div class="detail-title">${product.name}</div>
@@ -1047,24 +1074,11 @@ function renderInspector() {
         </div>
         ${attrHtml}
       </div>
-      <div class="detail-actions">
-        <button class="primary-btn" data-action="validate-product">Validar</button>
-        <button class="ghost-btn" data-action="move-product">Mover</button>
-        <button class="ghost-btn" data-action="apply-suggestion">Aplicar sugerencia</button>
-        <button class="ghost-btn" data-action="mark-pending">Dejar pendiente</button>
-      </div>
     </div>
   `;
 }
 
 function renderChanges() {
-  $("changeCount").textContent = state.changes.length;
-  $("changeList").innerHTML = state.changes.length ? state.changes.map((c) => `
-    <div class="change-item">
-      <strong>${c.title}</strong>
-      <span>${c.detail}</span>
-    </div>
-  `).join("") : `<div class="empty-state"><p>No hay cambios preparados.</p></div>`;
 }
 
 function renderAppView() {
@@ -1544,7 +1558,19 @@ function renderMoveBrowser() {
 }
 function addChange(title, detail) {
   state.changes.unshift({ title, detail });
+  showToast(title, detail);
   markDataDirty();
+}
+
+function showToast(title, detail = "") {
+  const stack = $("toastStack");
+  if (!stack) return;
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerHTML = `<strong>${title}</strong><span>${detail}</span>`;
+  stack.prepend(toast);
+  window.setTimeout(() => toast.classList.add("leaving"), 4200);
+  window.setTimeout(() => toast.remove(), 4800);
 }
 
 function closeHierarchyActions() {
@@ -4190,14 +4216,18 @@ $("productRows").addEventListener("click", (event) => {
 
 document.addEventListener("change", (event) => {
   if (event.target.id === "selectAll") {
-    visibleProducts().forEach((p) => event.target.checked ? state.selectedProducts.add(p.id) : state.selectedProducts.delete(p.id));
-    renderProducts();
+    const ids = visibleProductIds();
+    const checked = event.target.checked;
+    ids.forEach((id) => checked ? state.selectedProducts.add(id) : state.selectedProducts.delete(id));
+    updateVisibleCheckboxes(checked);
+    syncSelectAllState(ids);
     return;
   }
   const check = event.target.dataset.check;
   if (check) {
     if (event.target.checked) state.selectedProducts.add(check);
     else state.selectedProducts.delete(check);
+    syncSelectAllState();
     return;
   }
   if (event.target.id === "mergeLocationSelect") {
