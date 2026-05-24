@@ -441,6 +441,7 @@ function renderTree() {
   const unclassifiedCount = activeUnclassifiedProducts().length;
   const unclassifiedHtml = unclassifiedCount ? `
     <button class="tree-node tree-level-0 unclassified-node${state.selectedNode === UNCLASSIFIED_NODE_ID ? " active" : ""}" data-node="${UNCLASSIFIED_NODE_ID}">
+      <span class="level-mark" aria-hidden="true"></span>
       <span class="twisty"></span>
       <span class="node-name">No clasificados</span>
       <span class="node-count">${unclassifiedCount}</span>
