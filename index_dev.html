@@ -35,7 +35,6 @@
             <p id="treeCount">0 nodos</p>
           </div>
           <select id="hierarchySelect" class="context-select"></select>
-          <button class="icon-btn" id="addRootBtn" title="Crear linea">+</button>
         </div>
 
         <div class="search-box">
@@ -43,35 +42,26 @@
           <input id="treeSearch" type="search" placeholder="Buscar linea, sistema o familia">
         </div>
 
-        <div class="tree-tools">
-          <div class="tool-section-title">Navegacion</div>
-          <div class="tool-group">
-            <button id="expandBranchBtn" title="Abre el nivel seleccionado en toda la jerarquia">++</button>
-            <button id="collapseBranchBtn" title="Cierra el nivel seleccionado y vuelve al nodo superior">--</button>
-          </div>
-          <div class="tool-section-title">Edicion</div>
-          <div class="tool-group">
-            <button id="undoBtn" disabled title="Deshacer ultimo cambio">Deshacer</button>
-            <button id="redoBtn" disabled title="Rehacer cambio deshecho">Rehacer</button>
-          </div>
-          <div class="tool-group">
-            <button id="addChildBtn" title="Crea un subnodo dentro del nodo seleccionado">Crear dentro</button>
+        <div class="hierarchy-actions-wrap">
+          <button class="ghost-btn hierarchy-actions-btn" id="hierarchyActionsBtn">Acciones</button>
+          <div class="hierarchy-actions-menu" id="hierarchyActionsMenu">
+            <div class="tool-section-title">Edicion</div>
+            <button id="addChildBtn" title="Crear nodo en la jerarquia">Crear nodo</button>
             <button id="renameNodeBtn" title="Cambia el nombre del nodo seleccionado">Renombrar</button>
-          </div>
-          <div class="tool-group compact-actions">
             <button id="moveNodeBtn" title="Mueve el nodo con todo su contenido">Mover</button>
             <button id="mergeNodeBtn" title="Fusiona dos nodos del mismo nivel">Fusionar</button>
             <button id="deleteNodeBtn" title="Elimina solo si el nodo esta vacio">Eliminar vacio</button>
-          </div>
-          <div class="tool-section-title">Jerarquia</div>
-          <div class="tool-group">
-            <button id="duplicateHierarchyBtn">Duplicar</button>
-            <button id="deleteHierarchyBtn" class="danger-action">Eliminar</button>
+            <div class="tool-section-title">Jerarquia</div>
+            <button id="duplicateHierarchyBtn">Duplicar jerarquia</button>
+            <button id="deleteHierarchyBtn" class="danger-action">Eliminar jerarquia</button>
           </div>
         </div>
 
-        <div class="create-context" id="createHint">
-          Selecciona un contenedor para crear un subnodo dentro.
+        <div class="tree-navigation">
+            <button id="expandBranchBtn" title="Abre el nivel seleccionado en toda la jerarquia">++</button>
+            <button id="collapseBranchBtn" title="Cierra el nivel seleccionado y vuelve al nodo superior">--</button>
+            <button id="undoBtn" class="cycle-btn" disabled title="Deshacer ultimo cambio">↺</button>
+            <button id="redoBtn" class="cycle-btn" disabled title="Rehacer cambio deshecho">↻</button>
         </div>
 
         <label class="tree-toggle">

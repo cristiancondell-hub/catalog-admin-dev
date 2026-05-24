@@ -133,7 +133,7 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
-const APP_BUILD = "table-ux-dev-20260523-02";
+const APP_BUILD = "hierarchy-ux-dev-20260523-03";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -455,6 +455,7 @@ function renderTree() {
     const expanded = state.expandedNodes.has(node.id);
     return `
       <button class="tree-node${active}${focus}${visual}${level}" data-node="${node.id}">
+        <span class="level-mark" aria-hidden="true"></span>
         <span class="twisty ${hasChildren ? "has-children" : ""} ${expanded ? "expanded" : ""}" data-toggle-node="${node.id}">${hasChildren ? ">" : ""}</span>
         <span class="node-name">${node.name}</span>
         <span class="node-count">${countProducts(node.id)}</span>
@@ -689,34 +690,48 @@ function connectActiveListToHierarchy() {
 function duplicateActiveHierarchy() {
   const sourceHierarchy = activeHierarchy();
   const name = `${sourceHierarchy.name} copia`;
-  const newId = `h-${Date.now()}`;
-  const idMap = {};
-  pushHistory("duplicar jerarquia");
-  activeNodes()
-    .sort((a, b) => a.level - b.level)
-    .forEach((node) => {
-      const newNodeId = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      idMap[node.id] = newNodeId;
-      data.nodes.push({
-        ...structuredClone(node),
-        id: newNodeId,
-        parent: node.parent ? idMap[node.parent] : null,
-        hierarchyId: newId
+  const nodeCount = activeNodes().length;
+  const productCount = activeHierarchyProductCount();
+  openModal("Duplicar jerarquia", `
+    <div class="rule-note">
+      Se creara una copia editable de <strong>${sourceHierarchy.name}</strong> como <strong>${name}</strong>.
+      La copia mantiene la estructura y las ubicaciones de productos, sin borrar ni modificar la jerarquia original.
+    </div>
+    <div class="load-preview">
+      <div class="load-pill"><strong>${nodeCount}</strong> nodos</div>
+      <div class="load-pill"><strong>${productCount}</strong> productos ubicados</div>
+      <div class="load-pill"><strong>1</strong> nueva jerarquia</div>
+    </div>
+  `, () => {
+    const newId = `h-${Date.now()}`;
+    const idMap = {};
+    pushHistory("duplicar jerarquia");
+    activeNodes()
+      .sort((a, b) => a.level - b.level)
+      .forEach((node) => {
+        const newNodeId = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        idMap[node.id] = newNodeId;
+        data.nodes.push({
+          ...structuredClone(node),
+          id: newNodeId,
+          parent: node.parent ? idMap[node.parent] : null,
+          hierarchyId: newId
+        });
       });
+    data.products.forEach((product) => {
+      const assigned = productNode(product);
+      if (assigned && idMap[assigned]) {
+        product.assignments = product.assignments || {};
+        product.assignments[newId] = idMap[assigned];
+      }
     });
-  data.products.forEach((product) => {
-    const assigned = productNode(product);
-    if (assigned && idMap[assigned]) {
-      product.assignments = product.assignments || {};
-      product.assignments[newId] = idMap[assigned];
-    }
-  });
-  data.hierarchies.push({ id: newId, name, status: "Editable", products: visibleProducts().length });
-  state.activeHierarchyId = newId;
-  state.selectedNode = null;
-  state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
-  addChange("Jerarquia duplicada", `"${sourceHierarchy.name}" fue duplicada como "${name}".`);
-  renderAll();
+    data.hierarchies.push({ id: newId, name, status: "Editable", products: productCount });
+    state.activeHierarchyId = newId;
+    state.selectedNode = null;
+    state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
+    addChange("Jerarquia duplicada", `"${sourceHierarchy.name}" fue duplicada como "${name}".`);
+    renderAll();
+  }, { confirmText: "Duplicar jerarquia" });
 }
 
 function deleteActiveHierarchy() {
@@ -797,6 +812,7 @@ function renderTargetTree() {
     const validity = valid ? " valid-target" : " invalid-target";
     return `
       <button class="tree-node${selected}${validity} tree-level-${node.level}" data-target-node="${node.id}">
+        <span class="level-mark" aria-hidden="true"></span>
         <span class="twisty ${hasChildren ? "has-children" : ""} ${expanded ? "expanded" : ""}" data-target-toggle="${node.id}">${hasChildren ? ">" : ""}</span>
         <span class="node-name">${node.name}</span>
         <span class="node-count">${countProducts(node.id)}</span>
@@ -1408,7 +1424,6 @@ function setActionStates() {
   const undoBtn = $("undoBtn");
   const redoBtn = $("redoBtn");
   const addChildBtn = $("addChildBtn");
-  const createHint = $("createHint");
   const deleteHierarchyBtn = $("deleteHierarchyBtn");
   const deleteListBtn = $("deleteListBtn");
   const connectListBtn = $("connectListBtn");
@@ -1420,15 +1435,17 @@ function setActionStates() {
   const selected = state.selectedNode ? nodeById()[state.selectedNode] : null;
   if (undoBtn) {
     undoBtn.disabled = historyStack.length === 0;
-    undoBtn.textContent = historyStack.length ? `Deshacer (${historyStack.length})` : "Deshacer";
+    undoBtn.textContent = "↺";
+    undoBtn.title = historyStack.length ? `Deshacer ultimo cambio (${historyStack.length})` : "Deshacer";
   }
   if (redoBtn) {
     redoBtn.disabled = redoStack.length === 0;
-    redoBtn.textContent = redoStack.length ? `Rehacer (${redoStack.length})` : "Rehacer";
+    redoBtn.textContent = "↻";
+    redoBtn.title = redoStack.length ? `Rehacer cambio (${redoStack.length})` : "Rehacer";
   }
   if (addChildBtn) {
-    addChildBtn.disabled = isSpecialNode || !selected || selected.level >= 3;
-    addChildBtn.textContent = selected && selected.level < 3 ? `Crear ${levelNames[selected.level + 1]}` : "Crear dentro";
+    addChildBtn.disabled = isSpecialNode;
+    addChildBtn.textContent = "Crear nodo";
   }
   if (deleteHierarchyBtn) {
     deleteHierarchyBtn.disabled = data.hierarchies.length <= 1;
@@ -1445,17 +1462,6 @@ function setActionStates() {
   [saveFirebaseBtn, loadFirebaseBtn, versionFirebaseBtn].forEach((btn) => {
     if (btn) btn.disabled = !firebaseReady || !firebaseUser;
   });
-  if (createHint) {
-    if (!selected) {
-      createHint.innerHTML = isSpecialNode
-        ? `<strong>No clasificados</strong> es un nodo de trabajo: selecciona productos y muevelos a una ubicacion real.`
-        : `Selecciona un contenedor para crear un subnodo dentro. Para crear una linea nueva usa el boton <strong>+</strong>.`;
-    } else if (selected.level >= 3) {
-      createHint.innerHTML = `<strong>${selected.name}</strong> es una Familia; debajo ya van productos, no otro nivel.`;
-    } else {
-      createHint.innerHTML = `Se creara un <strong>${levelNames[selected.level + 1]}</strong> dentro de <strong>${selected.name}</strong>.`;
-    }
-  }
 }
 
 function removeNode(nodeId) {
@@ -1541,7 +1547,30 @@ function addChange(title, detail) {
   markDataDirty();
 }
 
-function createNode(parentId) {
+function closeHierarchyActions() {
+  $("hierarchyActionsMenu")?.classList.remove("open");
+}
+
+function toggleHierarchyActions() {
+  const button = $("hierarchyActionsBtn");
+  const menu = $("hierarchyActionsMenu");
+  if (!button || !menu) return;
+  const isOpen = menu.classList.contains("open");
+  if (isOpen) {
+    closeHierarchyActions();
+    return;
+  }
+  const rect = button.getBoundingClientRect();
+  const menuWidth = 220;
+  const gap = 10;
+  const left = Math.min(rect.right + gap, window.innerWidth - menuWidth - 12);
+  const top = Math.min(rect.top + 16, window.innerHeight - 330);
+  menu.style.left = `${Math.max(12, left)}px`;
+  menu.style.top = `${Math.max(12, top)}px`;
+  menu.classList.add("open");
+}
+
+function createNode(parentId, forcedLevel = null) {
   if (parentId === UNCLASSIFIED_NODE_ID) return;
   const parent = parentId ? nodeById()[parentId] : null;
   if (parent && parent.level >= 3) {
@@ -1553,9 +1582,8 @@ function createNode(parentId) {
     `, () => {}, { confirmText: "Aceptar", hideCancel: true });
     return;
   }
-  const nextLevel = parent ? parent.level + 1 : 0;
+  const nextLevel = forcedLevel ?? (parent ? parent.level + 1 : 0);
   openModal(parent ? `Crear ${levelNames[nextLevel]} dentro` : "Crear Linea", `
-    ${parent ? `<div class="rule-note">Se creara un <strong>${levelNames[nextLevel]}</strong> dentro de <strong>${parent.name}</strong>. Si querias crear algo paralelo, selecciona el contenedor superior.</div>` : `<div class="rule-note">Se creara una nueva <strong>Linea</strong> en la raiz de la jerarquia.</div>`}
     <div class="form-row">
       <label>Nivel</label>
       <input value="${levelNames[nextLevel]}" disabled>
@@ -1573,6 +1601,49 @@ function createNode(parentId) {
     state.selectedNode = id;
     if (parentId) state.expandedNodes.add(parentId);
     addChange("Nuevo nodo", `${levelNames[nextLevel]} "${name}" creado en "${activeHierarchy().name}".`);
+  });
+}
+
+function openCreateNodeDialog() {
+  const selected = state.selectedNode && state.selectedNode !== UNCLASSIFIED_NODE_ID ? nodeById()[state.selectedNode] : null;
+  const options = [];
+  if (!selected) {
+    options.push({ value: "root", label: "Crear linea nueva", level: 0, parentId: null });
+  } else {
+    if (selected.level < 3) {
+      options.push({ value: "child", label: `Crear subnodo dentro de "${selected.name}"`, level: selected.level + 1, parentId: selected.id });
+    }
+    options.push({ value: "sibling", label: `Crear nodo del mismo nivel que "${selected.name}"`, level: selected.level, parentId: selected.parent || null });
+  }
+  const optionsHtml = options.map((option, index) => `
+    <label class="choice-row">
+      <input type="radio" name="createNodeMode" value="${option.value}" ${index === 0 ? "checked" : ""}>
+      <span>${option.label}</span>
+    </label>
+  `).join("");
+  openModal("Crear nodo", `
+    <div class="choice-list">${optionsHtml}</div>
+    <div class="form-row">
+      <label>Nombre</label>
+      <input id="nodeNameInput" placeholder="Nombre del nuevo nodo">
+    </div>
+  `, () => {
+    const mode = document.querySelector("input[name='createNodeMode']:checked")?.value || options[0]?.value;
+    const selectedOption = options.find((option) => option.value === mode) || options[0];
+    const name = $("nodeNameInput").value.trim();
+    if (!name || !selectedOption) return;
+    pushHistory("crear nodo");
+    const id = `n-${Date.now()}`;
+    data.nodes.push({
+      id,
+      parent: selectedOption.parentId,
+      level: selectedOption.level,
+      name,
+      hierarchyId: state.activeHierarchyId
+    });
+    state.selectedNode = id;
+    if (selectedOption.parentId) state.expandedNodes.add(selectedOption.parentId);
+    addChange("Nuevo nodo", `${levelNames[selectedOption.level]} "${name}" creado en "${activeHierarchy().name}".`);
   });
 }
 
@@ -3946,6 +4017,10 @@ document.addEventListener("click", (event) => {
     document.querySelector(".nav-menu-wrap")?.classList.toggle("open");
     return;
   }
+  if (event.target.closest("#hierarchyActionsBtn")) {
+    toggleHierarchyActions();
+    return;
+  }
   const listCard = event.target.closest("[data-list-card]");
   if (listCard) {
     state.activeProductListId = listCard.dataset.listCard;
@@ -3956,6 +4031,9 @@ document.addEventListener("click", (event) => {
   }
   if (!event.target.closest(".nav-menu-wrap")) {
     document.querySelector(".nav-menu-wrap")?.classList.remove("open");
+  }
+  if (!event.target.closest(".hierarchy-actions-wrap")) {
+    $("hierarchyActionsMenu")?.classList.remove("open");
   }
   const sortBtn = event.target.closest("[data-sort]");
   if (sortBtn) {
@@ -4001,7 +4079,7 @@ document.addEventListener("click", (event) => {
     const id = targetToggle.dataset.targetToggle;
     if (state.operation.targetExpandedNodes.has(id)) state.operation.targetExpandedNodes.delete(id);
     else state.operation.targetExpandedNodes.add(id);
-    renderAll();
+    renderTargetTree();
     return;
   }
   const targetNode = event.target.closest("[data-target-node]");
@@ -4026,7 +4104,7 @@ document.addEventListener("click", (event) => {
     const id = toggle.dataset.toggleNode;
     if (state.expandedNodes.has(id)) state.expandedNodes.delete(id);
     else state.expandedNodes.add(id);
-    renderAll();
+    renderTree();
     return;
   }
   const moveToggle = event.target.closest("[data-move-toggle]");
@@ -4171,25 +4249,24 @@ $("targetTreeSearch").addEventListener("input", (e) => { state.operation.targetS
 $("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; renderAll(); });
 $("listSearch").addEventListener("input", (e) => { state.listSearch = e.target.value; renderAll(); });
 $("statusFilter").addEventListener("change", (e) => { state.status = e.target.value; renderAll(); });
-$("addRootBtn").addEventListener("click", () => createNode(null));
-$("addChildBtn").addEventListener("click", () => createNode(state.selectedNode));
-$("renameNodeBtn").addEventListener("click", renameNode);
-$("mergeNodeBtn").addEventListener("click", mergeNode);
-$("moveNodeBtn").addEventListener("click", moveSelectedNode);
-$("deleteNodeBtn").addEventListener("click", deleteEmptyNode);
+$("addChildBtn").addEventListener("click", () => { closeHierarchyActions(); openCreateNodeDialog(); });
+$("renameNodeBtn").addEventListener("click", () => { closeHierarchyActions(); renameNode(); });
+$("mergeNodeBtn").addEventListener("click", () => { closeHierarchyActions(); mergeNode(); });
+$("moveNodeBtn").addEventListener("click", () => { closeHierarchyActions(); moveSelectedNode(); });
+$("deleteNodeBtn").addEventListener("click", () => { closeHierarchyActions(); deleteEmptyNode(); });
 $("expandBranchBtn").addEventListener("click", () => expandBranch());
 $("collapseBranchBtn").addEventListener("click", () => collapseBranch());
 $("hideRedundantToggle").addEventListener("change", (e) => { state.hideRedundant = e.target.checked; renderAll(); });
-$("undoBtn").addEventListener("click", undoLastChange);
-$("redoBtn").addEventListener("click", redoLastChange);
+$("undoBtn").addEventListener("click", () => { closeHierarchyActions(); undoLastChange(); });
+$("redoBtn").addEventListener("click", () => { closeHierarchyActions(); redoLastChange(); });
 $("moveSelectedBtn").addEventListener("click", () => moveProducts([...state.selectedProducts]));
 $("validateSelectedBtn").addEventListener("click", () => validateProducts([...state.selectedProducts]));
 $("modalClose").addEventListener("click", closeModal);
 $("modalCancel").addEventListener("click", closeModal);
 $("loadBtn").addEventListener("click", openLoadModal);
 $("exportBtn").addEventListener("click", openExportModal);
-$("duplicateHierarchyBtn").addEventListener("click", duplicateActiveHierarchy);
-$("deleteHierarchyBtn").addEventListener("click", deleteActiveHierarchy);
+$("duplicateHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); duplicateActiveHierarchy(); });
+$("deleteHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); deleteActiveHierarchy(); });
 $("connectListBtn").addEventListener("click", connectActiveListToHierarchy);
 $("deleteListBtn").addEventListener("click", deleteActiveProductList);
 $("firebaseLoginBtn").addEventListener("click", loginFirebase);
