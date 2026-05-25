@@ -3933,15 +3933,25 @@ async function writeCatalogMasterToFirestore(payload) {
   if (!firebaseUser) throw new Error("Debes entrar con Google antes de publicar en Firestore.");
   const db = window.firebaseDb;
   updateProcessingStatus(`Limpiando chunks anteriores en ${payload.routes.chunksCollection}...`);
-  await deleteCollectionDocs(payload.routes.chunksCollection);
-  await window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.metaDoc), payload.meta);
-  await window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.duplicatesDoc), payload.duplicates);
+  await firebaseStep(deleteCollectionDocs(payload.routes.chunksCollection), "limpiar chunks anteriores");
+  updateProcessingStatus(`Guardando metadata en ${payload.routes.metaCollection}/${payload.routes.metaDoc}...`);
+  await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.metaDoc), payload.meta), "guardar metadata");
+  updateProcessingStatus(`Guardando reporte de duplicados en ${payload.routes.metaCollection}/${payload.routes.duplicatesDoc}...`);
+  await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.duplicatesDoc), payload.duplicates), "guardar duplicados");
   for (let i = 0; i < payload.chunks.length; i += 1) {
     const chunk = payload.chunks[i];
     updateProcessingStatus(`Publicando maestro FitFlow DEV... ${i + 1}/${payload.chunks.length} chunk(s).`);
-    await window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.chunksCollection, chunk.id), chunk.data);
+    await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.chunksCollection, chunk.id), chunk.data), `publicar chunk ${chunk.id}`);
   }
   return true;
+}
+
+function firebaseStep(promise, label, timeoutMs = 45000) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`Firebase no respondio al ${label} despues de ${Math.round(timeoutMs / 1000)}s.`)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
 }
 
 async function publishToFirebase() {
@@ -3961,16 +3971,22 @@ async function publishToFirebase() {
       El campo <strong>cod</strong> se publica como texto exacto usando solo trim(). No se convierten numeros ni se alteran ceros a la izquierda.
     </div>
   `, async () => {
-    setProcessingState(true, "Preparando publicacion FitFlow DEV...");
-    const wrote = await writeCatalogMasterToFirestore(payload);
-    setProcessingState(false);
-    if (wrote) {
-      addChange("Maestro FitFlow publicado", `${payload.meta.count} producto(s) en ${payload.meta.chunks} chunk(s), version ${payload.meta.version}.`);
-    } else {
-      downloadText(`catalog_master_firestore_dev_${payload.meta.version}.json`, JSON.stringify(payload, null, 2), "application/json");
-      addChange("Maestro FitFlow preparado", "No hay conexion Firestore activa en esta pantalla; se descargo un JSON con meta, chunks y duplicados.");
+    try {
+      setProcessingState(true, "Preparando publicacion FitFlow DEV...");
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      const wrote = await writeCatalogMasterToFirestore(payload);
+      setProcessingState(false);
+      if (wrote) {
+        addChange("Maestro FitFlow publicado", `${payload.meta.count} producto(s) en ${payload.meta.chunks} chunk(s), version ${payload.meta.version}.`);
+      } else {
+        downloadText(`catalog_master_firestore_dev_${payload.meta.version}.json`, JSON.stringify(payload, null, 2), "application/json");
+        addChange("Maestro FitFlow preparado", "No hay conexion Firestore activa en esta pantalla; se descargo un JSON con meta, chunks y duplicados.");
+      }
+      closeModal();
+    } catch (error) {
+      showLoadError("No se pudo publicar maestro FitFlow DEV", error);
     }
-  }, { confirmText: "Publicar DEV" });
+  }, { confirmText: "Publicar DEV", keepOpen: true });
 }
 
 function moveProducts(productIds) {
