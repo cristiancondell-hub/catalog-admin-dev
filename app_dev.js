@@ -529,6 +529,20 @@ function activeHierarchyLinkedListIds() {
   return activeHierarchyListLinks().map((link) => link.listId);
 }
 
+function activeHierarchyLinkedLists() {
+  const ids = new Set(activeHierarchyLinkedListIds());
+  return data.productLists.filter((list) => ids.has(list.id));
+}
+
+function ensureCatalogLinkedList() {
+  const linked = activeHierarchyLinkedLists();
+  if (!linked.length) return "";
+  if (!linked.some((list) => list.id === state.activeProductListId)) {
+    state.activeProductListId = linked[0].id;
+  }
+  return state.activeProductListId;
+}
+
 function isProductLinkedToActiveHierarchy(product) {
   const linkedLists = activeHierarchyLinkedListIds();
   return linkedLists.some((listId) => (product.listIds || []).includes(listId));
@@ -596,11 +610,10 @@ function visibleProductAttributeEntries(product, limit = 4) {
 
 function renderProductListSelector() {
   const select = $("productListSelect");
-  if (!select) return;
-  if (!data.productLists.some((list) => list.id === state.activeProductListId)) {
+  if (select && !data.productLists.some((list) => list.id === state.activeProductListId)) {
     state.activeProductListId = data.productLists[0]?.id || "";
   }
-  select.innerHTML = data.productLists.map((list) => `<option value="${list.id}" ${list.id === state.activeProductListId ? "selected" : ""}>${list.name}</option>`).join("");
+  if (select) select.innerHTML = data.productLists.map((list) => `<option value="${list.id}" ${list.id === state.activeProductListId ? "selected" : ""}>${list.name}</option>`).join("");
   const list = activeProductList();
   const count = list ? productListCount(list.id) : 0;
   if (list) list.products = count;
@@ -609,6 +622,21 @@ function renderProductListSelector() {
     const connected = (data.hierarchyListLinks || []).some((link) => link.hierarchyId === state.activeHierarchyId && link.listId === list?.id);
     countEl.textContent = `${count} productos${connected ? " · conectada" : ""}`;
   }
+  renderCatalogLinkedListSelector();
+}
+
+function renderCatalogLinkedListSelector() {
+  const select = $("catalogLinkedListSelect");
+  if (!select) return;
+  const linked = activeHierarchyLinkedLists();
+  if (!linked.length) {
+    select.innerHTML = `<option value="">Sin listas conectadas</option>`;
+    select.disabled = true;
+    return;
+  }
+  const activeId = state.activeView === "catalog" ? ensureCatalogLinkedList() : (linked.some((list) => list.id === state.activeProductListId) ? state.activeProductListId : linked[0].id);
+  select.disabled = false;
+  select.innerHTML = linked.map((list) => `<option value="${list.id}" ${list.id === activeId ? "selected" : ""}>${list.name}</option>`).join("");
 }
 
 function deleteActiveProductList() {
@@ -652,13 +680,18 @@ function deleteActiveProductList() {
 
 function connectActiveListToHierarchy() {
   const hierarchy = activeHierarchy();
+  connectActiveListToHierarchyId(hierarchy?.id);
+}
+
+function connectActiveListToHierarchyId(hierarchyId) {
+  const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
   const list = activeProductList();
   if (!hierarchy || !list) return;
   const productsInList = data.products.filter((product) => (product.listIds || []).includes(list.id));
   const classified = productsInList.filter((product) => {
-    const assigned = productNode(product);
+    const assigned = product.assignments?.[hierarchy.id] || (hierarchy.id === state.activeHierarchyId ? productNode(product) : null);
     const node = assigned ? nodeById()[assigned] : null;
-    return !!(node && nodeHierarchy(node) === state.activeHierarchyId);
+    return !!(node && nodeHierarchy(node) === hierarchy.id);
   });
   const unclassified = productsInList.length - classified.length;
   const existing = (data.hierarchyListLinks || []).find((link) => link.hierarchyId === hierarchy.id && link.listId === list.id);
@@ -683,6 +716,31 @@ function connectActiveListToHierarchy() {
     else data.hierarchyListLinks.push({ id: `hl-${Date.now()}`, hierarchyId: hierarchy.id, listId: list.id, createdAt: now, ...payload });
     addChange("Lista conectada", `${list.name} quedo conectada a ${hierarchy.name}: ${classified.length} clasificados y ${unclassified} no clasificados.`);
   }, { confirmText: existing ? "Actualizar conexion" : "Conectar lista" });
+}
+
+function openConnectListModal() {
+  const list = activeProductList();
+  if (!list) return;
+  const links = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id);
+  const linkedIds = new Set(links.map((link) => link.hierarchyId));
+  openModal("Conectar lista a jerarquia", `
+    <div class="rule-note">
+      Elige una jerarquia para conectar <strong>${list.name}</strong>. Las jerarquias ya conectadas aparecen bloqueadas.
+    </div>
+    <div class="form-row">
+      <label>Jerarquia destino</label>
+      <select id="connectListHierarchySelect">
+        ${data.hierarchies.map((hierarchy) => `
+          <option value="${hierarchy.id}" ${linkedIds.has(hierarchy.id) ? "disabled" : ""}>
+            ${hierarchy.name}${linkedIds.has(hierarchy.id) ? " - ya conectada" : ""}
+          </option>
+        `).join("")}
+      </select>
+    </div>
+  `, () => {
+    const selected = $("connectListHierarchySelect")?.value;
+    if (selected) connectActiveListToHierarchyId(selected);
+  }, { confirmText: "Conectar" });
 }
 
 function duplicateActiveHierarchy() {
@@ -892,7 +950,7 @@ function renderHeader() {
   $("crumbs").innerHTML = isUnclassified
     ? `<span class="active-pane-note">${activePane}</span> Productos conectados sin ubicacion`
     : (node ? `<span class="active-pane-note">${activePane}</span> ${pathFor(node.id).map((n) => n.name).join(" / ")}` : "Catalogo completo");
-  $("sectionTitle").textContent = isUnclassified ? "No clasificados" : (node ? node.name : "Productos del maestro");
+  $("sectionTitle").textContent = isUnclassified ? "No clasificados" : (node ? node.name : "Productos");
   $("visibleProducts").textContent = products.length;
   $("pendingCount").textContent = products.filter((p) => p.status === "pending" || p.status === "suggested").length;
   $("validatedCount").textContent = products.filter((p) => p.status === "validated").length;
@@ -1087,6 +1145,9 @@ function renderAppView() {
     view.hidden = view.dataset.view !== state.activeView;
     view.classList.toggle("active", view.dataset.view === state.activeView);
   });
+  document.querySelectorAll("[data-top-context]").forEach((context) => {
+    context.hidden = context.dataset.topContext !== state.activeView;
+  });
   document.querySelectorAll("[data-view-tab]").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.viewTab === state.activeView);
   });
@@ -1111,26 +1172,15 @@ function listSortValue(product, key) {
 
 function renderListView() {
   try {
-    const cards = $("listCards");
     const rowsEl = $("listRows");
     const head = $("listTableHead");
-    if (!cards || !rowsEl || !head) return;
-    const activeId = state.activeProductListId;
-    cards.innerHTML = data.productLists.map((list) => {
-      const count = productListCount(list.id);
-      const connected = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id).length;
-      return `
-        <button class="list-card ${list.id === activeId ? "active" : ""}" data-list-card="${list.id}">
-          <strong>${list.name}</strong>
-          <span>${count} productos · ${connected} conexion(es)</span>
-        </button>
-      `;
-    }).join("");
+    if (!rowsEl || !head) return;
     const list = activeProductList();
     if (!list) {
       rowsEl.innerHTML = `<div class="empty-state"><h3>Sin listas</h3></div>`;
       return;
     }
+    renderListConnections(list);
     const attrKeys = listAttributeKeys(list.id);
     const q = state.listSearch.trim().toLowerCase();
     const rows = sortedRows(data.products.filter((product) => {
@@ -1157,6 +1207,23 @@ function renderListView() {
     console.error("No se pudo renderizar lista", error);
     if ($("listRows")) $("listRows").innerHTML = `<tr><td><div class="load-error"><strong>No se pudo mostrar la lista</strong><span>${error.message}</span></div></td></tr>`;
   }
+}
+
+function renderListConnections(list = activeProductList()) {
+  if (!list) return;
+  const links = (data.hierarchyListLinks || []).filter((link) => link.listId === list.id);
+  const select = $("listConnectedHierarchySelect");
+  const title = $("connectedHierarchyTitle");
+  const button = $("connectListToSelectedHierarchyBtn");
+  const linked = links.map((link) => data.hierarchies.find((h) => h.id === link.hierarchyId)).filter(Boolean);
+  if (title) title.textContent = linked.length ? `${linked.length} conectada(s)` : "Sin conexiones";
+  if (select) {
+    select.disabled = !linked.length;
+    select.innerHTML = linked.length
+      ? linked.map((h) => `<option value="${h.id}">${h.name}</option>`).join("")
+      : `<option value="">Sin jerarquias conectadas</option>`;
+  }
+  if (button) button.disabled = data.hierarchies.length === links.length;
 }
 
 function updateProductRowSelection() {
@@ -1833,7 +1900,7 @@ function renderLoadConfig(type) {
   const config = $("loadConfig");
   if (!config) return;
   const hierarchyOptions = optionsFrom(data.hierarchies, state.activeHierarchyId);
-  const listOptions = optionsFrom(data.productLists, "base");
+  const listOptions = optionsFrom(data.productLists, state.activeProductListId || "base");
   const sharedPreview = `
     <div class="load-next-step">
       <strong>Siguiente paso</strong>
@@ -1851,14 +1918,14 @@ function renderLoadConfig(type) {
       <div class="rule-note">Carga una jerarquia. Puede venir sola o con codigos de producto ubicados en cada ruta. Esta carga solo toca la jerarquia elegida.</div>
       <div class="load-settings">
         <div class="form-row">
-          <label>Tipo de archivo</label>
+          <label>1. Que trae el archivo</label>
           <select id="hierarchyLoadShape">
             <option value="withProducts">Jerarquia con productos</option>
             <option value="only">Jerarquia sola</option>
           </select>
         </div>
         <div class="form-row">
-          <label>Que quieres hacer</label>
+          <label>2. Que quieres hacer</label>
           <select id="hierarchyUnifiedAction">
             <option value="new">Crear nueva jerarquia</option>
             <option value="complement">Complementar jerarquia existente</option>
@@ -1866,15 +1933,15 @@ function renderLoadConfig(type) {
           </select>
         </div>
         <div class="form-row" data-visible-when="hierarchyUnifiedAction:new">
-          <label>Nombre nueva jerarquia</label>
+          <label>3. Nombre nueva jerarquia</label>
           <input id="hierarchyUnifiedName" placeholder="Ej: Jerarquia comercial 2026">
         </div>
         <div class="form-row" data-visible-when="hierarchyUnifiedAction:complement,replace">
-          <label>Jerarquia existente</label>
+          <label>3. Jerarquia existente</label>
           <select id="hierarchyUnifiedTarget">${hierarchyOptions}</select>
         </div>
         <div class="form-row">
-          <label>Archivo Excel, CSV o TSV</label>
+          <label>4. Archivo Excel, CSV o TSV</label>
           <input id="loadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
         </div>
       </div>
@@ -1896,26 +1963,26 @@ function renderLoadConfig(type) {
       <div class="rule-note">Carga productos como lista. No los asigna automaticamente a ninguna jerarquia ni cambia ubicaciones existentes.</div>
       <div class="load-settings">
         <div class="form-row">
-          <label>Tipo de tabla</label>
+          <label>1. Que trae el archivo</label>
           <select id="productTableShape">
             <option value="attributes">Tabla con atributos</option>
             <option value="simple">Tabla simple</option>
           </select>
         </div>
         <div class="form-row">
-          <label>Que quieres hacer</label>
+          <label>2. Que quieres hacer</label>
           <select id="productListAction"><option value="new">Crear lista nueva</option><option value="complement">Complementar lista existente</option><option value="replace">Reemplazar lista existente</option></select>
         </div>
         <div class="form-row" data-visible-when="productListAction:new">
-          <label>Nombre lista nueva</label>
+          <label>3. Nombre lista nueva</label>
           <input id="newProductListName" placeholder="Ej: Productos precios y costos">
         </div>
         <div class="form-row" data-visible-when="productListAction:complement,replace">
-          <label>Lista existente</label>
+          <label>3. Lista existente</label>
           <select id="loadProductList">${listOptions}</select>
         </div>
         <div class="form-row">
-          <label>Archivo Excel, CSV o TSV</label>
+          <label>4. Archivo Excel, CSV o TSV</label>
           <input id="productLoadFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
         </div>
       </div>
@@ -2047,24 +2114,19 @@ function syncLoadActionFields() {
   }
 }
 
-function openLoadModal() {
-  const selectedType = "hierarchy";
+function openLoadModal(selectedType = "hierarchy") {
+  selectedLoadType = selectedType;
   loadDebug.length = 0;
-  logLoad("modal", "Apertura de carga");
-  openModal("Cargar datos", `
-    <div class="rule-note">Elige una ruta simple. Jerarquia clasifica productos; Productos solo crea o actualiza listas. <strong>Build ${APP_BUILD}</strong></div>
+  logLoad("modal", `Apertura de carga ${selectedType}`);
+  const isHierarchy = selectedType === "hierarchy";
+  openModal(isHierarchy ? "Cargar jerarquia" : "Cargar lista de productos", `
+    <div class="rule-note">${isHierarchy
+      ? "Asistente para crear, reemplazar o complementar una jerarquia. Solo veras las decisiones necesarias para esta carga."
+      : "Asistente para crear, reemplazar o complementar una lista de productos. La lista puede conectarse a jerarquias despues de cargar."} <strong>Build ${APP_BUILD}</strong></div>
     <div class="load-maintenance">
       <button class="ghost-btn" data-clear-local-state>Limpiar datos locales</button>
       <button class="ghost-btn" data-copy-load-debug>Copiar debug</button>
       <span>Usalo si una carga anterior dejo la app lenta o pegada. Borra solo el estado guardado en este navegador.</span>
-    </div>
-    <div class="load-grid">
-      ${Object.entries(loadTypes).map(([key, item]) => `
-        <button class="load-card ${key === selectedType ? "active" : ""}" data-load-type="${key}">
-          <strong>${item.title}</strong>
-          <span>${item.detail}</span>
-        </button>
-      `).join("")}
     </div>
     <div class="load-config" id="loadConfig"></div>
     <details class="load-debug-box">
@@ -2079,7 +2141,7 @@ function openLoadModal() {
 
 async function prepareLoad() {
   if (!pendingHierarchyLoad && !pendingProductLoad && $("modalConfirm")?.textContent === "Nueva carga") {
-    openLoadModal();
+    openLoadModal(selectedLoadType || "hierarchy");
     return;
   }
   updateProcessingStatus("Preparando decision de carga...");
@@ -3854,10 +3916,54 @@ function catalogMasterRoutes(env = "dev") {
   };
 }
 
-function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "Administrador" } = {}) {
-  const hierarchy = activeHierarchy();
-  const routes = catalogMasterRoutes(env);
-  const version = `catalog-master-${new Date().toISOString()}`;
+function catalogViewsRoutes(env = "dev") {
+  if (env === "prod") {
+    return {
+      metaCollection: "config_prod",
+      metaDoc: "catalog_views_meta",
+      duplicatesDoc: "catalog_views_duplicates",
+      views: {
+        old: "catalog_view_old_chunks",
+        new: "catalog_view_new_chunks"
+      }
+    };
+  }
+  return {
+    metaCollection: "config_dev",
+    metaDoc: "catalog_views_meta",
+    duplicatesDoc: "catalog_views_duplicates",
+    views: {
+      old: "catalog_view_old_chunks_dev",
+      new: "catalog_view_new_chunks_dev"
+    }
+  };
+}
+
+function hierarchyOptionsForPublish(selectedId = "") {
+  return data.hierarchies
+    .map((hierarchy) => `<option value="${hierarchy.id}" ${hierarchy.id === selectedId ? "selected" : ""}>${hierarchy.name}</option>`)
+    .join("");
+}
+
+function productNodeForHierarchy(product, hierarchyId) {
+  return product.assignments?.[hierarchyId] || (hierarchyId === "v16" ? product.originalNode : product.node);
+}
+
+function linkedListIdsForHierarchy(hierarchyId) {
+  return (data.hierarchyListLinks || [])
+    .filter((link) => link.hierarchyId === hierarchyId)
+    .map((link) => link.listId);
+}
+
+function isProductLinkedToHierarchy(product, hierarchyId) {
+  const linkedIds = linkedListIdsForHierarchy(hierarchyId);
+  return linkedIds.some((listId) => (product.listIds || []).includes(listId));
+}
+
+function buildCatalogViewPayload({ env = "dev", viewId, label, hierarchyId, chunksCollection, chunkSize = 250, updatedBy = "Administrador", versionStamp = new Date().toISOString() } = {}) {
+  const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
+  if (!hierarchy) throw new Error(`No existe la jerarquia seleccionada para ${label}.`);
+  const version = `${viewId}-${versionStamp}`;
   const productsByCode = new Map();
   const duplicates = [];
   const withoutCode = [];
@@ -3868,10 +3974,10 @@ function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "
       withoutCode.push(product.name || "");
       return;
     }
-    const nodeId = product.assignments?.[state.activeHierarchyId];
+    const nodeId = productNodeForHierarchy(product, hierarchyId);
     const node = nodeId ? nodeById()[nodeId] : null;
-    if (!node || nodeHierarchy(node) !== state.activeHierarchyId) {
-      if (isProductLinkedToActiveHierarchy(product)) unclassified.push(cod);
+    if (!node || nodeHierarchy(node) !== hierarchyId) {
+      if (isProductLinkedToHierarchy(product, hierarchyId)) unclassified.push(cod);
       return;
     }
     const groups = pathFor(nodeId).map((item) => item.name);
@@ -3892,17 +3998,20 @@ function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "
   const products = [...productsByCode.values()];
   const chunks = chunkArray(products, chunkSize).map((value, index) => ({
     id: chunkId(index),
-    path: `${routes.chunksCollection}/${chunkId(index)}`,
+    path: `${chunksCollection}/${chunkId(index)}`,
     data: { index, version, value }
   }));
   const meta = {
     version,
-    updatedAt: new Date().toISOString(),
+    updatedAt: versionStamp,
     updatedBy,
     sourceApp: "catalog-admin",
     sourceHierarchyId: hierarchy.id,
     sourceHierarchyName: hierarchy.name,
-    schema: "catalog-master-v1",
+    schema: "catalog-view-v1",
+    viewId,
+    label,
+    chunksCollection,
     count: products.length,
     chunks: chunks.length,
     chunkSize,
@@ -3915,6 +4024,102 @@ function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "
     unclassified: unclassified.length
   };
   const duplicateReport = { version, updatedAt: meta.updatedAt, count: duplicates.length, items: duplicates };
+  return { viewId, label, hierarchy, chunksCollection, meta, chunks, duplicates: duplicateReport, unclassifiedSample: unclassified.slice(0, 50) };
+}
+
+function viewMetaEntry(view) {
+  return {
+    id: view.viewId,
+    label: view.label,
+    chunksCollection: view.chunksCollection,
+    version: view.meta.version,
+    chunks: view.meta.chunks,
+    count: view.meta.count,
+    chunkSize: view.meta.chunkSize,
+    sourceHierarchyId: view.meta.sourceHierarchyId,
+    sourceHierarchyName: view.meta.sourceHierarchyName,
+    unclassified: view.meta.unclassified,
+    repeatedCodes: view.meta.repeatedCodes
+  };
+}
+
+function buildCatalogViewsPackagePayload({ env = "dev", oldHierarchyId = "", newHierarchyId = "", chunkSize = 250, updatedBy = "Administrador" } = {}) {
+  const routes = catalogViewsRoutes(env);
+  const versionStamp = new Date().toISOString();
+  const version = `catalog-views-${versionStamp}`;
+  const views = [];
+  if (oldHierarchyId) {
+    views.push(buildCatalogViewPayload({
+      env,
+      viewId: "old",
+      label: "Catalogo Antiguo",
+      hierarchyId: oldHierarchyId,
+      chunksCollection: routes.views.old,
+      chunkSize,
+      updatedBy,
+      versionStamp
+    }));
+  }
+  if (newHierarchyId) {
+    views.push(buildCatalogViewPayload({
+      env,
+      viewId: "new",
+      label: "Catalogo Nuevo",
+      hierarchyId: newHierarchyId,
+      chunksCollection: routes.views.new,
+      chunkSize,
+      updatedBy,
+      versionStamp
+    }));
+  }
+  if (!views.length) throw new Error("Selecciona al menos una vista para publicar.");
+  const newView = views.find((view) => view.viewId === "new");
+  const meta = {
+    version,
+    updatedAt: versionStamp,
+    updatedBy,
+    sourceApp: "catalog-admin",
+    schema: "catalog-views-v1",
+    views: views.map(viewMetaEntry),
+    compatibility: newView ? {
+      copiedFromView: "new",
+      metaPath: `${catalogMasterRoutes(env).metaCollection}/${catalogMasterRoutes(env).metaDoc}`,
+      chunksCollection: catalogMasterRoutes(env).chunksCollection
+    } : null
+  };
+  return {
+    env,
+    routes,
+    metaPath: `${routes.metaCollection}/${routes.metaDoc}`,
+    duplicatesPath: `${routes.metaCollection}/${routes.duplicatesDoc}`,
+    meta,
+    views,
+    duplicates: {
+      version,
+      updatedAt: versionStamp,
+      views: views.map((view) => ({
+        id: view.viewId,
+        label: view.label,
+        count: view.duplicates.count,
+        items: view.duplicates.items
+      }))
+    },
+    legacyMaster: newView ? buildLegacyMasterPayloadFromView(newView, env) : null
+  };
+}
+
+function buildLegacyMasterPayloadFromView(view, env = "dev") {
+  const routes = catalogMasterRoutes(env);
+  const meta = {
+    ...view.meta,
+    schema: "catalog-master-v1",
+    chunksCollection: routes.chunksCollection
+  };
+  const chunks = view.chunks.map((chunk) => ({
+    id: chunk.id,
+    path: `${routes.chunksCollection}/${chunk.id}`,
+    data: { ...chunk.data }
+  }));
   return {
     env,
     routes,
@@ -3923,9 +4128,25 @@ function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "
     chunksCollection: routes.chunksCollection,
     meta,
     chunks,
-    duplicates: duplicateReport,
-    unclassifiedSample: unclassified.slice(0, 50)
+    duplicates: view.duplicates,
+    unclassifiedSample: view.unclassifiedSample
   };
+}
+
+function buildCatalogMasterPayload({ env = "dev", chunkSize = 250, updatedBy = "Administrador" } = {}) {
+  const hierarchy = activeHierarchy();
+  const routes = catalogMasterRoutes(env);
+  const view = buildCatalogViewPayload({
+    env,
+    viewId: "master",
+    label: "Maestro FitFlow",
+    hierarchyId: hierarchy.id,
+    chunksCollection: routes.chunksCollection,
+    chunkSize,
+    updatedBy,
+    versionStamp: new Date().toISOString()
+  });
+  return buildLegacyMasterPayloadFromView(view, env);
 }
 
 async function writeCatalogMasterToFirestore(payload) {
@@ -3946,6 +4167,43 @@ async function writeCatalogMasterToFirestore(payload) {
   return true;
 }
 
+async function writeCatalogViewsToFirestore(payload) {
+  if (!(window.firebaseDb && window.firebaseDoc && window.firebaseSetDoc)) return false;
+  if (!firebaseUser) throw new Error("Debes entrar con Google antes de publicar en Firestore.");
+  const db = window.firebaseDb;
+  for (const view of payload.views) {
+    updateProcessingStatus(`Limpiando ${view.label} en ${view.chunksCollection}...`);
+    await firebaseStep(deleteCollectionDocs(view.chunksCollection), `limpiar ${view.label}`);
+    for (let i = 0; i < view.chunks.length; i += 1) {
+      const chunk = view.chunks[i];
+      updateProcessingStatus(`Publicando ${view.label}... ${i + 1}/${view.chunks.length} chunk(s).`);
+      await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, view.chunksCollection, chunk.id), chunk.data), `publicar ${view.label} chunk ${chunk.id}`);
+    }
+  }
+  const publishedIds = new Set(payload.views.map((view) => view.viewId));
+  if (window.firebaseGetDoc) {
+    try {
+      const currentSnap = await firebaseStep(window.firebaseGetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.metaDoc)), "leer metadata actual");
+      if (currentSnap.exists()) {
+        const currentMeta = currentSnap.data();
+        const preservedViews = (currentMeta.views || []).filter((view) => !publishedIds.has(view.id));
+        payload.meta.views = [...preservedViews, ...payload.meta.views].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+      }
+    } catch (error) {
+      logLoad("metadata previa no leida", error.message || error);
+    }
+  }
+  updateProcessingStatus(`Guardando metadata de vistas en ${payload.metaPath}...`);
+  await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.metaDoc), payload.meta), "guardar metadata de vistas");
+  updateProcessingStatus(`Guardando reporte de duplicados en ${payload.duplicatesPath}...`);
+  await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.duplicatesDoc), payload.duplicates), "guardar duplicados de vistas");
+  if (payload.legacyMaster) {
+    updateProcessingStatus("Actualizando compatibilidad catalog_master para FitFlow actual...");
+    await writeCatalogMasterToFirestore(payload.legacyMaster);
+  }
+  return true;
+}
+
 function firebaseStep(promise, label, timeoutMs = 45000) {
   let timeoutId;
   const timeout = new Promise((_, reject) => {
@@ -3954,39 +4212,130 @@ function firebaseStep(promise, label, timeoutMs = 45000) {
   return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
 }
 
+function publishPreviewForView(viewId) {
+  const checkbox = $(viewId === "publishOldHierarchy" ? "publishOldEnabled" : "publishNewEnabled");
+  const target = $(`${viewId}Preview`);
+  if (checkbox && !checkbox.checked) {
+    if (target) target.textContent = "No se publicara en esta ejecucion";
+    return;
+  }
+  const hierarchyId = $(viewId)?.value;
+  if (!hierarchyId) return;
+  try {
+    const view = buildCatalogViewPayload({
+      viewId: viewId === "publishOldHierarchy" ? "old" : "new",
+      label: viewId === "publishOldHierarchy" ? "Catalogo Antiguo" : "Catalogo Nuevo",
+      hierarchyId,
+      chunksCollection: viewId === "publishOldHierarchy" ? "catalog_view_old_chunks_dev" : "catalog_view_new_chunks_dev"
+    });
+    if (target) target.textContent = `${view.meta.count} productos, ${view.meta.chunks} chunks, ${view.meta.unclassified} no clasificados`;
+  } catch (error) {
+    if (target) target.textContent = "No se pudo calcular esta vista";
+  }
+}
+
 async function publishToFirebase() {
-  const payload = buildCatalogMasterPayload({ env: "dev", chunkSize: 250 });
-  openModal("Publicar maestro FitFlow DEV", `
+  const activeId = activeHierarchy().id;
+  const other = data.hierarchies.find((hierarchy) => hierarchy.id !== activeId);
+  const oldSelected = other?.id || activeId;
+  const newSelected = activeId;
+  const runPublishViews = async ({ oldHierarchyId = "", newHierarchyId = "" } = {}) => {
+    if (!oldHierarchyId && !newHierarchyId) throw new Error("Selecciona al menos una vista para publicar.");
+    if (oldHierarchyId && newHierarchyId && oldHierarchyId === newHierarchyId) throw new Error("Catalogo Antiguo y Catalogo Nuevo deben usar jerarquias distintas.");
+    const payload = buildCatalogViewsPackagePayload({ env: "dev", oldHierarchyId, newHierarchyId, chunkSize: 250 });
+    setProcessingState(true, "Preparando vistas FitFlow DEV...");
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    const wrote = await writeCatalogViewsToFirestore(payload);
+    setProcessingState(false);
+    if (wrote) {
+      addChange("Vistas FitFlow publicadas", `${payload.meta.views.map((view) => `${view.label}: ${view.count}`).join(" | ")} producto(s), version ${payload.meta.version}.`);
+    } else {
+      downloadText(`catalog_views_firestore_dev_${payload.meta.version}.json`, JSON.stringify(payload, null, 2), "application/json");
+      addChange("Vistas FitFlow preparadas", "No hay conexion Firestore activa en esta pantalla; se descargo un JSON con meta, chunks y duplicados.");
+    }
+    closeModal();
+  };
+  const confirmPublishViews = ({ kind, oldHierarchyId = "", newHierarchyId = "" }) => {
+    const oldHierarchy = oldHierarchyId ? data.hierarchies.find((hierarchy) => hierarchy.id === oldHierarchyId) : null;
+    const newHierarchy = newHierarchyId ? data.hierarchies.find((hierarchy) => hierarchy.id === newHierarchyId) : null;
+    const title = kind === "old" ? "Confirmar Catalogo Antiguo" : kind === "new" ? "Confirmar Catalogo Nuevo" : "Confirmar ambas vistas";
+    const message = kind === "old"
+      ? `Se reemplazara solo la vista Catálogo Antiguo usando "${oldHierarchy?.name || ""}". Catálogo Nuevo y catalog_master se mantienen como estan.`
+      : kind === "new"
+        ? `Se reemplazara la vista Catálogo Nuevo usando "${newHierarchy?.name || ""}". Tambien se actualizara el respaldo compatible catalog_master.`
+        : `Se reemplazaran Catálogo Antiguo con "${oldHierarchy?.name || ""}" y Catálogo Nuevo con "${newHierarchy?.name || ""}". Tambien se actualizara el respaldo compatible catalog_master desde Catálogo Nuevo.`;
+    openModal(title, `
+      <div class="load-error">
+        <strong>Antes de publicar</strong>
+        <span>${message}</span>
+      </div>
+      <div class="rule-note">
+        Esta accion escribe en Firebase DEV. FitFlow leera la nueva version publicada por codigo exacto.
+      </div>
+    `, async () => {
+      try {
+        await runPublishViews({ oldHierarchyId, newHierarchyId });
+      } catch (error) {
+        setProcessingState(false);
+        showLoadError("No se pudo publicar", error);
+      }
+    }, { confirmText: "Confirmar publicacion", keepOpen: true });
+  };
+  openModal("Publicar vistas FitFlow DEV", `
     <div class="rule-note">
-      Se preparara la base maestra de agrupaciones para Firestore DEV. FitFlow leera primero
-      <strong>${payload.metaPath}</strong> y luego <strong>${payload.chunksCollection}/0000...</strong>.
+      FitFlow seguira usando su catalogo operativo de precios y stock. Desde aqui se publican solo las ubicaciones de producto
+      por codigo: <strong>config_dev/catalog_views_meta</strong> y los chunks de cada vista.
     </div>
-    <div class="load-preview">
-      <div class="load-pill"><strong>${payload.meta.count}</strong> productos publicados</div>
-      <div class="load-pill"><strong>${payload.meta.chunks}</strong> chunks</div>
-      <div class="load-pill"><strong>${payload.meta.unclassified}</strong> no clasificados fuera del maestro</div>
-      <div class="load-pill"><strong>${payload.meta.repeatedCodes}</strong> codigos duplicados</div>
+    <div class="publish-steps">
+      <div class="publish-step">
+        <strong>Catalogo Antiguo</strong>
+        <span>Elige la jerarquia que FitFlow usara como vista antigua.</span>
+        <select id="publishOldHierarchy">${hierarchyOptionsForPublish(oldSelected)}</select>
+        <small id="publishOldHierarchyPreview"></small>
+        <button class="ghost-btn" id="publishOldNowBtn" type="button">Publicar Antiguo</button>
+      </div>
+      <div class="publish-step">
+        <strong>Catalogo Nuevo</strong>
+        <span>Elige la jerarquia que FitFlow usara como vista nueva. Esta tambien actualiza la ruta compatible actual.</span>
+        <select id="publishNewHierarchy">${hierarchyOptionsForPublish(newSelected)}</select>
+        <small id="publishNewHierarchyPreview"></small>
+        <button class="ghost-btn" id="publishNewNowBtn" type="button">Publicar Nuevo</button>
+      </div>
     </div>
     <div class="rule-note">
       El campo <strong>cod</strong> se publica como texto exacto usando solo trim(). No se convierten numeros ni se alteran ceros a la izquierda.
     </div>
   `, async () => {
     try {
-      setProcessingState(true, "Preparando publicacion FitFlow DEV...");
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
-      const wrote = await writeCatalogMasterToFirestore(payload);
-      setProcessingState(false);
-      if (wrote) {
-        addChange("Maestro FitFlow publicado", `${payload.meta.count} producto(s) en ${payload.meta.chunks} chunk(s), version ${payload.meta.version}.`);
-      } else {
-        downloadText(`catalog_master_firestore_dev_${payload.meta.version}.json`, JSON.stringify(payload, null, 2), "application/json");
-        addChange("Maestro FitFlow preparado", "No hay conexion Firestore activa en esta pantalla; se descargo un JSON con meta, chunks y duplicados.");
-      }
-      closeModal();
+      confirmPublishViews({ kind: "both", oldHierarchyId: $("publishOldHierarchy")?.value, newHierarchyId: $("publishNewHierarchy")?.value });
     } catch (error) {
-      showLoadError("No se pudo publicar maestro FitFlow DEV", error);
+      setProcessingState(false);
+      showLoadError("No se pudieron publicar vistas FitFlow DEV", error);
     }
-  }, { confirmText: "Publicar DEV", keepOpen: true });
+  }, { confirmText: "Publicar ambas", keepOpen: true });
+  ["publishOldHierarchy", "publishNewHierarchy"].forEach((id) => {
+    const select = $(id);
+    if (select) {
+      select.addEventListener("change", () => publishPreviewForView(id));
+      publishPreviewForView(id);
+    }
+  });
+  $("publishOldNowBtn")?.addEventListener("click", async () => {
+    try {
+      confirmPublishViews({ kind: "old", oldHierarchyId: $("publishOldHierarchy")?.value });
+    } catch (error) {
+      setProcessingState(false);
+      showLoadError("No se pudo publicar Catalogo Antiguo", error);
+    }
+  });
+  $("publishNewNowBtn")?.addEventListener("click", async () => {
+    try {
+      confirmPublishViews({ kind: "new", newHierarchyId: $("publishNewHierarchy")?.value });
+    } catch (error) {
+      setProcessingState(false);
+      showLoadError("No se pudo publicar Catalogo Nuevo", error);
+    }
+  });
 }
 
 function moveProducts(productIds) {
@@ -4051,9 +4400,13 @@ function validateProducts(ids) {
 document.addEventListener("click", (event) => {
   const viewTab = event.target.closest("[data-view-tab]");
   if (viewTab) {
+    viewTab.classList.add("just-clicked");
     state.activeView = viewTab.dataset.viewTab;
-    document.querySelector(".nav-menu-wrap")?.classList.remove("open");
-    renderAll();
+    window.setTimeout(() => {
+      document.querySelector(".nav-menu-wrap")?.classList.remove("open");
+      viewTab.classList.remove("just-clicked");
+      renderAll();
+    }, 90);
     return;
   }
   if (event.target.closest("#mainMenuBtn")) {
@@ -4062,14 +4415,6 @@ document.addEventListener("click", (event) => {
   }
   if (event.target.closest("#hierarchyActionsBtn")) {
     toggleHierarchyActions();
-    return;
-  }
-  const listCard = event.target.closest("[data-list-card]");
-  if (listCard) {
-    state.activeProductListId = listCard.dataset.listCard;
-    state.listSearch = "";
-    markDataDirty();
-    renderAll();
     return;
   }
   if (!event.target.closest(".nav-menu-wrap")) {
@@ -4283,11 +4628,20 @@ $("hierarchySelect").addEventListener("change", (e) => {
   state.selectedProduct = null;
   state.selectedProducts.clear();
   state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
+  ensureCatalogLinkedList();
   markDataDirty();
   cancelOperation();
 });
 $("productListSelect").addEventListener("change", (e) => {
   state.activeProductListId = e.target.value;
+  state.listSearch = "";
+  markDataDirty();
+  renderAll();
+});
+$("catalogLinkedListSelect").addEventListener("change", (e) => {
+  state.activeProductListId = e.target.value;
+  state.selectedProduct = null;
+  state.selectedProducts.clear();
   markDataDirty();
   renderAll();
 });
@@ -4310,12 +4664,14 @@ $("moveSelectedBtn").addEventListener("click", () => moveProducts([...state.sele
 $("validateSelectedBtn").addEventListener("click", () => validateProducts([...state.selectedProducts]));
 $("modalClose").addEventListener("click", closeModal);
 $("modalCancel").addEventListener("click", closeModal);
-$("loadBtn").addEventListener("click", openLoadModal);
+$("addHierarchyLoadBtn").addEventListener("click", () => openLoadModal("hierarchy"));
+$("addProductListLoadBtn").addEventListener("click", () => openLoadModal("products"));
 $("exportBtn").addEventListener("click", openExportModal);
 $("duplicateHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); duplicateActiveHierarchy(); });
 $("deleteHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); deleteActiveHierarchy(); });
 $("connectListBtn").addEventListener("click", connectActiveListToHierarchy);
 $("deleteListBtn").addEventListener("click", deleteActiveProductList);
+$("connectListToSelectedHierarchyBtn").addEventListener("click", openConnectListModal);
 $("firebaseLoginBtn").addEventListener("click", loginFirebase);
 $("saveFirebaseBtn").addEventListener("click", () => saveAdminStateToFirebase());
 $("loadFirebaseBtn").addEventListener("click", loadAdminStateFromFirebase);

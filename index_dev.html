@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=topbar-context-dev-20260524-01">
+  <link rel="stylesheet" href="./styles_dev.css?v=list-context-dev-20260525-01">
 </head>
 <body>
   <div class="app-shell">
@@ -14,22 +14,26 @@
         <nav class="main-nav" aria-label="Secciones principales">
           <button class="main-tab active" data-view-tab="catalog">Catalogo</button>
           <button class="main-tab" data-view-tab="lists">Listas</button>
-          <button class="main-tab" data-view-tab="loads">Cargas</button>
-          <button class="main-tab" data-view-tab="firebase">Firebase</button>
+          <button class="main-tab" data-view-tab="firebase">Publicar</button>
         </nav>
       </div>
-      <div class="topbar-context">
+      <div class="topbar-context" data-top-context="catalog">
         <div class="top-context-block hierarchy-context">
           <div>
             <h2>Jerarquia</h2>
             <p id="treeCount">0 nodos</p>
           </div>
           <select id="hierarchySelect" class="context-select"></select>
+          <button class="context-plus" id="addHierarchyLoadBtn" title="Cargar nueva jerarquia">+</button>
         </div>
         <div class="top-context-block product-context">
           <div class="product-title-block">
             <div class="crumbs" id="crumbs">Catalogo completo</div>
-            <h1 id="sectionTitle">Productos del maestro</h1>
+            <h1 id="sectionTitle">Productos</h1>
+          </div>
+          <div class="catalog-list-picker">
+            <label>Lista</label>
+            <select id="catalogLinkedListSelect"></select>
           </div>
           <div class="metrics">
             <div class="metric">
@@ -45,6 +49,24 @@
               <label>validados</label>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="topbar-context lists-topbar-context" data-top-context="lists" hidden>
+        <div class="top-context-block list-context">
+          <div>
+            <h2>Lista activa</h2>
+            <p id="productListCount">0 productos</p>
+          </div>
+          <select id="productListSelect" class="context-select"></select>
+          <button class="context-plus" id="addProductListLoadBtn" title="Cargar nueva lista">+</button>
+        </div>
+        <div class="top-context-block connected-context">
+          <div>
+            <div class="crumbs">Jerarquias conectadas</div>
+            <h1 id="connectedHierarchyTitle">Sin conexiones</h1>
+          </div>
+          <select id="listConnectedHierarchySelect"></select>
+          <button class="ghost-btn" id="connectListToSelectedHierarchyBtn">Conectar</button>
         </div>
       </div>
       <div class="brand compact-brand">
@@ -162,16 +184,10 @@
           <p>Revisa listas cargadas, sus columnas y sus conexiones con jerarquias.</p>
         </div>
         <div class="page-actions">
-          <div class="hierarchy-picker list-picker inline-picker">
-            <label>Lista activa</label>
-            <select id="productListSelect"></select>
-            <span id="productListCount">0 productos</span>
-          </div>
           <button class="ghost-btn danger-action" id="deleteListBtn">Eliminar lista</button>
         </div>
       </div>
       <div class="lists-layout">
-        <aside class="list-sidebar" id="listCards"></aside>
         <section class="list-detail">
           <div class="toolbar">
             <div class="search-box product-search">
@@ -189,25 +205,10 @@
       </div>
     </section>
 
-    <section class="app-view page-panel" id="loadsView" data-view="loads" hidden>
-      <div class="page-head">
-        <div>
-          <h1>Cargas</h1>
-          <p>Carga jerarquias, productos y listas con atributos.</p>
-        </div>
-        <button class="primary-btn" id="loadBtn">Cargar datos</button>
-      </div>
-      <div class="info-grid">
-        <div class="info-card"><strong>Jerarquias</strong><span>Solo estructura o estructura con productos clasificados.</span></div>
-        <div class="info-card"><strong>Listas</strong><span>Productos simples o enriquecidos con columnas adicionales.</span></div>
-        <div class="info-card"><strong>Importante</strong><span>Despues de cargar, usa Guardar DEV para persistir en Firebase.</span></div>
-      </div>
-    </section>
-
     <section class="app-view page-panel" id="firebaseView" data-view="firebase" hidden>
       <div class="page-head">
         <div>
-          <h1>Firebase DEV</h1>
+          <h1>Publicar DEV</h1>
           <p>Guarda el trabajo editable y publica el maestro liviano para FitFlow.</p>
         </div>
         <button class="ghost-btn" id="firebaseLoginBtn">Entrar Google</button>
@@ -215,7 +216,7 @@
       <div class="info-grid">
         <div class="info-card"><strong>Estado editable</strong><span>Jerarquias, listas, productos, conexiones y cambios.</span><button class="ghost-btn" id="saveFirebaseBtn">Guardar DEV</button><button class="ghost-btn" id="loadFirebaseBtn">Cargar DEV</button></div>
         <div class="info-card"><strong>Version historica</strong><span>Foto congelada del estado actual.</span><button class="ghost-btn" id="versionFirebaseBtn">Crear version</button></div>
-        <div class="info-card"><strong>Maestro FitFlow</strong><span>Publica solo la jerarquia activa con cod, nom, groups, cat1 y cat2.</span><button class="primary-btn" id="publishFirebaseBtn">Publicar FitFlow DEV</button></div>
+        <div class="info-card"><strong>Vistas FitFlow</strong><span>Publica dos jerarquias livianas para cruzar por codigo: Catalogo Antiguo y Catalogo Nuevo.</span><button class="primary-btn" id="publishFirebaseBtn">Publicar vistas DEV</button></div>
       </div>
     </section>
   </div>
@@ -287,7 +288,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=topbar-context-dev-20260524-01"></script>
+  <script src="./app_dev.js?v=list-context-dev-20260525-01"></script>
 </body>
 </html>
 
