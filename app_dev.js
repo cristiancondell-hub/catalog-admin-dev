@@ -311,11 +311,17 @@ function normalizeProductSources() {
 }
 normalizeProductSources();
 const nodeHierarchy = (node) => node.hierarchyId || "v16";
+function compareNodeOrder(a, b) {
+  const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER;
+  const bo = Number.isFinite(Number(b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER;
+  if (ao !== bo) return ao - bo;
+  return data.nodes.indexOf(a) - data.nodes.indexOf(b);
+}
 const activeNodes = () => renderCache?.hierarchyId === state.activeHierarchyId ? renderCache.activeNodes : data.nodes.filter((n) => nodeHierarchy(n) === state.activeHierarchyId);
 const nodeById = () => renderCache?.nodeMap || Object.fromEntries(data.nodes.map((n) => [n.id, n]));
 const childrenOf = (id) => {
   if (renderCache?.hierarchyId === state.activeHierarchyId) return renderCache.childrenByParent.get(id || "") || [];
-  return activeNodes().filter((n) => n.parent === id);
+  return activeNodes().filter((n) => n.parent === id).sort(compareNodeOrder);
 };
 const productNode = (p) => p.assignments?.[state.activeHierarchyId] || (state.activeHierarchyId === "v16" ? p.originalNode : p.node);
 const repairedLocalNodes = data.hierarchies.reduce((sum, hierarchy) => sum + consolidateEquivalentNodes(hierarchy.id), 0);
@@ -331,6 +337,7 @@ function buildRenderCache() {
     if (!childrenByParent.has(key)) childrenByParent.set(key, []);
     childrenByParent.get(key).push(node);
   });
+  childrenByParent.forEach((items) => items.sort(compareNodeOrder));
   const productCounts = new Map();
   data.products.forEach((product) => {
     let current = nodeMap[productNode(product)];
@@ -1691,7 +1698,7 @@ function createNode(parentId, forcedLevel = null) {
     if (!name) return;
     pushHistory("crear nodo");
     const id = `n-${Date.now()}`;
-    data.nodes.push({ id, parent: parentId, level: nextLevel, name, hierarchyId: state.activeHierarchyId });
+    data.nodes.push({ id, parent: parentId, level: nextLevel, name, hierarchyId: state.activeHierarchyId, order: nextNodeOrder(state.activeHierarchyId, parentId) });
     state.selectedNode = id;
     if (parentId) state.expandedNodes.add(parentId);
     addChange("Nuevo nodo", `${levelNames[nextLevel]} "${name}" creado en "${activeHierarchy().name}".`);
@@ -1733,7 +1740,8 @@ function openCreateNodeDialog() {
       parent: selectedOption.parentId,
       level: selectedOption.level,
       name,
-      hierarchyId: state.activeHierarchyId
+      hierarchyId: state.activeHierarchyId,
+      order: nextNodeOrder(state.activeHierarchyId, selectedOption.parentId)
     });
     state.selectedNode = id;
     if (selectedOption.parentId) state.expandedNodes.add(selectedOption.parentId);
@@ -1822,7 +1830,7 @@ function mergeOperationNodes() {
   const newId = `n-${Date.now()}`;
 
   pushHistory("fusionar nodos");
-  data.nodes.push({ id: newId, parent, level: source.level, name, hierarchyId: state.activeHierarchyId });
+  data.nodes.push({ id: newId, parent, level: source.level, name, hierarchyId: state.activeHierarchyId, order: nextNodeOrder(state.activeHierarchyId, parent) });
   data.products.forEach((p) => {
     if (p.node === source.id || p.node === target.id) {
       p.node = newId;
@@ -1854,6 +1862,7 @@ function moveOperationNode() {
     map[id].level += delta;
   });
   source.parent = target.id;
+  source.order = nextNodeOrder(state.activeHierarchyId, target.id, source.id);
   state.selectedNode = source.id;
   state.expandedNodes.add(target.id);
   addChange("Nodo movido", `"${source.name}" ahora queda dentro de "${target.name}".`);
@@ -2882,7 +2891,7 @@ function upsertHierarchyNode(parent, level, name, code = "", hierarchyId = state
     return existing.id;
   }
   const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  data.nodes.push({ id, parent, level, name: cleanName, code: cleanCode, internalCode: !code.trim(), hierarchyId });
+  data.nodes.push({ id, parent, level, name: cleanName, code: cleanCode, internalCode: !code.trim(), hierarchyId, order: nextNodeOrder(hierarchyId, parent) });
   if (nodeIndex) {
     nodeIndex.set(key, id);
     nodeIndex.set(hierarchyNodeKey(parent, level, cleanName, "", hierarchyId), id);
@@ -3960,10 +3969,64 @@ function isProductLinkedToHierarchy(product, hierarchyId) {
   return linkedIds.some((listId) => (product.listIds || []).includes(listId));
 }
 
+function normalizeHierarchyNodeOrders(hierarchyId) {
+  const groups = new Map();
+  data.nodes
+    .filter((node) => nodeHierarchy(node) === hierarchyId)
+    .forEach((node) => {
+      const key = node.parent || "";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(node);
+    });
+  groups.forEach((siblings) => {
+    siblings
+      .sort(compareNodeOrder)
+      .forEach((node, index) => {
+        node.order = (index + 1) * 10;
+      });
+  });
+  invalidateRenderCache();
+}
+
+function nextNodeOrder(hierarchyId, parentId, excludeId = "") {
+  const siblings = data.nodes.filter((node) => nodeHierarchy(node) === hierarchyId && (node.parent || "") === (parentId || "") && node.id !== excludeId);
+  if (!siblings.length) return 10;
+  return Math.max(...siblings.map((node) => Number(node.order) || 0)) + 10;
+}
+
+function publishedNodesForHierarchy(hierarchyId) {
+  normalizeHierarchyNodeOrders(hierarchyId);
+  const nodes = data.nodes
+    .filter((node) => nodeHierarchy(node) === hierarchyId)
+    .map((node) => ({
+      id: node.id,
+      name: node.name,
+      code: cellText(node.code || ""),
+      level: node.level,
+      parentId: node.parent || null,
+      order: Number(node.order) || 999998
+    }))
+    .sort((a, b) => {
+      if ((a.parentId || "") !== (b.parentId || "")) return String(a.parentId || "").localeCompare(String(b.parentId || ""));
+      return a.order - b.order;
+    });
+  nodes.push({
+    id: UNCLASSIFIED_NODE_ID,
+    name: "No clasificados",
+    code: "",
+    level: 0,
+    parentId: null,
+    order: 999999,
+    virtual: true
+  });
+  return nodes;
+}
+
 function buildCatalogViewPayload({ env = "dev", viewId, label, hierarchyId, chunksCollection, chunkSize = 250, updatedBy = "Administrador", versionStamp = new Date().toISOString() } = {}) {
   const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
   if (!hierarchy) throw new Error(`No existe la jerarquia seleccionada para ${label}.`);
   const version = `${viewId}-${versionStamp}`;
+  const publishedNodes = publishedNodesForHierarchy(hierarchyId);
   const productsByCode = new Map();
   const duplicates = [];
   const withoutCode = [];
@@ -3977,17 +4040,42 @@ function buildCatalogViewPayload({ env = "dev", viewId, label, hierarchyId, chun
     const nodeId = productNodeForHierarchy(product, hierarchyId);
     const node = nodeId ? nodeById()[nodeId] : null;
     if (!node || nodeHierarchy(node) !== hierarchyId) {
-      if (isProductLinkedToHierarchy(product, hierarchyId)) unclassified.push(cod);
+      if (!isProductLinkedToHierarchy(product, hierarchyId)) return;
+      unclassified.push(cod);
+      const item = {
+        id: `prod-${String(productsByCode.size + 1).padStart(5, "0")}-${cod}`,
+        cod,
+        nom: product.name || "",
+        groups: ["No clasificados"],
+        cat1: "No clasificados",
+        cat2: "",
+        nodeId: UNCLASSIFIED_NODE_ID,
+        groupNodeIds: [UNCLASSIFIED_NODE_ID],
+        groupOrder: [999999],
+        unclassified: true
+      };
+      if (productsByCode.has(cod)) {
+        duplicates.push({ cod, kept: productsByCode.get(cod), duplicate: item });
+        return;
+      }
+      productsByCode.set(cod, item);
       return;
     }
-    const groups = pathFor(nodeId).map((item) => item.name);
+    const path = pathFor(nodeId);
+    const groups = path.map((item) => item.name);
+    const groupNodeIds = path.map((item) => item.id);
+    const groupOrder = path.map((item) => Number(item.order) || 999998);
     const item = {
       id: `prod-${String(productsByCode.size + 1).padStart(5, "0")}-${cod}`,
       cod,
       nom: product.name || "",
       groups,
       cat1: groups[0] || "",
-      cat2: groups[1] || ""
+      cat2: groups[1] || "",
+      nodeId,
+      groupNodeIds,
+      groupOrder,
+      unclassified: false
     };
     if (productsByCode.has(cod)) {
       duplicates.push({ cod, kept: productsByCode.get(cod), duplicate: item });
@@ -4012,6 +4100,7 @@ function buildCatalogViewPayload({ env = "dev", viewId, label, hierarchyId, chun
     viewId,
     label,
     chunksCollection,
+    nodes: publishedNodes,
     count: products.length,
     chunks: chunks.length,
     chunkSize,
@@ -4038,6 +4127,7 @@ function viewMetaEntry(view) {
     chunkSize: view.meta.chunkSize,
     sourceHierarchyId: view.meta.sourceHierarchyId,
     sourceHierarchyName: view.meta.sourceHierarchyName,
+    nodes: view.meta.nodes,
     unclassified: view.meta.unclassified,
     repeatedCodes: view.meta.repeatedCodes
   };
