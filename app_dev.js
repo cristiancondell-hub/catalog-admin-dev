@@ -76,6 +76,8 @@ const state = {
   status: "all",
   productSort: { key: "cod", dir: "asc" },
   listSort: { key: "cod", dir: "asc" },
+  productFilters: {},
+  listFilters: {},
   hideRedundant: false,
   changes: [],
   activePane: "source",
@@ -95,7 +97,9 @@ let pendingHierarchyLoad = null;
 let pendingProductLoad = null;
 let renderCache = null;
 let saveTimer = null;
+let firebaseSaveTimer = null;
 let dataDirty = false;
+let firebaseDirty = false;
 let importInProgress = false;
 let activeLoadStartedAt = 0;
 let firebaseReady = false;
@@ -133,6 +137,13 @@ const statusLabels = {
 };
 
 const $ = (id) => document.getElementById(id);
+function debounce(fn, delay = 120) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
 const APP_BUILD = "hierarchy-ux-dev-20260523-03";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
@@ -144,6 +155,7 @@ const ADMIN_AUDIT = "catalog_admin_audit_dev";
 const ADMIN_META_COLLECTION = "config_dev";
 const ADMIN_META_DOC = "catalog_admin_meta";
 const ADMIN_CHUNK_SIZE = 700000;
+const LOCAL_TEST_MODE = ["file:", "http:"].includes(window.location.protocol) && (window.location.protocol === "file:" || ["localhost", "127.0.0.1", ""].includes(window.location.hostname));
 
 function applySavedCatalogState(saved) {
   if (!saved?.data) return false;
@@ -274,11 +286,24 @@ function persistCatalogState() {
     .catch((error) => console.warn("No se pudo guardar catalogo grande", error));
 }
 
+function updateAutosaveStatus(status = "idle", text = "") {
+  const card = document.querySelector(".sync-card");
+  const label = $("autosaveStatus");
+  if (!card || !label) return;
+  card.classList.remove("saving", "saved", "error");
+  if (status) card.classList.add(status);
+  label.textContent = text || (firebaseUser ? "Cambios guardados automaticamente en DEV." : LOCAL_TEST_MODE ? "Modo local de prueba. Cambios guardados solo en este navegador." : "Entra con Google para recuperar y guardar tu espacio DEV.");
+}
+
 function markDataDirty() {
   dataDirty = true;
+  firebaseDirty = true;
   clearTimeout(saveTimer);
+  clearTimeout(firebaseSaveTimer);
   if (importInProgress) return;
+  updateAutosaveStatus(firebaseUser ? "saving" : "idle", firebaseUser ? "Cambios pendientes de sincronizar..." : LOCAL_TEST_MODE ? "Modo local de prueba. Cambios guardados solo en este navegador." : "Cambios locales pendientes. Entra con Google para sincronizar DEV.");
   saveTimer = setTimeout(saveLocalCatalogState, 12000);
+  if (firebaseReady && firebaseUser) firebaseSaveTimer = setTimeout(saveAdminStateToFirebaseSilent, 18000);
 }
 
 loadLocalCatalogState();
@@ -685,6 +710,35 @@ function deleteActiveProductList() {
   }, { confirmText: "Eliminar lista" });
 }
 
+function connectionStats(list, hierarchy) {
+  const productsInList = data.products.filter((product) => (product.listIds || []).includes(list.id));
+  const classified = productsInList.filter((product) => {
+    const assigned = product.assignments?.[hierarchy.id] || (hierarchy.id === state.activeHierarchyId ? productNode(product) : null);
+    const node = assigned ? nodeById()[assigned] : null;
+    return !!(node && nodeHierarchy(node) === hierarchy.id);
+  });
+  return { productsInList, classified, unclassified: productsInList.length - classified.length };
+}
+
+function connectListToHierarchyDirect(listId, hierarchyId) {
+  const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
+  const list = data.productLists.find((item) => item.id === listId);
+  if (!hierarchy || !list) return null;
+  const stats = connectionStats(list, hierarchy);
+  data.hierarchyListLinks = data.hierarchyListLinks || [];
+  const now = new Date().toISOString();
+  const link = data.hierarchyListLinks.find((item) => item.hierarchyId === hierarchy.id && item.listId === list.id);
+  const payload = { matched: stats.classified.length, unmatched: stats.unclassified, productCount: stats.productsInList.length, updatedAt: now };
+  pushHistory("conectar lista");
+  if (link) Object.assign(link, payload);
+  else data.hierarchyListLinks.push({ id: `hl-${Date.now()}`, hierarchyId: hierarchy.id, listId: list.id, createdAt: now, ...payload });
+  state.activeHierarchyId = hierarchy.id;
+  state.activeProductListId = list.id;
+  addChange("Lista conectada", `${list.name} quedo conectada a ${hierarchy.name}: ${stats.classified.length} clasificados y ${stats.unclassified} no clasificados.`);
+  markDataDirty();
+  return { hierarchy, list, ...stats };
+}
+
 function connectActiveListToHierarchy() {
   const hierarchy = activeHierarchy();
   connectActiveListToHierarchyId(hierarchy?.id);
@@ -694,13 +748,7 @@ function connectActiveListToHierarchyId(hierarchyId) {
   const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
   const list = activeProductList();
   if (!hierarchy || !list) return;
-  const productsInList = data.products.filter((product) => (product.listIds || []).includes(list.id));
-  const classified = productsInList.filter((product) => {
-    const assigned = product.assignments?.[hierarchy.id] || (hierarchy.id === state.activeHierarchyId ? productNode(product) : null);
-    const node = assigned ? nodeById()[assigned] : null;
-    return !!(node && nodeHierarchy(node) === hierarchy.id);
-  });
-  const unclassified = productsInList.length - classified.length;
+  const { productsInList, classified, unclassified } = connectionStats(list, hierarchy);
   const existing = (data.hierarchyListLinks || []).find((link) => link.hierarchyId === hierarchy.id && link.listId === list.id);
   openModal("Conectar lista a jerarquia", `
     <div class="rule-note">
@@ -714,15 +762,40 @@ function connectActiveListToHierarchyId(hierarchyId) {
       <div class="load-pill"><strong>${existing ? "Actualizar" : "Nueva"}</strong> conexion</div>
     </div>
   `, () => {
-    pushHistory("conectar lista");
-    data.hierarchyListLinks = data.hierarchyListLinks || [];
-    const now = new Date().toISOString();
-    const link = data.hierarchyListLinks.find((item) => item.hierarchyId === hierarchy.id && item.listId === list.id);
-    const payload = { matched: classified.length, unmatched: unclassified, productCount: productsInList.length, updatedAt: now };
-    if (link) Object.assign(link, payload);
-    else data.hierarchyListLinks.push({ id: `hl-${Date.now()}`, hierarchyId: hierarchy.id, listId: list.id, createdAt: now, ...payload });
-    addChange("Lista conectada", `${list.name} quedo conectada a ${hierarchy.name}: ${classified.length} clasificados y ${unclassified} no clasificados.`);
+    connectListToHierarchyDirect(list.id, hierarchy.id);
   }, { confirmText: existing ? "Actualizar conexion" : "Conectar lista" });
+}
+
+function disconnectListFromHierarchy(listId, hierarchyId) {
+  const list = data.productLists.find((item) => item.id === listId);
+  const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
+  if (!list || !hierarchy) return;
+  const link = (data.hierarchyListLinks || []).find((item) => item.listId === listId && item.hierarchyId === hierarchyId);
+  if (!link) return;
+  openModal("Desconectar lista", `
+    <div class="rule-note">
+      Se quitara la conexion entre <strong>${list.name}</strong> y <strong>${hierarchy.name}</strong>.
+      No se elimina la lista, la jerarquia ni los productos.
+    </div>
+  `, () => {
+    pushHistory("desconectar lista");
+    data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...(data.hierarchyListLinks || []).filter((item) => !(item.listId === listId && item.hierarchyId === hierarchyId)));
+    addChange("Lista desconectada", `${list.name} fue desconectada de ${hierarchy.name}.`);
+    markDataDirty();
+  }, { confirmText: "Desconectar" });
+}
+
+function disconnectActiveCatalogList() {
+  const listId = $("catalogLinkedListSelect")?.value || state.activeProductListId;
+  if (!listId || !state.activeHierarchyId) return;
+  disconnectListFromHierarchy(listId, state.activeHierarchyId);
+}
+
+function disconnectActiveListConnection() {
+  const list = activeProductList();
+  const hierarchyId = $("listConnectedHierarchySelect")?.value;
+  if (!list || !hierarchyId) return;
+  disconnectListFromHierarchy(list.id, hierarchyId);
 }
 
 function openConnectListModal() {
@@ -746,7 +819,7 @@ function openConnectListModal() {
     </div>
   `, () => {
     const selected = $("connectListHierarchySelect")?.value;
-    if (selected) connectActiveListToHierarchyId(selected);
+    if (selected) connectListToHierarchyDirect(list.id, selected);
   }, { confirmText: "Conectar" });
 }
 
@@ -811,15 +884,16 @@ function deleteActiveHierarchy() {
   }
   const nodeCount = activeNodes().length;
   const productCount = activeHierarchyProductCount();
+  const linkCount = (data.hierarchyListLinks || []).filter((link) => link.hierarchyId === hierarchy.id).length;
   openModal("Eliminar jerarquia", `
     <div class="rule-note">
       Se eliminara la estructura <strong>${hierarchy.name}</strong> y sus ubicaciones de productos en esta jerarquia.
-      Las fichas de producto no se borran si viven en otras jerarquias o listas.
+      Tambien se eliminaran sus conexiones con listas. Las listas y las fichas de producto no se borran.
     </div>
     <div class="load-preview">
       <div class="load-pill"><strong>${nodeCount}</strong> nodos</div>
       <div class="load-pill"><strong>${productCount}</strong> productos ubicados</div>
-      <div class="load-pill"><strong>1</strong> jerarquia</div>
+      <div class="load-pill"><strong>${linkCount}</strong> conexion(es) con listas</div>
     </div>
   `, () => {
     pushHistory("eliminar jerarquia");
@@ -952,7 +1026,7 @@ function renderHeader() {
   const focusNode = focusedNodeId();
   const isUnclassified = focusNode === UNCLASSIFIED_NODE_ID;
   const node = focusNode ? nodeById()[focusNode] : null;
-  const products = visibleProducts();
+  const products = filteredCatalogProducts();
   const activePane = state.operation.type ? (state.activePane === "target" ? "Destino activo" : "Origen activo") : "Catalogo";
   $("crumbs").innerHTML = isUnclassified
     ? `<span class="active-pane-note">${activePane}</span> Productos conectados sin ubicacion`
@@ -978,10 +1052,61 @@ function sortedRows(rows, sort, valueGetter) {
   return [...rows].sort((a, b) => compareValues(valueGetter(a, sort.key), valueGetter(b, sort.key), sort.dir));
 }
 
-function activeCatalogAttributeKeys(limit = 8) {
+function filterLabel(value) {
+  const text = cellText(value);
+  return text || "(vacios)";
+}
+
+function escapeHtml(value) {
+  return cellText(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function filterBag(kind) {
+  return kind === "list" ? state.listFilters : state.productFilters;
+}
+
+function activeFilter(kind, key) {
+  const filter = filterBag(kind)[key];
+  return filter && ((filter.selected || []).length || cellText(filter.query));
+}
+
+function applyColumnFilters(rows, filters, valueGetter) {
+  const entries = Object.entries(filters || {}).filter(([, filter]) => filter && ((filter.selected || []).length || cellText(filter.query)));
+  if (!entries.length) return rows;
+  return rows.filter((row) => entries.every(([key, filter]) => {
+    const value = filterLabel(valueGetter(row, key));
+    const lower = value.toLowerCase();
+    const query = cellText(filter.query).toLowerCase();
+    const selected = filter.selected || [];
+    if (query && !lower.includes(query)) return false;
+    if (selected.length && !selected.includes(value)) return false;
+    return true;
+  }));
+}
+
+function uniqueFilterValues(rows, key, valueGetter, query = "", limit = 220) {
+  const q = cellText(query).toLowerCase();
+  const seen = new Set();
+  const values = [];
+  rows.forEach((row) => {
+    const value = filterLabel(valueGetter(row, key));
+    if (seen.has(value)) return;
+    if (q && !value.toLowerCase().includes(q)) return;
+    seen.add(value);
+    values.push(value);
+  });
+  return values.sort((a, b) => compareValues(a, b, "asc")).slice(0, limit);
+}
+
+function activeCatalogAttributeKeys(limit = 8, rows = visibleProducts()) {
   const keys = [];
   const preferred = [state.activeProductListId, ...activeHierarchyLinkedListIds()].filter(Boolean);
-  visibleProducts().forEach((product) => {
+  rows.forEach((product) => {
     Object.keys(mergedProductAttributes(product, preferred)).filter(isUsableAttributeKey).forEach((key) => {
       if (!keys.includes(key)) keys.push(key);
     });
@@ -1002,10 +1127,16 @@ function productSortValue(product, key) {
   return attrs[key] || "";
 }
 
-function sortButton(label, key, sort) {
+function sortButton(label, key, sort, kind) {
   const active = sort.key === key;
   const arrow = active ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
-  return `<button class="sort-head${active ? " active" : ""}" data-sort="${key}">${label}${arrow}</button>`;
+  const filtered = activeFilter(kind, key);
+  return `
+    <span class="th-tools">
+      <button class="sort-head${active ? " active" : ""}" data-sort="${escapeHtml(key)}">${escapeHtml(label)}${arrow}</button>
+      <button class="filter-head${filtered ? " active" : ""}" data-filter-kind="${kind}" data-filter-key="${escapeHtml(key)}" title="Filtrar columna" aria-label="Filtrar ${escapeHtml(label)}">⌕</button>
+    </span>
+  `;
 }
 
 function renderProductTableHead(attrKeys) {
@@ -1013,15 +1144,19 @@ function renderProductTableHead(attrKeys) {
   if (!head) return;
   head.innerHTML = `
     <th class="select-col"><input id="selectAll" type="checkbox"></th>
-    <th class="status-mini-col">${sortButton("E", "estado", state.productSort)}</th>
-    <th class="code-col">${sortButton("Codigo", "cod", state.productSort)}</th>
-    <th class="name-col">${sortButton("Producto", "nom", state.productSort)}</th>
-    ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.productSort)}</th>`).join("")}
+    <th class="status-mini-col">${sortButton("E", "estado", state.productSort, "product")}</th>
+    <th class="code-col">${sortButton("Codigo", "cod", state.productSort, "product")}</th>
+    <th class="name-col">${sortButton("Producto", "nom", state.productSort, "product")}</th>
+    ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.productSort, "product")}</th>`).join("")}
   `;
 }
 
+function filteredCatalogProducts() {
+  return applyColumnFilters(visibleProducts(), state.productFilters, productSortValue);
+}
+
 function visibleProductIds() {
-  return visibleProducts().map((product) => cellText(product.id)).filter(Boolean);
+  return filteredCatalogProducts().map((product) => cellText(product.id)).filter(Boolean);
 }
 
 function syncSelectAllState(ids = visibleProductIds()) {
@@ -1042,9 +1177,10 @@ function updateVisibleCheckboxes(checked) {
 
 function renderProducts() {
   try {
-    const attrKeys = activeCatalogAttributeKeys();
+    const baseRows = visibleProducts();
+    const attrKeys = activeCatalogAttributeKeys(8, baseRows);
     renderProductTableHead(attrKeys);
-    const rows = sortedRows(visibleProducts(), state.productSort, productSortValue);
+    const rows = sortedRows(applyColumnFilters(baseRows, state.productFilters, productSortValue), state.productSort, productSortValue);
     if (!rows.length) {
       $("productRows").innerHTML = `<tr><td colspan="${4 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta los filtros o selecciona otra jerarquia.</p></div></td></tr>`;
       syncSelectAllState([]);
@@ -1177,6 +1313,16 @@ function listSortValue(product, key) {
   return mergedProductAttributes(product, [state.activeProductListId])[key] || "";
 }
 
+function baseListProducts(list = activeProductList()) {
+  if (!list) return [];
+  const q = state.listSearch.trim().toLowerCase();
+  return data.products.filter((product) => {
+    if (!(product.listIds || []).includes(list.id)) return false;
+    if (!q) return true;
+    return cellText(product.id).toLowerCase().includes(q) || cellText(product.name).toLowerCase().includes(q);
+  });
+}
+
 function renderListView() {
   try {
     const rowsEl = $("listRows");
@@ -1189,16 +1335,11 @@ function renderListView() {
     }
     renderListConnections(list);
     const attrKeys = listAttributeKeys(list.id);
-    const q = state.listSearch.trim().toLowerCase();
-    const rows = sortedRows(data.products.filter((product) => {
-      if (!(product.listIds || []).includes(list.id)) return false;
-      if (!q) return true;
-      return cellText(product.id).toLowerCase().includes(q) || cellText(product.name).toLowerCase().includes(q);
-    }), state.listSort, listSortValue);
+    const rows = sortedRows(applyColumnFilters(baseListProducts(list), state.listFilters, listSortValue), state.listSort, listSortValue);
     head.innerHTML = `
-      <th class="code-col">${sortButton("Codigo", "cod", state.listSort)}</th>
-      <th class="name-col">${sortButton("Descripcion", "nom", state.listSort)}</th>
-      ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.listSort)}</th>`).join("")}
+      <th class="code-col">${sortButton("Codigo", "cod", state.listSort, "list")}</th>
+      <th class="name-col">${sortButton("Descripcion", "nom", state.listSort, "list")}</th>
+      ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.listSort, "list")}</th>`).join("")}
     `;
     rowsEl.innerHTML = rows.length ? rows.map((product) => {
       const attrs = mergedProductAttributes(product, [list.id]);
@@ -1214,6 +1355,80 @@ function renderListView() {
     console.error("No se pudo renderizar lista", error);
     if ($("listRows")) $("listRows").innerHTML = `<tr><td><div class="load-error"><strong>No se pudo mostrar la lista</strong><span>${error.message}</span></div></td></tr>`;
   }
+}
+
+function filterRowsForMenu(kind) {
+  if (kind === "list") return baseListProducts(activeProductList());
+  return visibleProducts();
+}
+
+function filterGetter(kind) {
+  return kind === "list" ? listSortValue : productSortValue;
+}
+
+function refreshColumnFilterOptions(menu, kind, key) {
+  const search = menu.querySelector("[data-filter-search]")?.value || "";
+  const selected = menu._selectedValues || new Set();
+  const values = uniqueFilterValues(filterRowsForMenu(kind), key, filterGetter(kind), search);
+  const options = menu.querySelector("[data-filter-options]");
+  if (!options) return;
+  options.innerHTML = values.length
+    ? values.map((value) => `
+      <label class="filter-option">
+        <input type="checkbox" data-filter-value value="${escapeHtml(value)}" ${selected.has(value) ? "checked" : ""}>
+        <span>${escapeHtml(value)}</span>
+      </label>
+    `).join("")
+    : `<div class="filter-empty">Sin valores</div>`;
+}
+
+function closeColumnFilterMenu() {
+  document.querySelector(".column-filter-menu")?.remove();
+}
+
+function applyColumnFilter(kind, key, menu) {
+  const bag = filterBag(kind);
+  const query = cellText(menu.querySelector("[data-filter-search]")?.value);
+  const selected = Array.from(menu._selectedValues || []);
+  if (query || selected.length) bag[key] = { query, selected };
+  else delete bag[key];
+  closeColumnFilterMenu();
+  if (kind === "list") {
+    renderListView();
+  } else {
+    renderHeader();
+    renderProducts();
+    renderInspector();
+  }
+  setActionStates();
+}
+
+function openColumnFilterMenu(kind, key, anchor) {
+  closeColumnFilterMenu();
+  const filter = filterBag(kind)[key] || { query: "", selected: [] };
+  const menu = document.createElement("div");
+  menu.className = "column-filter-menu";
+  menu.dataset.filterMenu = "true";
+  menu.dataset.kind = kind;
+  menu.dataset.key = key;
+  menu._selectedValues = new Set(filter.selected || []);
+  menu.innerHTML = `
+    <div class="filter-menu-title">Filtrar columna</div>
+    <input class="filter-menu-search" data-filter-search type="search" placeholder="Buscar valor" value="${escapeHtml(filter.query || "")}">
+    <div class="filter-options" data-filter-options></div>
+    <div class="filter-menu-actions">
+      <button class="ghost-btn" data-filter-clear>Limpiar</button>
+      <button class="primary-btn" data-filter-apply>Aplicar</button>
+    </div>
+  `;
+  document.body.appendChild(menu);
+  const rect = anchor.getBoundingClientRect();
+  const left = Math.min(rect.left, window.innerWidth - 310);
+  const top = Math.min(rect.bottom + 8, window.innerHeight - 390);
+  menu.style.left = `${Math.max(8, left)}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
+  refreshColumnFilterOptions(menu, kind, key);
+  menu.querySelector("[data-filter-search]")?.focus();
 }
 
 function renderListConnections(list = activeProductList()) {
@@ -1254,7 +1469,6 @@ function renderAll() {
   if (state.activeView === "lists") renderListView();
   renderChanges();
   setActionStates();
-  if (dataDirty) markDataDirty();
 }
 
 function openModal(title, bodyHtml, onConfirm, options = {}) {
@@ -1516,6 +1730,8 @@ function setActionStates() {
   const deleteHierarchyBtn = $("deleteHierarchyBtn");
   const deleteListBtn = $("deleteListBtn");
   const connectListBtn = $("connectListBtn");
+  const disconnectCatalogListBtn = $("disconnectCatalogListBtn");
+  const disconnectListFromHierarchyBtn = $("disconnectListFromHierarchyBtn");
   const loginBtn = $("firebaseLoginBtn");
   const saveFirebaseBtn = $("saveFirebaseBtn");
   const loadFirebaseBtn = $("loadFirebaseBtn");
@@ -1545,9 +1761,22 @@ function setActionStates() {
   if (connectListBtn) {
     connectListBtn.disabled = !activeHierarchy() || !activeProductList() || productListCount(activeProductList().id) === 0;
   }
-  if (loginBtn) {
-    loginBtn.textContent = firebaseUser ? `Salir (${firebaseUser.email || "Google"})` : "Entrar Google";
+  if (disconnectCatalogListBtn) {
+    disconnectCatalogListBtn.disabled = !activeHierarchyLinkedListIds().length || !$("catalogLinkedListSelect")?.value;
   }
+  if (disconnectListFromHierarchyBtn) {
+    disconnectListFromHierarchyBtn.disabled = !$("listConnectedHierarchySelect")?.value;
+  }
+  if (loginBtn) {
+    const initial = $("userInitials");
+    const label = firebaseUser ? (firebaseUser.email || firebaseUser.name || "Google") : LOCAL_TEST_MODE ? "Modo local" : "Entrar Google";
+    loginBtn.title = firebaseUser ? `Salir (${label})` : LOCAL_TEST_MODE ? "Modo local de prueba" : "Entrar con Google";
+    loginBtn.classList.toggle("signed-out", !firebaseUser && !LOCAL_TEST_MODE);
+    if (initial) initial.textContent = firebaseUser ? label.slice(0, 1).toUpperCase() : LOCAL_TEST_MODE ? "L" : "?";
+  }
+  const gate = $("loginGate");
+  if (gate) gate.hidden = !!firebaseUser || LOCAL_TEST_MODE;
+  updateAutosaveStatus(firebaseDirty ? "saving" : "saved");
   [saveFirebaseBtn, loadFirebaseBtn, versionFirebaseBtn].forEach((btn) => {
     if (btn) btn.disabled = !firebaseReady || !firebaseUser;
   });
@@ -3725,6 +3954,18 @@ function firebaseUserLabel() {
   return firebaseUser?.email || firebaseUser?.name || "Sin sesion";
 }
 
+function firebaseUserKey() {
+  return (firebaseUser?.uid || firebaseUser?.email || "anon").replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+function adminMetaDocForUser() {
+  return firebaseUser ? `${ADMIN_META_DOC}_${firebaseUserKey()}` : ADMIN_META_DOC;
+}
+
+function adminChunkPrefixForUser() {
+  return firebaseUser ? `${firebaseUserKey()}_` : "";
+}
+
 function requireFirebaseSession() {
   if (!firebaseAvailable()) throw new Error("Firebase no esta listo. Revisa conexion a internet o recarga la app.");
   if (!firebaseUser) throw new Error("Debes entrar con Google antes de guardar o cargar desde Firebase.");
@@ -3755,10 +3996,12 @@ function splitText(text, size) {
   return chunks;
 }
 
-async function deleteCollectionDocs(collectionName) {
+async function deleteCollectionDocs(collectionName, idPrefix = "") {
   const docs = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, collectionName));
   const items = [];
-  docs.forEach((item) => items.push(item));
+  docs.forEach((item) => {
+    if (!idPrefix || item.id.startsWith(idPrefix)) items.push(item);
+  });
   if (!items.length) return 0;
   const batchSize = 250;
   for (let i = 0; i < items.length; i += batchSize) {
@@ -3777,6 +4020,48 @@ async function deleteCollectionDocs(collectionName) {
   return items.length;
 }
 
+async function saveAdminStateToFirebaseSilent() {
+  if (!firebaseReady || !firebaseUser || importInProgress || !firebaseDirty) return;
+  try {
+    updateAutosaveStatus("saving", "Guardando espacio de trabajo en DEV...");
+    const snapshot = adminSnapshot();
+    const version = `catalog-admin-${snapshot.savedAt}`;
+    const chunks = splitText(JSON.stringify(snapshot), ADMIN_CHUNK_SIZE);
+    const prefix = adminChunkPrefixForUser();
+    await deleteCollectionDocs(ADMIN_STATE_CHUNKS, prefix);
+    for (let i = 0; i < chunks.length; i += 1) {
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, `${prefix}${chunkId(i)}`), {
+        index: i,
+        version,
+        value: chunks[i],
+        owner: firebaseUserKey()
+      });
+    }
+    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, adminMetaDocForUser()), {
+      version,
+      updatedAt: snapshot.savedAt,
+      updatedBy: snapshot.savedBy,
+      owner: firebaseUserKey(),
+      environment: ADMIN_ENV,
+      schema: snapshot.schema,
+      chunksCollection: ADMIN_STATE_CHUNKS,
+      chunkPrefix: prefix,
+      chunks: chunks.length,
+      chunkSize: ADMIN_CHUNK_SIZE,
+      hierarchies: data.hierarchies.length,
+      nodes: data.nodes.length,
+      products: data.products.length,
+      productLists: data.productLists.length,
+      hierarchyListLinks: (data.hierarchyListLinks || []).length
+    });
+    firebaseDirty = false;
+    updateAutosaveStatus("saved", `Cambios guardados automaticamente en DEV. Ultima sincronizacion ${new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
+  } catch (error) {
+    firebaseDirty = true;
+    updateAutosaveStatus("error", `No se pudo guardar automaticamente en DEV: ${error.message || error}`);
+  }
+}
+
 async function saveAdminStateToFirebase({ createVersion = false } = {}) {
   try {
     requireFirebaseSession();
@@ -3785,12 +4070,14 @@ async function saveAdminStateToFirebase({ createVersion = false } = {}) {
     const version = `catalog-admin-${snapshot.savedAt}`;
     const json = JSON.stringify(snapshot);
     const chunks = splitText(json, ADMIN_CHUNK_SIZE);
-    await deleteCollectionDocs(ADMIN_STATE_CHUNKS);
+    await deleteCollectionDocs(ADMIN_STATE_CHUNKS, createVersion ? "" : adminChunkPrefixForUser());
     for (let i = 0; i < chunks.length; i += 1) {
-      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, chunkId(i)), {
+      const docId = createVersion ? chunkId(i) : `${adminChunkPrefixForUser()}${chunkId(i)}`;
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, docId), {
         index: i,
         version,
-        value: chunks[i]
+        value: chunks[i],
+        owner: createVersion ? "version" : firebaseUserKey()
       });
       updateProcessingStatus(`Guardando estado DEV... ${i + 1}/${chunks.length} chunk(s).`);
     }
@@ -3801,6 +4088,7 @@ async function saveAdminStateToFirebase({ createVersion = false } = {}) {
       environment: ADMIN_ENV,
       schema: snapshot.schema,
       chunksCollection: ADMIN_STATE_CHUNKS,
+      chunkPrefix: createVersion ? "" : adminChunkPrefixForUser(),
       chunks: chunks.length,
       chunkSize: ADMIN_CHUNK_SIZE,
       hierarchies: data.hierarchies.length,
@@ -3809,7 +4097,7 @@ async function saveAdminStateToFirebase({ createVersion = false } = {}) {
       productLists: data.productLists.length,
       hierarchyListLinks: (data.hierarchyListLinks || []).length
     };
-    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC), meta);
+    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, createVersion ? ADMIN_META_DOC : adminMetaDocForUser()), meta);
     await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_AUDIT, `log-${Date.now()}`), {
       action: createVersion ? "create_version" : "save_state",
       environment: ADMIN_ENV,
@@ -3836,12 +4124,13 @@ async function loadAdminStateFromFirebase() {
   try {
     requireFirebaseSession();
     setProcessingState(true, "Leyendo metadata DEV desde Firebase...");
-    const metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC));
+    let metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, adminMetaDocForUser()));
+    if (!metaSnap.exists()) metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC));
     if (!metaSnap.exists()) throw new Error("No existe config_dev/catalog_admin_meta todavia.");
     const meta = metaSnap.data();
     const parts = [];
     for (let i = 0; i < meta.chunks; i += 1) {
-      const snap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, meta.chunksCollection || ADMIN_STATE_CHUNKS, chunkId(i)));
+      const snap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, meta.chunksCollection || ADMIN_STATE_CHUNKS, `${meta.chunkPrefix || ""}${chunkId(i)}`));
       if (!snap.exists()) throw new Error(`Falta chunk ${chunkId(i)} en Firebase.`);
       const chunk = snap.data();
       if (chunk.version !== meta.version) throw new Error(`El chunk ${chunkId(i)} tiene otra version.`);
@@ -3862,6 +4151,40 @@ async function loadAdminStateFromFirebase() {
     renderAll();
   } catch (error) {
     showLoadError("No se pudo cargar desde Firebase", error);
+  }
+}
+
+async function loadAdminStateFromFirebaseSilent() {
+  if (!firebaseReady || !firebaseUser || dataDirty || importInProgress) return;
+  try {
+    updateAutosaveStatus("saving", "Recuperando espacio de trabajo guardado...");
+    let metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, adminMetaDocForUser()));
+    if (!metaSnap.exists()) {
+      updateAutosaveStatus("saved", "No hay espacio DEV previo para este usuario. Se usara el estado local.");
+      return;
+    }
+    const meta = metaSnap.data();
+    const parts = [];
+    for (let i = 0; i < meta.chunks; i += 1) {
+      const snap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, meta.chunksCollection || ADMIN_STATE_CHUNKS, `${meta.chunkPrefix || ""}${chunkId(i)}`));
+      if (!snap.exists()) throw new Error(`Falta chunk ${chunkId(i)} en Firebase.`);
+      const chunk = snap.data();
+      if (chunk.version !== meta.version) throw new Error(`El chunk ${chunkId(i)} tiene otra version.`);
+      parts.push(chunk.value || "");
+    }
+    applySavedCatalogState(JSON.parse(parts.join("")));
+    normalizeProductSources();
+    data.hierarchies.forEach((hierarchy) => consolidateEquivalentNodes(hierarchy.id));
+    state.selectedNode = null;
+    state.selectedProduct = null;
+    state.selectedProducts.clear();
+    state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 1).map((node) => node.id));
+    dataDirty = false;
+    firebaseDirty = false;
+    updateAutosaveStatus("saved", `Espacio de trabajo recuperado. Ultima sincronizacion ${new Date(meta.updatedAt || Date.now()).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
+    renderAll();
+  } catch (error) {
+    updateAutosaveStatus("error", `No se pudo recuperar el espacio DEV: ${error.message || error}`);
   }
 }
 
@@ -4503,14 +4826,43 @@ function validateProducts(ids) {
 }
 
 document.addEventListener("click", (event) => {
+  const filterBtn = event.target.closest("[data-filter-kind]");
+  if (filterBtn) {
+    event.stopPropagation();
+    openColumnFilterMenu(filterBtn.dataset.filterKind, filterBtn.dataset.filterKey, filterBtn);
+    return;
+  }
+  const filterMenu = event.target.closest(".column-filter-menu");
+  if (filterMenu) {
+    if (event.target.closest("[data-filter-clear]")) {
+      const kind = filterMenu.dataset.kind;
+      const key = filterMenu.dataset.key;
+      delete filterBag(kind)[key];
+      closeColumnFilterMenu();
+      if (kind === "list") renderListView();
+      else {
+        renderHeader();
+        renderProducts();
+        renderInspector();
+      }
+      setActionStates();
+      return;
+    }
+    if (event.target.closest("[data-filter-apply]")) {
+      applyColumnFilter(filterMenu.dataset.kind, filterMenu.dataset.key, filterMenu);
+      return;
+    }
+    return;
+  }
+  closeColumnFilterMenu();
   const viewTab = event.target.closest("[data-view-tab]");
   if (viewTab) {
     viewTab.classList.add("just-clicked");
     state.activeView = viewTab.dataset.viewTab;
+    document.querySelector(".nav-menu-wrap")?.classList.remove("open");
+    renderAll();
     window.setTimeout(() => {
-      document.querySelector(".nav-menu-wrap")?.classList.remove("open");
       viewTab.classList.remove("just-clicked");
-      renderAll();
     }, 90);
     return;
   }
@@ -4536,7 +4888,9 @@ document.addEventListener("click", (event) => {
       sort.key = sortBtn.dataset.sort;
       sort.dir = "asc";
     }
-    renderAll();
+    if (state.activeView === "lists") renderListView();
+    else renderProducts();
+    setActionStates();
     return;
   }
   const loadCard = event.target.closest("[data-load-type]");
@@ -4682,6 +5036,16 @@ $("productRows").addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const filterValue = event.target.closest("[data-filter-value]");
+  if (filterValue) {
+    const menu = event.target.closest(".column-filter-menu");
+    if (menu) {
+      menu._selectedValues = menu._selectedValues || new Set();
+      if (filterValue.checked) menu._selectedValues.add(filterValue.value);
+      else menu._selectedValues.delete(filterValue.value);
+    }
+    return;
+  }
   if (event.target.id === "selectAll") {
     const ids = visibleProductIds();
     const checked = event.target.checked;
@@ -4713,6 +5077,11 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  if (event.target.matches("[data-filter-search]")) {
+    const menu = event.target.closest(".column-filter-menu");
+    if (menu) refreshColumnFilterOptions(menu, menu.dataset.kind, menu.dataset.key);
+    return;
+  }
   if (event.target.id === "mergeNameInput") {
     state.operation.mergeName = event.target.value;
   }
@@ -4750,10 +5119,20 @@ $("catalogLinkedListSelect").addEventListener("change", (e) => {
   markDataDirty();
   renderAll();
 });
-$("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; renderAll(); });
-$("targetTreeSearch").addEventListener("input", (e) => { state.operation.targetSearch = e.target.value; renderAll(); });
-$("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; renderAll(); });
-$("listSearch").addEventListener("input", (e) => { state.listSearch = e.target.value; renderAll(); });
+$("listConnectedHierarchySelect")?.addEventListener("change", (e) => {
+  if (!e.target.value) return;
+  state.activeHierarchyId = e.target.value;
+  state.selectedNode = null;
+  state.selectedProduct = null;
+  state.selectedProducts.clear();
+  ensureCatalogLinkedList();
+  renderAll();
+});
+const debouncedRenderAll = debounce(renderAll, 120);
+$("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; debouncedRenderAll(); });
+$("targetTreeSearch").addEventListener("input", (e) => { state.operation.targetSearch = e.target.value; debouncedRenderAll(); });
+$("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; debouncedRenderAll(); });
+$("listSearch").addEventListener("input", (e) => { state.listSearch = e.target.value; debouncedRenderAll(); });
 $("statusFilter").addEventListener("change", (e) => { state.status = e.target.value; renderAll(); });
 $("addChildBtn").addEventListener("click", () => { closeHierarchyActions(); openCreateNodeDialog(); });
 $("renameNodeBtn").addEventListener("click", () => { closeHierarchyActions(); renameNode(); });
@@ -4774,13 +5153,16 @@ $("addProductListLoadBtn").addEventListener("click", () => openLoadModal("produc
 $("exportBtn").addEventListener("click", openExportModal);
 $("duplicateHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); duplicateActiveHierarchy(); });
 $("deleteHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); deleteActiveHierarchy(); });
-$("connectListBtn").addEventListener("click", connectActiveListToHierarchy);
+$("connectListBtn")?.addEventListener("click", connectActiveListToHierarchy);
+$("disconnectCatalogListBtn")?.addEventListener("click", disconnectActiveCatalogList);
 $("deleteListBtn").addEventListener("click", deleteActiveProductList);
 $("connectListToSelectedHierarchyBtn").addEventListener("click", openConnectListModal);
+$("disconnectListFromHierarchyBtn")?.addEventListener("click", disconnectActiveListConnection);
 $("firebaseLoginBtn").addEventListener("click", loginFirebase);
-$("saveFirebaseBtn").addEventListener("click", () => saveAdminStateToFirebase());
-$("loadFirebaseBtn").addEventListener("click", loadAdminStateFromFirebase);
-$("versionFirebaseBtn").addEventListener("click", () => saveAdminStateToFirebase({ createVersion: true }));
+$("loginGateBtn")?.addEventListener("click", loginFirebase);
+$("saveFirebaseBtn")?.addEventListener("click", () => saveAdminStateToFirebase());
+$("loadFirebaseBtn")?.addEventListener("click", loadAdminStateFromFirebase);
+$("versionFirebaseBtn")?.addEventListener("click", () => saveAdminStateToFirebase({ createVersion: true }));
 $("publishFirebaseBtn").addEventListener("click", publishToFirebase);
 window.addEventListener("beforeunload", () => {
   if (dataDirty) saveLocalCatalogState();
@@ -4793,6 +5175,7 @@ window.addEventListener("catalog-admin-auth", (event) => {
   firebaseReady = firebaseAvailable();
   firebaseUser = event.detail || null;
   setActionStates();
+  if (firebaseUser) loadAdminStateFromFirebaseSilent();
 });
 
 renderAll();

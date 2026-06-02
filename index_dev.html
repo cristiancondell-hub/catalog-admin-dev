@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=list-context-dev-20260525-01">
+  <link rel="stylesheet" href="./styles_dev.css?v=column-filters-dev-20260602-01">
 </head>
 <body>
   <div class="app-shell">
@@ -66,7 +66,7 @@
             <h1 id="connectedHierarchyTitle">Sin conexiones</h1>
           </div>
           <select id="listConnectedHierarchySelect"></select>
-          <button class="ghost-btn" id="connectListToSelectedHierarchyBtn">Conectar</button>
+          <button class="ghost-btn" id="connectListToSelectedHierarchyBtn">Conectar jerarquia</button>
         </div>
       </div>
       <div class="brand compact-brand">
@@ -74,7 +74,9 @@
           <div class="brand-title">Administrador de Catalogos</div>
           <div class="brand-subtitle">DEV · FitFlow</div>
         </div>
-        <div class="brand-mark">FC</div>
+        <button class="user-badge" id="firebaseLoginBtn" title="Sesion Google">
+          <span id="userInitials">?</span>
+        </button>
       </div>
     </header>
 
@@ -147,7 +149,7 @@
           </select>
           <button class="ghost-btn" id="moveSelectedBtn">Mover seleccionados</button>
           <button class="ghost-btn" id="validateSelectedBtn">Validar</button>
-          <button class="ghost-btn" id="connectListBtn">Conectar lista</button>
+          <button class="ghost-btn danger-action" id="disconnectCatalogListBtn">Quitar lista</button>
           <button class="ghost-btn" id="exportBtn">Exportar</button>
         </div>
 
@@ -184,6 +186,7 @@
           <p>Revisa listas cargadas, sus columnas y sus conexiones con jerarquias.</p>
         </div>
         <div class="page-actions">
+          <button class="ghost-btn danger-action" id="disconnectListFromHierarchyBtn">Desconectar conexion</button>
           <button class="ghost-btn danger-action" id="deleteListBtn">Eliminar lista</button>
         </div>
       </div>
@@ -209,14 +212,19 @@
       <div class="page-head">
         <div>
           <h1>Publicar DEV</h1>
-          <p>Guarda el trabajo editable y publica el maestro liviano para FitFlow.</p>
+          <p>Publica las vistas livianas que FitFlow usara para clasificar productos.</p>
         </div>
-        <button class="ghost-btn" id="firebaseLoginBtn">Entrar Google</button>
       </div>
-      <div class="info-grid">
-        <div class="info-card"><strong>Estado editable</strong><span>Jerarquias, listas, productos, conexiones y cambios.</span><button class="ghost-btn" id="saveFirebaseBtn">Guardar DEV</button><button class="ghost-btn" id="loadFirebaseBtn">Cargar DEV</button></div>
-        <div class="info-card"><strong>Version historica</strong><span>Foto congelada del estado actual.</span><button class="ghost-btn" id="versionFirebaseBtn">Crear version</button></div>
-        <div class="info-card"><strong>Vistas FitFlow</strong><span>Publica dos jerarquias livianas para cruzar por codigo: Catalogo Antiguo y Catalogo Nuevo.</span><button class="primary-btn" id="publishFirebaseBtn">Publicar vistas DEV</button></div>
+      <div class="publish-dashboard">
+        <div class="sync-card">
+          <strong>Espacio de trabajo</strong>
+          <span id="autosaveStatus">Guardado automatico local activo.</span>
+        </div>
+        <div class="info-card publish-main-card">
+          <strong>Vistas FitFlow</strong>
+          <span>Publica Catalogo Antiguo y/o Catalogo Nuevo. No publica precios, stock ni atributos comerciales.</span>
+          <button class="primary-btn" id="publishFirebaseBtn">Publicar vistas FitFlow</button>
+        </div>
       </div>
     </section>
   </div>
@@ -232,6 +240,27 @@
         <button class="ghost-btn" id="modalCancel">Cancelar</button>
         <button class="primary-btn" id="modalConfirm">Guardar</button>
       </div>
+    </div>
+  </div>
+
+  <div class="login-gate" id="loginGate" hidden>
+    <div class="login-card">
+      <div class="login-brand-row">
+        <div class="brand-mark">FC</div>
+        <div>
+          <strong>Administrador de Catalogos</strong>
+          <span>DEV · FitFlow</span>
+        </div>
+      </div>
+      <div class="login-copy">
+        <h1>Entra a tu espacio de trabajo</h1>
+        <p>Usa tu cuenta Google para recuperar jerarquias, listas, conexiones y cambios guardados.</p>
+      </div>
+      <button class="google-login-btn" id="loginGateBtn">
+        <span class="google-g" aria-hidden="true">G</span>
+        <span>Continuar con Google</span>
+      </button>
+      <small>En modo local puedes probar sin publicar. Para sincronizar y publicar DEV necesitas Google.</small>
     </div>
   </div>
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
@@ -288,7 +317,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=list-context-dev-20260525-01"></script>
+  <script src="./app_dev.js?v=column-filters-dev-20260602-01"></script>
 </body>
 </html>
 
