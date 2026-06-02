@@ -3757,9 +3757,24 @@ function splitText(text, size) {
 
 async function deleteCollectionDocs(collectionName) {
   const docs = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, collectionName));
-  const deletes = [];
-  docs.forEach((item) => deletes.push(window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, collectionName, item.id))));
-  await Promise.all(deletes);
+  const items = [];
+  docs.forEach((item) => items.push(item));
+  if (!items.length) return 0;
+  const batchSize = 250;
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batchItems = items.slice(i, i + batchSize);
+    if (window.firebaseWriteBatch) {
+      const batch = window.firebaseWriteBatch(window.firebaseDb);
+      batchItems.forEach((item) => batch.delete(window.firebaseDoc(window.firebaseDb, collectionName, item.id)));
+      await batch.commit();
+    } else {
+      for (const item of batchItems) {
+        await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, collectionName, item.id));
+      }
+    }
+    updateProcessingStatus(`Limpiando ${collectionName}... ${Math.min(i + batchSize, items.length)}/${items.length} documento(s).`);
+  }
+  return items.length;
 }
 
 async function saveAdminStateToFirebase({ createVersion = false } = {}) {
@@ -4244,7 +4259,7 @@ async function writeCatalogMasterToFirestore(payload) {
   if (!firebaseUser) throw new Error("Debes entrar con Google antes de publicar en Firestore.");
   const db = window.firebaseDb;
   updateProcessingStatus(`Limpiando chunks anteriores en ${payload.routes.chunksCollection}...`);
-  await firebaseStep(deleteCollectionDocs(payload.routes.chunksCollection), "limpiar chunks anteriores");
+  await firebaseStep(deleteCollectionDocs(payload.routes.chunksCollection), "limpiar chunks anteriores", 180000);
   updateProcessingStatus(`Guardando metadata en ${payload.routes.metaCollection}/${payload.routes.metaDoc}...`);
   await firebaseStep(window.firebaseSetDoc(window.firebaseDoc(db, payload.routes.metaCollection, payload.routes.metaDoc), payload.meta), "guardar metadata");
   updateProcessingStatus(`Guardando reporte de duplicados en ${payload.routes.metaCollection}/${payload.routes.duplicatesDoc}...`);
@@ -4263,7 +4278,7 @@ async function writeCatalogViewsToFirestore(payload) {
   const db = window.firebaseDb;
   for (const view of payload.views) {
     updateProcessingStatus(`Limpiando ${view.label} en ${view.chunksCollection}...`);
-    await firebaseStep(deleteCollectionDocs(view.chunksCollection), `limpiar ${view.label}`);
+    await firebaseStep(deleteCollectionDocs(view.chunksCollection), `limpiar ${view.label}`, 180000);
     for (let i = 0; i < view.chunks.length; i += 1) {
       const chunk = view.chunks[i];
       updateProcessingStatus(`Publicando ${view.label}... ${i + 1}/${view.chunks.length} chunk(s).`);
