@@ -541,6 +541,22 @@ select{
 .filter-menu-actions .ghost-btn,.filter-menu-actions .primary-btn{
   min-height:36px;padding:8px 12px;border-radius:10px;font-size:12px;
 }
+.users-layout{display:grid;grid-template-rows:auto 1fr;gap:12px;min-height:0;flex:1}
+.users-permission-card{display:flex;flex-direction:column;gap:5px}
+.users-permission-card span{color:var(--muted);font-size:13px;line-height:1.35}
+.users-table-card{min-height:360px}
+.users-table{width:100%;min-width:900px}
+.row-actions{display:flex;gap:8px;align-items:center;white-space:nowrap}
+.row-actions .ghost-btn{min-height:34px;padding:7px 11px;font-size:12px;border-radius:10px}
+.role-pill{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:86px;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900;
+  background:#eef3ef;color:#425049;border:1px solid var(--line);
+}
+.role-owner{background:#e7f4ee;color:var(--green);border-color:#b9d9c6}
+.role-admin{background:#eaf3fb;color:var(--blue);border-color:#c9dced}
+.role-editor{background:#fff3df;color:var(--amber);border-color:#f0d1a3}
+.role-viewer{background:#f4f5f3;color:#607069}
 .checkline{display:flex;align-items:center;gap:8px}
 .compact-check{justify-content:center}
 .code{font-family:"SFMono-Regular",Consolas,monospace;color:#607069;font-size:12px}

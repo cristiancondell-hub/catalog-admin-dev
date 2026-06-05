@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=column-filters-dev-20260602-01">
+  <link rel="stylesheet" href="./styles_dev.css?v=users-dev-20260604-01">
 </head>
 <body>
   <div class="app-shell">
@@ -15,6 +15,7 @@
           <button class="main-tab active" data-view-tab="catalog">Catalogo</button>
           <button class="main-tab" data-view-tab="lists">Listas</button>
           <button class="main-tab" data-view-tab="firebase">Publicar</button>
+          <button class="main-tab" data-view-tab="users">Usuarios</button>
         </nav>
       </div>
       <div class="topbar-context" data-top-context="catalog">
@@ -67,6 +68,24 @@
           </div>
           <select id="listConnectedHierarchySelect"></select>
           <button class="ghost-btn" id="connectListToSelectedHierarchyBtn">Conectar jerarquia</button>
+        </div>
+      </div>
+      <div class="topbar-context" data-top-context="users" hidden>
+        <div class="top-context-block product-context">
+          <div class="product-title-block">
+            <div class="crumbs">Administracion DEV</div>
+            <h1>Usuarios</h1>
+          </div>
+          <div class="metrics">
+            <div class="metric green">
+              <span id="usersActiveCount">0</span>
+              <label>activos</label>
+            </div>
+            <div class="metric amber">
+              <span id="usersAdminCount">0</span>
+              <label>admin</label>
+            </div>
+          </div>
         </div>
       </div>
       <div class="brand compact-brand">
@@ -227,6 +246,39 @@
         </div>
       </div>
     </section>
+
+    <section class="app-view page-panel" id="usersView" data-view="users" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Usuarios DEV</h1>
+          <p>Administra quienes pueden entrar, editar y publicar desde esta app.</p>
+        </div>
+        <div class="page-actions">
+          <button class="ghost-btn" id="refreshUsersBtn">Actualizar</button>
+          <button class="primary-btn" id="addUserBtn">Agregar usuario</button>
+        </div>
+      </div>
+      <div class="users-layout">
+        <section class="info-card users-permission-card" id="usersPermissionCard">
+          <strong>Permisos</strong>
+          <span id="usersPermissionText">Entra con Google para ver tus permisos.</span>
+        </section>
+        <section class="table-card users-table-card">
+          <table class="data-table users-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Ultima actualizacion</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usersRows"></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
   </div>
 
   <div class="modal-backdrop" id="modalBackdrop" hidden>
@@ -317,7 +369,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=column-filters-dev-20260602-01"></script>
+  <script src="./app_dev.js?v=users-dev-20260604-01"></script>
 </body>
 </html>
 

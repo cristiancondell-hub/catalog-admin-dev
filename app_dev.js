@@ -154,8 +154,18 @@ const ADMIN_VERSIONS = "catalog_admin_versions_dev";
 const ADMIN_AUDIT = "catalog_admin_audit_dev";
 const ADMIN_META_COLLECTION = "config_dev";
 const ADMIN_META_DOC = "catalog_admin_meta";
+const ADMIN_USERS_COLLECTION = "catalog_admin_users_dev";
 const ADMIN_CHUNK_SIZE = 700000;
 const LOCAL_TEST_MODE = ["file:", "http:"].includes(window.location.protocol) && (window.location.protocol === "file:" || ["localhost", "127.0.0.1", ""].includes(window.location.hostname));
+const adminRoleLabels = {
+  owner: "Owner",
+  admin: "Admin",
+  editor: "Editor",
+  viewer: "Solo lectura"
+};
+const adminRoleRank = { none: 0, viewer: 1, editor: 2, admin: 3, owner: 4 };
+let adminUsers = [];
+let currentAdminRole = LOCAL_TEST_MODE ? "owner" : "none";
 
 function applySavedCatalogState(saved) {
   if (!saved?.data) return false;
@@ -1467,6 +1477,7 @@ function renderAll() {
     renderInspector();
   }
   if (state.activeView === "lists") renderListView();
+  if (state.activeView === "users") renderUsersView();
   renderChanges();
   setActionStates();
 }
@@ -1479,9 +1490,30 @@ function openModal(title, bodyHtml, onConfirm, options = {}) {
   $("modalCancel").textContent = options.cancelText || "Cancelar";
   $("modalCancel").hidden = !!options.hideCancel;
   $("modalConfirm").onclick = async () => {
-    await onConfirm();
-    if (!options.keepOpen) closeModal();
-    renderAll();
+    const confirmBtn = $("modalConfirm");
+    const cancelBtn = $("modalCancel");
+    const originalText = confirmBtn.textContent;
+    try {
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      confirmBtn.textContent = options.busyText || "Guardando...";
+      await onConfirm();
+      if (!options.keepOpen) closeModal();
+      renderAll();
+    } catch (error) {
+      const oldError = $("modalInlineError");
+      if (oldError) oldError.remove();
+      $("modalBody").insertAdjacentHTML("afterbegin", `
+        <div class="load-error" id="modalInlineError">
+          <strong>No se pudo completar</strong>
+          <span>${escapeHtml(error?.message || error || "La accion no pudo completarse.")}</span>
+        </div>
+      `);
+    } finally {
+      confirmBtn.disabled = false;
+      cancelBtn.disabled = false;
+      confirmBtn.textContent = originalText;
+    }
   };
 }
 
@@ -1736,6 +1768,9 @@ function setActionStates() {
   const saveFirebaseBtn = $("saveFirebaseBtn");
   const loadFirebaseBtn = $("loadFirebaseBtn");
   const versionFirebaseBtn = $("versionFirebaseBtn");
+  const publishFirebaseBtn = $("publishFirebaseBtn");
+  const addUserBtn = $("addUserBtn");
+  const refreshUsersBtn = $("refreshUsersBtn");
   const isSpecialNode = state.selectedNode === UNCLASSIFIED_NODE_ID;
   const selected = state.selectedNode ? nodeById()[state.selectedNode] : null;
   if (undoBtn) {
@@ -1780,6 +1815,205 @@ function setActionStates() {
   [saveFirebaseBtn, loadFirebaseBtn, versionFirebaseBtn].forEach((btn) => {
     if (btn) btn.disabled = !firebaseReady || !firebaseUser;
   });
+  if (publishFirebaseBtn) {
+    publishFirebaseBtn.disabled = !firebaseReady || !firebaseUser || !canPublishDev();
+    publishFirebaseBtn.title = canPublishDev() ? "Publicar vistas DEV" : "Requiere rol admin u owner";
+  }
+  if (addUserBtn) {
+    addUserBtn.disabled = false;
+    addUserBtn.title = canManageUsers() ? "Agregar usuario DEV" : "Ver requisito para agregar usuarios";
+  }
+  if (refreshUsersBtn) refreshUsersBtn.disabled = !firebaseReady || !firebaseUser;
+}
+
+function adminUserId(email) {
+  return cellText(email).toLowerCase();
+}
+
+function roleAtLeast(role) {
+  return (adminRoleRank[currentAdminRole] || 0) >= (adminRoleRank[role] || 0);
+}
+
+function canManageUsers() {
+  return !!firebaseUser && roleAtLeast("owner");
+}
+
+function canPublishDev() {
+  return roleAtLeast("admin");
+}
+
+function canEditCatalog() {
+  return roleAtLeast("editor");
+}
+
+function currentAdminUser() {
+  const email = adminUserId(firebaseUser?.email);
+  return adminUsers.find((user) => adminUserId(user.email) === email || user.id === email);
+}
+
+function updateCurrentAdminRole() {
+  if (LOCAL_TEST_MODE && !firebaseUser) {
+    currentAdminRole = "owner";
+    return;
+  }
+  const user = currentAdminUser();
+  currentAdminRole = user?.active ? (user.role || "viewer") : "none";
+}
+
+function adminUserSummary(user) {
+  const updated = user.updatedAt || user.createdAt || "";
+  return updated ? new Date(updated).toLocaleString("es-CL") : "Sin registro";
+}
+
+function renderUsersView() {
+  const rows = $("usersRows");
+  const permission = $("usersPermissionText");
+  const activeCount = $("usersActiveCount");
+  const adminCount = $("usersAdminCount");
+  const addBtn = $("addUserBtn");
+  if (activeCount) activeCount.textContent = adminUsers.filter((user) => user.active).length;
+  if (adminCount) adminCount.textContent = adminUsers.filter((user) => user.active && ["owner", "admin"].includes(user.role)).length;
+  if (permission) {
+    if (!firebaseUser) permission.textContent = LOCAL_TEST_MODE
+      ? "La administracion de usuarios requiere entrar con Google desde el sitio publicado; no se guarda en modo local."
+      : "Entra con Google para ver y administrar usuarios.";
+    else if (!adminUsers.length && firebaseUser) permission.textContent = `No hay usuarios cargados. Crea manualmente tu primer owner en ${ADMIN_USERS_COLLECTION}/${adminUserId(firebaseUser.email)}.`;
+    else permission.textContent = `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. ${canManageUsers() ? "Puedes administrar usuarios DEV." : "No puedes administrar usuarios."}`;
+  }
+  if (addBtn) {
+    addBtn.disabled = false;
+    addBtn.title = canManageUsers() ? "Agregar usuario DEV" : "Ver requisito para agregar usuarios";
+  }
+  if (!rows) return;
+  if (!firebaseUser && !LOCAL_TEST_MODE) {
+    rows.innerHTML = `<tr><td colspan="5"><div class="empty-state"><h3>Sesion requerida</h3><p>Entra con Google para cargar usuarios DEV.</p></div></td></tr>`;
+    return;
+  }
+  if (!adminUsers.length) {
+    rows.innerHTML = `<tr><td colspan="5"><div class="empty-state"><h3>Sin usuarios</h3><p>Crea el primer owner manualmente en Firebase y vuelve a actualizar.</p></div></td></tr>`;
+    return;
+  }
+  rows.innerHTML = adminUsers
+    .slice()
+    .sort((a, b) => compareValues(a.email, b.email, "asc"))
+    .map((user) => {
+      const disabled = canManageUsers() ? "" : "disabled";
+      const active = user.active !== false;
+      return `
+        <tr>
+          <td>
+            <div class="product-name">${escapeHtml(user.name || user.email)}</div>
+            <div class="product-meta">${escapeHtml(user.email)}</div>
+          </td>
+          <td><span class="role-pill role-${escapeHtml(user.role || "viewer")}">${adminRoleLabels[user.role] || "Solo lectura"}</span></td>
+          <td><span class="badge ${active ? "validated" : "pending"}">${active ? "Activo" : "Inactivo"}</span></td>
+          <td>${escapeHtml(adminUserSummary(user))}</td>
+          <td class="row-actions">
+            <button class="ghost-btn" data-user-edit="${escapeHtml(user.email)}" ${disabled}>Editar</button>
+            <button class="ghost-btn danger-action" data-user-toggle="${escapeHtml(user.email)}" ${disabled}>${active ? "Desactivar" : "Activar"}</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+}
+
+async function loadAdminUsers() {
+  if (!firebaseAvailable() || !firebaseUser) {
+    adminUsers = [];
+    updateCurrentAdminRole();
+    renderUsersView();
+    setActionStates();
+    return;
+  }
+  try {
+    const snap = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, ADMIN_USERS_COLLECTION));
+    adminUsers = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    updateCurrentAdminRole();
+  } catch (error) {
+    adminUsers = [];
+    currentAdminRole = "none";
+    console.warn("No se pudieron cargar usuarios admin", error);
+    if (state.activeView === "users") {
+      openModal("Usuarios DEV", `<div class="load-error"><strong>No se pudieron cargar usuarios</strong><span>${error.message}</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    }
+  }
+  renderUsersView();
+  setActionStates();
+}
+
+async function saveAdminUser(user) {
+  requireFirebaseSession();
+  if (!canManageUsers()) throw new Error("Solo un owner puede administrar usuarios.");
+  const id = adminUserId(user.email);
+  if (!id || !id.includes("@")) throw new Error("Ingresa un email valido.");
+  const existing = adminUsers.find((item) => adminUserId(item.email) === id);
+  const now = new Date().toISOString();
+  const payload = {
+    email: id,
+    name: cellText(user.name) || id,
+    role: user.role || "viewer",
+    active: user.active !== false,
+    createdAt: existing?.createdAt || now,
+    createdBy: existing?.createdBy || firebaseUserLabel(),
+    updatedAt: now,
+    updatedBy: firebaseUserLabel()
+  };
+  await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_USERS_COLLECTION, id), payload);
+  await loadAdminUsers();
+  addChange("Usuario actualizado", `${id} quedo como ${adminRoleLabels[payload.role]}.`);
+}
+
+function openUserModal(email = "") {
+  if (!canManageUsers()) {
+    const emailId = adminUserId(firebaseUser?.email);
+    const detail = !firebaseUser
+      ? "Debes entrar con Google desde la app publicada para administrar usuarios."
+      : !adminUsers.length
+        ? `Primero crea manualmente tu owner en Firebase: ${ADMIN_USERS_COLLECTION}/${emailId}.`
+        : `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. Solo un Owner puede administrar usuarios.`;
+    openModal("Usuarios DEV", `<div class="load-error"><strong>No puedes agregar usuarios todavia</strong><span>${escapeHtml(detail)}</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  const existing = adminUsers.find((user) => adminUserId(user.email) === adminUserId(email));
+  const body = `
+    <div class="form-grid">
+      <label>Email
+        <input id="adminUserEmail" type="email" value="${escapeHtml(existing?.email || "")}" ${existing ? "disabled" : ""} placeholder="usuario@empresa.cl">
+      </label>
+      <label>Nombre
+        <input id="adminUserName" value="${escapeHtml(existing?.name || "")}" placeholder="Nombre visible">
+      </label>
+      <label>Rol
+        <select id="adminUserRole">
+          ${Object.entries(adminRoleLabels).map(([role, label]) => `<option value="${role}" ${existing?.role === role ? "selected" : ""}>${label}</option>`).join("")}
+        </select>
+      </label>
+      <label class="checkline">
+        <input id="adminUserActive" type="checkbox" ${existing?.active === false ? "" : "checked"}>
+        Usuario activo
+      </label>
+    </div>
+    <div class="load-hint">Owner administra usuarios. Admin publica. Editor edita catalogos. Solo lectura no modifica.</div>
+  `;
+  openModal(existing ? "Editar usuario" : "Agregar usuario", body, async () => {
+    const payload = {
+      email: existing?.email || $("adminUserEmail").value,
+      name: $("adminUserName").value,
+      role: $("adminUserRole").value,
+      active: $("adminUserActive").checked
+    };
+    await saveAdminUser(payload);
+  }, { confirmText: "Guardar usuario" });
+}
+
+async function toggleAdminUser(email) {
+  const existing = adminUsers.find((user) => adminUserId(user.email) === adminUserId(email));
+  if (!existing) return;
+  if (adminUserId(existing.email) === adminUserId(firebaseUser?.email) && existing.active !== false) {
+    openModal("Desactivar usuario", `<div class="load-error"><strong>No puedes desactivarte</strong><span>Para evitar quedar fuera, otro owner debe hacerlo.</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  await saveAdminUser({ ...existing, active: existing.active === false });
 }
 
 function removeNode(nodeId) {
@@ -4663,6 +4897,10 @@ function publishPreviewForView(viewId) {
 }
 
 async function publishToFirebase() {
+  if (!canPublishDev()) {
+    openModal("Publicar DEV", `<div class="load-error"><strong>Sin permiso para publicar</strong><span>Necesitas rol Admin u Owner para publicar vistas FitFlow DEV.</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
   const activeId = activeHierarchy().id;
   const other = data.hierarchies.find((hierarchy) => hierarchy.id !== activeId);
   const oldSelected = other?.id || activeId;
@@ -4861,6 +5099,7 @@ document.addEventListener("click", (event) => {
     state.activeView = viewTab.dataset.viewTab;
     document.querySelector(".nav-menu-wrap")?.classList.remove("open");
     renderAll();
+    if (state.activeView === "users") loadAdminUsers();
     window.setTimeout(() => {
       viewTab.classList.remove("just-clicked");
     }, 90);
@@ -4897,6 +5136,16 @@ document.addEventListener("click", (event) => {
   if (loadCard) {
     document.querySelectorAll(".load-card").forEach((card) => card.classList.toggle("active", card === loadCard));
     renderLoadConfig(loadCard.dataset.loadType);
+    return;
+  }
+  const userEdit = event.target.closest("[data-user-edit]");
+  if (userEdit) {
+    openUserModal(userEdit.dataset.userEdit);
+    return;
+  }
+  const userToggle = event.target.closest("[data-user-toggle]");
+  if (userToggle) {
+    toggleAdminUser(userToggle.dataset.userToggle);
     return;
   }
   if (event.target.closest("[data-clear-local-state]")) {
@@ -5164,6 +5413,8 @@ $("saveFirebaseBtn")?.addEventListener("click", () => saveAdminStateToFirebase()
 $("loadFirebaseBtn")?.addEventListener("click", loadAdminStateFromFirebase);
 $("versionFirebaseBtn")?.addEventListener("click", () => saveAdminStateToFirebase({ createVersion: true }));
 $("publishFirebaseBtn").addEventListener("click", publishToFirebase);
+$("addUserBtn")?.addEventListener("click", () => openUserModal());
+$("refreshUsersBtn")?.addEventListener("click", loadAdminUsers);
 window.addEventListener("beforeunload", () => {
   if (dataDirty) saveLocalCatalogState();
 });
@@ -5174,8 +5425,16 @@ window.addEventListener("catalog-admin-firebase-ready", () => {
 window.addEventListener("catalog-admin-auth", (event) => {
   firebaseReady = firebaseAvailable();
   firebaseUser = event.detail || null;
+  if (!firebaseUser) {
+    adminUsers = [];
+    currentAdminRole = LOCAL_TEST_MODE ? "owner" : "none";
+    renderUsersView();
+  }
   setActionStates();
-  if (firebaseUser) loadAdminStateFromFirebaseSilent();
+  if (firebaseUser) {
+    loadAdminUsers();
+    loadAdminStateFromFirebaseSilent();
+  }
 });
 
 renderAll();
