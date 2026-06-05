@@ -144,7 +144,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "hierarchy-ux-dev-20260523-03";
+const APP_BUILD = "users-dev-20260604-03";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -1866,7 +1866,14 @@ function updateCurrentAdminRole() {
     return;
   }
   const user = currentAdminUser();
-  currentAdminRole = user?.active ? normalizeAdminRole(user.role) : "none";
+  if (!user?.active) {
+    currentAdminRole = "none";
+    return;
+  }
+  const role = normalizeAdminRole(user.role);
+  const email = adminUserId(firebaseUser?.email);
+  const isBootstrapOwner = adminUsers.length === 1 && (adminUserId(user.email) === email || user.id === email);
+  currentAdminRole = isBootstrapOwner ? "owner" : role;
 }
 
 function adminUserSummary(user) {
@@ -1883,11 +1890,15 @@ function renderUsersView() {
   if (activeCount) activeCount.textContent = adminUsers.filter((user) => user.active).length;
   if (adminCount) adminCount.textContent = adminUsers.filter((user) => user.active && ["owner", "admin"].includes(normalizeAdminRole(user.role))).length;
   if (permission) {
+    const current = currentAdminUser();
+    const diagnostic = firebaseUser
+      ? `Sesion: ${adminUserId(firebaseUser.email)} · Doc: ${current?.id || "no encontrado"} · Rol leido: ${cellText(current?.role || "sin rol")} · Build: ${APP_BUILD}`
+      : `Build: ${APP_BUILD}`;
     if (!firebaseUser) permission.textContent = LOCAL_TEST_MODE
       ? "La administracion de usuarios requiere entrar con Google desde el sitio publicado; no se guarda en modo local."
       : "Entra con Google para ver y administrar usuarios.";
     else if (!adminUsers.length && firebaseUser) permission.textContent = `No hay usuarios cargados. Crea manualmente tu primer owner en ${ADMIN_USERS_COLLECTION}/${adminUserId(firebaseUser.email)}.`;
-    else permission.textContent = `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. ${canManageUsers() ? "Puedes administrar usuarios DEV." : "No puedes administrar usuarios."}`;
+    else permission.textContent = `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. ${canManageUsers() ? "Puedes administrar usuarios DEV." : "No puedes administrar usuarios."} ${diagnostic}`;
   }
   if (addBtn) {
     addBtn.disabled = false;
@@ -1908,7 +1919,8 @@ function renderUsersView() {
     .map((user) => {
       const disabled = canManageUsers() ? "" : "disabled";
       const active = user.active !== false;
-      const role = normalizeAdminRole(user.role);
+      const isCurrent = firebaseUser && (adminUserId(user.email) === adminUserId(firebaseUser.email) || user.id === adminUserId(firebaseUser.email));
+      const role = isCurrent && currentAdminRole === "owner" ? "owner" : normalizeAdminRole(user.role);
       return `
         <tr>
           <td>
