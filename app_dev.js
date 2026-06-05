@@ -144,7 +144,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "users-dev-20260604-03";
+const APP_BUILD = "users-dev-20260604-04";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -1860,20 +1860,24 @@ function currentAdminUser() {
   return adminUsers.find((user) => adminUserId(user.email) === email || user.id === email);
 }
 
+function isBootstrapOwnerUser(user) {
+  const email = adminUserId(firebaseUser?.email);
+  return !!user?.active && adminUsers.length === 1 && (adminUserId(user.email) === email || user.id === email);
+}
+
+function effectiveAdminRole(user) {
+  if (!user?.active) return "none";
+  if (isBootstrapOwnerUser(user)) return "owner";
+  return normalizeAdminRole(user.role);
+}
+
 function updateCurrentAdminRole() {
   if (LOCAL_TEST_MODE && !firebaseUser) {
     currentAdminRole = "owner";
     return;
   }
   const user = currentAdminUser();
-  if (!user?.active) {
-    currentAdminRole = "none";
-    return;
-  }
-  const role = normalizeAdminRole(user.role);
-  const email = adminUserId(firebaseUser?.email);
-  const isBootstrapOwner = adminUsers.length === 1 && (adminUserId(user.email) === email || user.id === email);
-  currentAdminRole = isBootstrapOwner ? "owner" : role;
+  currentAdminRole = effectiveAdminRole(user);
 }
 
 function adminUserSummary(user) {
@@ -1891,8 +1895,12 @@ function renderUsersView() {
   if (adminCount) adminCount.textContent = adminUsers.filter((user) => user.active && ["owner", "admin"].includes(normalizeAdminRole(user.role))).length;
   if (permission) {
     const current = currentAdminUser();
+    const effective = effectiveAdminRole(current);
+    const roleNote = current && normalizeAdminRole(current.role) !== effective
+      ? ` · Permiso efectivo: ${adminRoleLabels[effective]} por ser el primer usuario DEV`
+      : "";
     const diagnostic = firebaseUser
-      ? `Sesion: ${adminUserId(firebaseUser.email)} · Doc: ${current?.id || "no encontrado"} · Rol leido: ${cellText(current?.role || "sin rol")} · Build: ${APP_BUILD}`
+      ? `Sesion: ${adminUserId(firebaseUser.email)} · Doc: ${current?.id || "no encontrado"} · Rol Firestore: ${cellText(current?.role || "sin rol")}${roleNote} · Build: ${APP_BUILD}`
       : `Build: ${APP_BUILD}`;
     if (!firebaseUser) permission.textContent = LOCAL_TEST_MODE
       ? "La administracion de usuarios requiere entrar con Google desde el sitio publicado; no se guarda en modo local."
@@ -1919,8 +1927,7 @@ function renderUsersView() {
     .map((user) => {
       const disabled = canManageUsers() ? "" : "disabled";
       const active = user.active !== false;
-      const isCurrent = firebaseUser && (adminUserId(user.email) === adminUserId(firebaseUser.email) || user.id === adminUserId(firebaseUser.email));
-      const role = isCurrent && currentAdminRole === "owner" ? "owner" : normalizeAdminRole(user.role);
+      const role = effectiveAdminRole(user);
       return `
         <tr>
           <td>
@@ -2000,7 +2007,7 @@ function openUserModal(email = "") {
     return;
   }
   const existing = adminUsers.find((user) => adminUserId(user.email) === adminUserId(email));
-  const existingRole = normalizeAdminRole(existing?.role);
+  const existingRole = effectiveAdminRole(existing);
   const body = `
     <div class="form-grid">
       <label>Email
