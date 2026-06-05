@@ -167,6 +167,15 @@ const adminRoleRank = { none: 0, viewer: 1, editor: 2, admin: 3, owner: 4 };
 let adminUsers = [];
 let currentAdminRole = LOCAL_TEST_MODE ? "owner" : "none";
 
+function normalizeAdminRole(role) {
+  const text = cellText(role).toLowerCase();
+  if (["owner", "dueno", "dueño", "propietario"].includes(text)) return "owner";
+  if (["admin", "administrador"].includes(text)) return "admin";
+  if (["editor", "edicion", "edición"].includes(text)) return "editor";
+  if (["viewer", "lector", "solo lectura", "lectura"].includes(text)) return "viewer";
+  return "viewer";
+}
+
 function applySavedCatalogState(saved) {
   if (!saved?.data) return false;
   ["hierarchies", "productLists", "hierarchyListLinks", "nodes", "products"].forEach((key) => {
@@ -1857,7 +1866,7 @@ function updateCurrentAdminRole() {
     return;
   }
   const user = currentAdminUser();
-  currentAdminRole = user?.active ? (user.role || "viewer") : "none";
+  currentAdminRole = user?.active ? normalizeAdminRole(user.role) : "none";
 }
 
 function adminUserSummary(user) {
@@ -1872,7 +1881,7 @@ function renderUsersView() {
   const adminCount = $("usersAdminCount");
   const addBtn = $("addUserBtn");
   if (activeCount) activeCount.textContent = adminUsers.filter((user) => user.active).length;
-  if (adminCount) adminCount.textContent = adminUsers.filter((user) => user.active && ["owner", "admin"].includes(user.role)).length;
+  if (adminCount) adminCount.textContent = adminUsers.filter((user) => user.active && ["owner", "admin"].includes(normalizeAdminRole(user.role))).length;
   if (permission) {
     if (!firebaseUser) permission.textContent = LOCAL_TEST_MODE
       ? "La administracion de usuarios requiere entrar con Google desde el sitio publicado; no se guarda en modo local."
@@ -1899,13 +1908,14 @@ function renderUsersView() {
     .map((user) => {
       const disabled = canManageUsers() ? "" : "disabled";
       const active = user.active !== false;
+      const role = normalizeAdminRole(user.role);
       return `
         <tr>
           <td>
             <div class="product-name">${escapeHtml(user.name || user.email)}</div>
             <div class="product-meta">${escapeHtml(user.email)}</div>
           </td>
-          <td><span class="role-pill role-${escapeHtml(user.role || "viewer")}">${adminRoleLabels[user.role] || "Solo lectura"}</span></td>
+          <td><span class="role-pill role-${escapeHtml(role)}">${adminRoleLabels[role] || "Solo lectura"}</span></td>
           <td><span class="badge ${active ? "validated" : "pending"}">${active ? "Activo" : "Inactivo"}</span></td>
           <td>${escapeHtml(adminUserSummary(user))}</td>
           <td class="row-actions">
@@ -1927,7 +1937,10 @@ async function loadAdminUsers() {
   }
   try {
     const snap = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, ADMIN_USERS_COLLECTION));
-    adminUsers = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    adminUsers = snap.docs.map((docSnap) => {
+      const user = { id: docSnap.id, ...docSnap.data() };
+      return { ...user, email: adminUserId(user.email || docSnap.id), role: normalizeAdminRole(user.role) };
+    });
     updateCurrentAdminRole();
   } catch (error) {
     adminUsers = [];
@@ -1951,7 +1964,7 @@ async function saveAdminUser(user) {
   const payload = {
     email: id,
     name: cellText(user.name) || id,
-    role: user.role || "viewer",
+    role: normalizeAdminRole(user.role),
     active: user.active !== false,
     createdAt: existing?.createdAt || now,
     createdBy: existing?.createdBy || firebaseUserLabel(),
@@ -1975,6 +1988,7 @@ function openUserModal(email = "") {
     return;
   }
   const existing = adminUsers.find((user) => adminUserId(user.email) === adminUserId(email));
+  const existingRole = normalizeAdminRole(existing?.role);
   const body = `
     <div class="form-grid">
       <label>Email
@@ -1985,7 +1999,7 @@ function openUserModal(email = "") {
       </label>
       <label>Rol
         <select id="adminUserRole">
-          ${Object.entries(adminRoleLabels).map(([role, label]) => `<option value="${role}" ${existing?.role === role ? "selected" : ""}>${label}</option>`).join("")}
+          ${Object.entries(adminRoleLabels).map(([role, label]) => `<option value="${role}" ${existingRole === role ? "selected" : ""}>${label}</option>`).join("")}
         </select>
       </label>
       <label class="checkline">
