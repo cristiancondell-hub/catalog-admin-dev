@@ -144,7 +144,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "shared-workspace-dev-20260604-01";
+const APP_BUILD = "shared-workspace-dev-20260604-02";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -156,6 +156,7 @@ const ADMIN_META_COLLECTION = "config_dev";
 const ADMIN_META_DOC = "catalog_admin_meta";
 const ADMIN_USERS_COLLECTION = "catalog_admin_users_dev";
 const ADMIN_CHUNK_SIZE = 700000;
+const OWNER_EMAIL_DEV = "cristiancondell@gmail.com";
 const LOCAL_TEST_MODE = ["file:", "http:"].includes(window.location.protocol) && (window.location.protocol === "file:" || ["localhost", "127.0.0.1", ""].includes(window.location.hostname));
 const adminRoleLabels = {
   owner: "Owner",
@@ -168,8 +169,11 @@ let currentAdminRole = LOCAL_TEST_MODE ? "owner" : "none";
 function normalizeAdminRole(role) {
   const text = cellText(role).toLowerCase();
   if (["owner", "dueno", "dueño", "propietario"].includes(text)) return "owner";
-  if (["admin", "administrador", "editor", "edicion", "edición", "viewer", "lector", "solo lectura", "lectura"].includes(text)) return "admin";
   return "admin";
+}
+
+function isDevOwnerEmail(email) {
+  return adminUserId(email) === OWNER_EMAIL_DEV;
 }
 
 function applySavedCatalogState(saved) {
@@ -1299,6 +1303,7 @@ function renderChanges() {
 }
 
 function renderAppView() {
+  if (state.activeView === "users" && !canManageUsers()) state.activeView = "catalog";
   document.querySelectorAll(".app-view").forEach((view) => {
     view.hidden = view.dataset.view !== state.activeView;
     view.classList.toggle("active", view.dataset.view === state.activeView);
@@ -1307,6 +1312,7 @@ function renderAppView() {
     context.hidden = context.dataset.topContext !== state.activeView;
   });
   document.querySelectorAll("[data-view-tab]").forEach((tab) => {
+    if (tab.dataset.viewTab === "users") tab.hidden = !canManageUsers();
     tab.classList.toggle("active", tab.dataset.viewTab === state.activeView);
   });
 }
@@ -1856,15 +1862,10 @@ function currentAdminUser() {
   return adminUsers.find((user) => adminUserId(user.email) === email || user.id === email);
 }
 
-function isBootstrapOwnerUser(user) {
-  const email = adminUserId(firebaseUser?.email);
-  return !!user?.active && adminUsers.length === 1 && (adminUserId(user.email) === email || user.id === email);
-}
-
 function effectiveAdminRole(user) {
   if (!user?.active) return "none";
-  if (isBootstrapOwnerUser(user)) return "owner";
-  return normalizeAdminRole(user.role);
+  if (isDevOwnerEmail(user.email || user.id)) return "owner";
+  return "admin";
 }
 
 function updateCurrentAdminRole() {
@@ -1892,16 +1893,16 @@ function renderUsersView() {
   if (permission) {
     const current = currentAdminUser();
     const effective = effectiveAdminRole(current);
-    const roleNote = current && normalizeAdminRole(current.role) !== effective
-      ? ` · Permiso efectivo: ${adminRoleLabels[effective]} por ser el primer usuario DEV`
+    const roleNote = isDevOwnerEmail(current?.email || current?.id)
+      ? " · Owner definido por configuracion DEV"
       : "";
     const diagnostic = firebaseUser
-      ? `Sesion: ${adminUserId(firebaseUser.email)} · Doc: ${current?.id || "no encontrado"} · Rol Firestore: ${cellText(current?.role || "sin rol")}${roleNote} · Build: ${APP_BUILD}`
+      ? `Sesion: ${adminUserId(firebaseUser.email)} · Doc: ${current?.id || "no encontrado"} · Rol efectivo: ${adminRoleLabels[effective] || "Sin acceso"}${roleNote} · Build: ${APP_BUILD}`
       : `Build: ${APP_BUILD}`;
     if (!firebaseUser) permission.textContent = LOCAL_TEST_MODE
       ? "La administracion de usuarios requiere entrar con Google desde el sitio publicado; no se guarda en modo local."
       : "Entra con Google para ver y administrar usuarios.";
-    else if (!adminUsers.length && firebaseUser) permission.textContent = `No hay usuarios cargados. Crea manualmente tu primer owner en ${ADMIN_USERS_COLLECTION}/${adminUserId(firebaseUser.email)}.`;
+    else if (!adminUsers.length && firebaseUser) permission.textContent = `No hay usuarios cargados. Crea manualmente el usuario DEV en ${ADMIN_USERS_COLLECTION}/${OWNER_EMAIL_DEV}.`;
     else permission.textContent = `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. ${canManageUsers() ? "Puedes administrar usuarios DEV." : "Puedes trabajar y publicar en el espacio compartido DEV."} ${diagnostic}`;
   }
   if (addBtn) {
@@ -1979,7 +1980,7 @@ async function saveAdminUser(user) {
   const payload = {
     email: id,
     name: cellText(user.name) || id,
-    role: normalizeAdminRole(user.role),
+    role: isDevOwnerEmail(id) ? "owner" : "admin",
     active: user.active !== false,
     createdAt: existing?.createdAt || now,
     createdBy: existing?.createdBy || firebaseUserLabel(),
@@ -1997,13 +1998,17 @@ function openUserModal(email = "") {
     const detail = !firebaseUser
       ? "Debes entrar con Google desde la app publicada para administrar usuarios."
       : !adminUsers.length
-        ? `Primero crea manualmente tu owner en Firebase: ${ADMIN_USERS_COLLECTION}/${emailId}.`
+        ? `Primero crea manualmente tu usuario owner en Firebase: ${ADMIN_USERS_COLLECTION}/${OWNER_EMAIL_DEV}.`
         : `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. Solo un Owner puede administrar usuarios.`;
     openModal("Usuarios DEV", `<div class="load-error"><strong>No puedes agregar usuarios todavia</strong><span>${escapeHtml(detail)}</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
     return;
   }
   const existing = adminUsers.find((user) => adminUserId(user.email) === adminUserId(email));
   const existingRole = effectiveAdminRole(existing);
+  const modalEmail = adminUserId(existing?.email || email);
+  const roleOptions = isDevOwnerEmail(modalEmail)
+    ? `<option value="owner" selected>Owner</option>`
+    : `<option value="admin" selected>Administrador</option>`;
   const body = `
     <div class="form-grid">
       <label>Email
@@ -2014,7 +2019,7 @@ function openUserModal(email = "") {
       </label>
       <label>Rol
         <select id="adminUserRole">
-          ${Object.entries(adminRoleLabels).map(([role, label]) => `<option value="${role}" ${existingRole === role ? "selected" : ""}>${label}</option>`).join("")}
+          ${roleOptions}
         </select>
       </label>
       <label class="checkline">
@@ -2022,7 +2027,7 @@ function openUserModal(email = "") {
         Usuario activo
       </label>
     </div>
-    <div class="load-hint">Owner administra usuarios. Administrador trabaja el catalogo compartido y publica.</div>
+    <div class="load-hint">Owner fijo DEV: ${OWNER_EMAIL_DEV}. Los demas usuarios activos son administradores.</div>
   `;
   openModal(existing ? "Editar usuario" : "Agregar usuario", body, async () => {
     const payload = {
@@ -2038,8 +2043,8 @@ function openUserModal(email = "") {
 async function toggleAdminUser(email) {
   const existing = adminUsers.find((user) => adminUserId(user.email) === adminUserId(email));
   if (!existing) return;
-  if (adminUserId(existing.email) === adminUserId(firebaseUser?.email) && existing.active !== false) {
-    openModal("Desactivar usuario", `<div class="load-error"><strong>No puedes desactivarte</strong><span>Para evitar quedar fuera, otro owner debe hacerlo.</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+  if (isDevOwnerEmail(existing.email) && existing.active !== false) {
+    openModal("Desactivar owner", `<div class="load-error"><strong>No se puede desactivar el owner DEV</strong><span>${OWNER_EMAIL_DEV} es el owner fijo de esta app.</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
     return;
   }
   await saveAdminUser({ ...existing, active: existing.active === false });
