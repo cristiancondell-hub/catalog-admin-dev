@@ -555,8 +555,6 @@ select{
 }
 .role-owner{background:#e7f4ee;color:var(--green);border-color:#b9d9c6}
 .role-admin{background:#eaf3fb;color:var(--blue);border-color:#c9dced}
-.role-editor{background:#fff3df;color:var(--amber);border-color:#f0d1a3}
-.role-viewer{background:#f4f5f3;color:#607069}
 .checkline{display:flex;align-items:center;gap:8px}
 .compact-check{justify-content:center}
 .code{font-family:"SFMono-Regular",Consolas,monospace;color:#607069;font-size:12px}

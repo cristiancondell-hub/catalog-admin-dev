@@ -144,7 +144,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "users-dev-20260604-04";
+const APP_BUILD = "shared-workspace-dev-20260604-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -159,21 +159,17 @@ const ADMIN_CHUNK_SIZE = 700000;
 const LOCAL_TEST_MODE = ["file:", "http:"].includes(window.location.protocol) && (window.location.protocol === "file:" || ["localhost", "127.0.0.1", ""].includes(window.location.hostname));
 const adminRoleLabels = {
   owner: "Owner",
-  admin: "Admin",
-  editor: "Editor",
-  viewer: "Solo lectura"
+  admin: "Administrador"
 };
-const adminRoleRank = { none: 0, viewer: 1, editor: 2, admin: 3, owner: 4 };
+const adminRoleRank = { none: 0, admin: 1, owner: 2 };
 let adminUsers = [];
 let currentAdminRole = LOCAL_TEST_MODE ? "owner" : "none";
 
 function normalizeAdminRole(role) {
   const text = cellText(role).toLowerCase();
   if (["owner", "dueno", "dueño", "propietario"].includes(text)) return "owner";
-  if (["admin", "administrador"].includes(text)) return "admin";
-  if (["editor", "edicion", "edición"].includes(text)) return "editor";
-  if (["viewer", "lector", "solo lectura", "lectura"].includes(text)) return "viewer";
-  return "viewer";
+  if (["admin", "administrador", "editor", "edicion", "edición", "viewer", "lector", "solo lectura", "lectura"].includes(text)) return "admin";
+  return "admin";
 }
 
 function applySavedCatalogState(saved) {
@@ -1852,7 +1848,7 @@ function canPublishDev() {
 }
 
 function canEditCatalog() {
-  return roleAtLeast("editor");
+  return roleAtLeast("admin");
 }
 
 function currentAdminUser() {
@@ -1906,7 +1902,7 @@ function renderUsersView() {
       ? "La administracion de usuarios requiere entrar con Google desde el sitio publicado; no se guarda en modo local."
       : "Entra con Google para ver y administrar usuarios.";
     else if (!adminUsers.length && firebaseUser) permission.textContent = `No hay usuarios cargados. Crea manualmente tu primer owner en ${ADMIN_USERS_COLLECTION}/${adminUserId(firebaseUser.email)}.`;
-    else permission.textContent = `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. ${canManageUsers() ? "Puedes administrar usuarios DEV." : "No puedes administrar usuarios."} ${diagnostic}`;
+    else permission.textContent = `Tu rol actual es ${adminRoleLabels[currentAdminRole] || "Sin acceso"}. ${canManageUsers() ? "Puedes administrar usuarios DEV." : "Puedes trabajar y publicar en el espacio compartido DEV."} ${diagnostic}`;
   }
   if (addBtn) {
     addBtn.disabled = false;
@@ -1934,7 +1930,7 @@ function renderUsersView() {
             <div class="product-name">${escapeHtml(user.name || user.email)}</div>
             <div class="product-meta">${escapeHtml(user.email)}</div>
           </td>
-          <td><span class="role-pill role-${escapeHtml(role)}">${adminRoleLabels[role] || "Solo lectura"}</span></td>
+          <td><span class="role-pill role-${escapeHtml(role)}">${adminRoleLabels[role] || "Administrador"}</span></td>
           <td><span class="badge ${active ? "validated" : "pending"}">${active ? "Activo" : "Inactivo"}</span></td>
           <td>${escapeHtml(adminUserSummary(user))}</td>
           <td class="row-actions">
@@ -2026,7 +2022,7 @@ function openUserModal(email = "") {
         Usuario activo
       </label>
     </div>
-    <div class="load-hint">Owner administra usuarios. Admin publica. Editor edita catalogos. Solo lectura no modifica.</div>
+    <div class="load-hint">Owner administra usuarios. Administrador trabaja el catalogo compartido y publica.</div>
   `;
   openModal(existing ? "Editar usuario" : "Agregar usuario", body, async () => {
     const payload = {
@@ -4225,14 +4221,6 @@ function firebaseUserKey() {
   return (firebaseUser?.uid || firebaseUser?.email || "anon").replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
-function adminMetaDocForUser() {
-  return firebaseUser ? `${ADMIN_META_DOC}_${firebaseUserKey()}` : ADMIN_META_DOC;
-}
-
-function adminChunkPrefixForUser() {
-  return firebaseUser ? `${firebaseUserKey()}_` : "";
-}
-
 function requireFirebaseSession() {
   if (!firebaseAvailable()) throw new Error("Firebase no esta listo. Revisa conexion a internet o recarga la app.");
   if (!firebaseUser) throw new Error("Debes entrar con Google antes de guardar o cargar desde Firebase.");
@@ -4290,29 +4278,28 @@ async function deleteCollectionDocs(collectionName, idPrefix = "") {
 async function saveAdminStateToFirebaseSilent() {
   if (!firebaseReady || !firebaseUser || importInProgress || !firebaseDirty) return;
   try {
-    updateAutosaveStatus("saving", "Guardando espacio de trabajo en DEV...");
+    updateAutosaveStatus("saving", "Guardando espacio compartido DEV...");
     const snapshot = adminSnapshot();
     const version = `catalog-admin-${snapshot.savedAt}`;
     const chunks = splitText(JSON.stringify(snapshot), ADMIN_CHUNK_SIZE);
-    const prefix = adminChunkPrefixForUser();
-    await deleteCollectionDocs(ADMIN_STATE_CHUNKS, prefix);
+    await deleteCollectionDocs(ADMIN_STATE_CHUNKS);
     for (let i = 0; i < chunks.length; i += 1) {
-      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, `${prefix}${chunkId(i)}`), {
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, chunkId(i)), {
         index: i,
         version,
         value: chunks[i],
-        owner: firebaseUserKey()
+        workspace: "shared-dev"
       });
     }
-    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, adminMetaDocForUser()), {
+    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC), {
       version,
       updatedAt: snapshot.savedAt,
       updatedBy: snapshot.savedBy,
-      owner: firebaseUserKey(),
+      workspace: "shared-dev",
       environment: ADMIN_ENV,
       schema: snapshot.schema,
       chunksCollection: ADMIN_STATE_CHUNKS,
-      chunkPrefix: prefix,
+      chunkPrefix: "",
       chunks: chunks.length,
       chunkSize: ADMIN_CHUNK_SIZE,
       hierarchies: data.hierarchies.length,
@@ -4322,31 +4309,30 @@ async function saveAdminStateToFirebaseSilent() {
       hierarchyListLinks: (data.hierarchyListLinks || []).length
     });
     firebaseDirty = false;
-    updateAutosaveStatus("saved", `Cambios guardados automaticamente en DEV. Ultima sincronizacion ${new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
+    updateAutosaveStatus("saved", `Espacio compartido DEV guardado. Ultima sincronizacion ${new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
   } catch (error) {
     firebaseDirty = true;
-    updateAutosaveStatus("error", `No se pudo guardar automaticamente en DEV: ${error.message || error}`);
+    updateAutosaveStatus("error", `No se pudo guardar el espacio compartido DEV: ${error.message || error}`);
   }
 }
 
 async function saveAdminStateToFirebase({ createVersion = false } = {}) {
   try {
     requireFirebaseSession();
-    setProcessingState(true, createVersion ? "Creando version DEV en Firebase..." : "Guardando estado DEV en Firebase...");
+    setProcessingState(true, createVersion ? "Creando version del espacio compartido DEV..." : "Guardando espacio compartido DEV...");
     const snapshot = adminSnapshot();
     const version = `catalog-admin-${snapshot.savedAt}`;
     const json = JSON.stringify(snapshot);
     const chunks = splitText(json, ADMIN_CHUNK_SIZE);
-    await deleteCollectionDocs(ADMIN_STATE_CHUNKS, createVersion ? "" : adminChunkPrefixForUser());
+    await deleteCollectionDocs(ADMIN_STATE_CHUNKS);
     for (let i = 0; i < chunks.length; i += 1) {
-      const docId = createVersion ? chunkId(i) : `${adminChunkPrefixForUser()}${chunkId(i)}`;
-      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, docId), {
+      await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_STATE_CHUNKS, chunkId(i)), {
         index: i,
         version,
         value: chunks[i],
-        owner: createVersion ? "version" : firebaseUserKey()
+        workspace: "shared-dev"
       });
-      updateProcessingStatus(`Guardando estado DEV... ${i + 1}/${chunks.length} chunk(s).`);
+      updateProcessingStatus(`Guardando espacio compartido DEV... ${i + 1}/${chunks.length} chunk(s).`);
     }
     const meta = {
       version,
@@ -4355,7 +4341,8 @@ async function saveAdminStateToFirebase({ createVersion = false } = {}) {
       environment: ADMIN_ENV,
       schema: snapshot.schema,
       chunksCollection: ADMIN_STATE_CHUNKS,
-      chunkPrefix: createVersion ? "" : adminChunkPrefixForUser(),
+      chunkPrefix: "",
+      workspace: "shared-dev",
       chunks: chunks.length,
       chunkSize: ADMIN_CHUNK_SIZE,
       hierarchies: data.hierarchies.length,
@@ -4364,7 +4351,7 @@ async function saveAdminStateToFirebase({ createVersion = false } = {}) {
       productLists: data.productLists.length,
       hierarchyListLinks: (data.hierarchyListLinks || []).length
     };
-    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, createVersion ? ADMIN_META_DOC : adminMetaDocForUser()), meta);
+    await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC), meta);
     await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_AUDIT, `log-${Date.now()}`), {
       action: createVersion ? "create_version" : "save_state",
       environment: ADMIN_ENV,
@@ -4380,7 +4367,7 @@ async function saveAdminStateToFirebase({ createVersion = false } = {}) {
       });
     }
     setProcessingState(false);
-    addChange(createVersion ? "Version DEV creada" : "Estado DEV guardado", `${meta.products} producto(s), ${meta.nodes} nodo(s), ${meta.chunks} chunk(s).`);
+    addChange(createVersion ? "Version DEV creada" : "Espacio compartido DEV guardado", `${meta.products} producto(s), ${meta.nodes} nodo(s), ${meta.chunks} chunk(s).`);
     renderAll();
   } catch (error) {
     showLoadError("No se pudo guardar en Firebase", error);
@@ -4391,8 +4378,7 @@ async function loadAdminStateFromFirebase() {
   try {
     requireFirebaseSession();
     setProcessingState(true, "Leyendo metadata DEV desde Firebase...");
-    let metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, adminMetaDocForUser()));
-    if (!metaSnap.exists()) metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC));
+    const metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC));
     if (!metaSnap.exists()) throw new Error("No existe config_dev/catalog_admin_meta todavia.");
     const meta = metaSnap.data();
     const parts = [];
@@ -4413,7 +4399,7 @@ async function loadAdminStateFromFirebase() {
     state.selectedProducts.clear();
     invalidateRenderCache();
     setProcessingState(false);
-    addChange("Estado DEV cargado", `Version ${meta.version} cargada desde Firebase.`);
+    addChange("Espacio compartido DEV cargado", `Version ${meta.version} cargada desde Firebase.`);
     markDataDirty();
     renderAll();
   } catch (error) {
@@ -4424,10 +4410,10 @@ async function loadAdminStateFromFirebase() {
 async function loadAdminStateFromFirebaseSilent() {
   if (!firebaseReady || !firebaseUser || dataDirty || importInProgress) return;
   try {
-    updateAutosaveStatus("saving", "Recuperando espacio de trabajo guardado...");
-    let metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, adminMetaDocForUser()));
+    updateAutosaveStatus("saving", "Recuperando espacio compartido DEV...");
+    const metaSnap = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, ADMIN_META_COLLECTION, ADMIN_META_DOC));
     if (!metaSnap.exists()) {
-      updateAutosaveStatus("saved", "No hay espacio DEV previo para este usuario. Se usara el estado local.");
+      updateAutosaveStatus("saved", "No hay espacio compartido DEV previo. Se usara el estado local.");
       return;
     }
     const meta = metaSnap.data();
@@ -4448,7 +4434,7 @@ async function loadAdminStateFromFirebaseSilent() {
     state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 1).map((node) => node.id));
     dataDirty = false;
     firebaseDirty = false;
-    updateAutosaveStatus("saved", `Espacio de trabajo recuperado. Ultima sincronizacion ${new Date(meta.updatedAt || Date.now()).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
+    updateAutosaveStatus("saved", `Espacio compartido DEV recuperado. Ultima sincronizacion ${new Date(meta.updatedAt || Date.now()).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
     renderAll();
   } catch (error) {
     updateAutosaveStatus("error", `No se pudo recuperar el espacio DEV: ${error.message || error}`);
