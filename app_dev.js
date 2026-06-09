@@ -79,6 +79,8 @@ const state = {
   listSort: { key: "cod", dir: "asc" },
   productFilters: {},
   listFilters: {},
+  productRenderLimit: 400,
+  listRenderLimit: 400,
   hideRedundant: false,
   changes: [],
   activePane: "source",
@@ -157,7 +159,8 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "assistant-dev-20260609-01";
+const APP_BUILD = "performance-dev-20260609-03";
+const TABLE_RENDER_BATCH = 400;
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -388,6 +391,7 @@ if (repairedLocalNodes) markDataDirty();
 loadCatalogFromIndexedDb();
 
 function buildRenderCache() {
+  if (renderCache?.hierarchyId === state.activeHierarchyId) return renderCache;
   const nodeMap = Object.fromEntries(data.nodes.map((n) => [n.id, n]));
   const activeNodeList = data.nodes.filter((n) => nodeHierarchy(n) === state.activeHierarchyId);
   const childrenByParent = new Map();
@@ -406,6 +410,7 @@ function buildRenderCache() {
     }
   });
   renderCache = { hierarchyId: state.activeHierarchyId, nodeMap, activeNodes: activeNodeList, childrenByParent, productCounts };
+  return renderCache;
 }
 
 function invalidateRenderCache() {
@@ -1220,7 +1225,9 @@ function renderProducts() {
       syncSelectAllState([]);
       return;
     }
-    $("productRows").innerHTML = rows.map((p) => {
+    const renderedRows = rows.slice(0, state.productRenderLimit);
+    const remaining = rows.length - renderedRows.length;
+    $("productRows").innerHTML = renderedRows.map((p) => {
       const productId = cellText(p.id);
       const checked = state.selectedProducts.has(productId) ? "checked" : "";
       const selected = state.selectedProduct === productId ? " selected" : "";
@@ -1236,7 +1243,15 @@ function renderProducts() {
           ${attrKeys.map((key) => `<td class="table-cell attr-col">${hasAttributeValue(attrMap, key) ? attrMap[key] : ""}</td>`).join("")}
         </tr>
       `;
-    }).join("");
+    }).join("") + (remaining > 0 ? `
+      <tr class="table-more-row">
+        <td colspan="${4 + attrKeys.length}">
+          <button class="ghost-btn table-more-btn" data-load-more-products>
+            Mostrar ${Math.min(TABLE_RENDER_BATCH, remaining)} mas · ${remaining} pendientes
+          </button>
+        </td>
+      </tr>
+    ` : "");
     syncSelectAllState(rows.map((product) => cellText(product.id)).filter(Boolean));
   } catch (error) {
     console.error("No se pudo renderizar productos", error);
@@ -1378,7 +1393,9 @@ function renderListView() {
       <th class="name-col">${sortButton("Descripcion", "nom", state.listSort, "list")}</th>
       ${attrKeys.map((key) => `<th class="attr-col">${sortButton(key, key, state.listSort, "list")}</th>`).join("")}
     `;
-    rowsEl.innerHTML = rows.length ? rows.map((product) => {
+    const renderedRows = rows.slice(0, state.listRenderLimit);
+    const remaining = rows.length - renderedRows.length;
+    rowsEl.innerHTML = rows.length ? renderedRows.map((product) => {
       const attrs = mergedProductAttributes(product, [list.id]);
       return `
         <tr class="list-row" data-product="${cellText(product.id)}">
@@ -1387,7 +1404,15 @@ function renderListView() {
           ${attrKeys.map((key) => `<td class="table-cell attr-col">${hasAttributeValue(attrs, key) ? attrs[key] : ""}</td>`).join("")}
         </tr>
       `;
-    }).join("") : `<tr><td colspan="${2 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div></td></tr>`;
+    }).join("") + (remaining > 0 ? `
+      <tr class="table-more-row">
+        <td colspan="${2 + attrKeys.length}">
+          <button class="ghost-btn table-more-btn" data-load-more-list>
+            Mostrar ${Math.min(TABLE_RENDER_BATCH, remaining)} mas · ${remaining} pendientes
+          </button>
+        </td>
+      </tr>
+    ` : "") : `<tr><td colspan="${2 + attrKeys.length}"><div class="empty-state"><h3>Sin productos</h3><p>Ajusta la busqueda o selecciona otra lista.</p></div></td></tr>`;
   } catch (error) {
     console.error("No se pudo renderizar lista", error);
     if ($("listRows")) $("listRows").innerHTML = `<tr><td><div class="load-error"><strong>No se pudo mostrar la lista</strong><span>${error.message}</span></div></td></tr>`;
@@ -1492,6 +1517,7 @@ function updateProductRowSelection() {
 }
 
 function renderAll() {
+  const renderStartedAt = performance.now();
   buildRenderCache();
   renderAppView();
   renderHierarchySelector();
@@ -1507,6 +1533,17 @@ function renderAll() {
   if (state.activeView === "users") renderUsersView();
   renderChanges();
   setActionStates();
+  const renderDuration = performance.now() - renderStartedAt;
+  if (renderDuration > 120) {
+    console.warn("Render lento detectado", {
+      view: state.activeView,
+      durationMs: Math.round(renderDuration),
+      products: data.products.length,
+      nodes: data.nodes.length,
+      renderedProductLimit: state.productRenderLimit,
+      renderedListLimit: state.listRenderLimit
+    });
+  }
 }
 
 function openModal(title, bodyHtml, onConfirm, options = {}) {
@@ -4480,6 +4517,17 @@ async function loginFirebase() {
     if (firebaseUser && window.firebaseSignOut) await window.firebaseSignOut();
     else await window.firebaseSignIn();
   } catch (error) {
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const authenticatedUser = firebaseUser || window.catalogAdminFirebaseUser || window.firebaseAuth?.currentUser;
+    if (authenticatedUser) {
+      firebaseUser = firebaseUser || {
+        uid: authenticatedUser.uid,
+        email: authenticatedUser.email,
+        name: authenticatedUser.displayName || authenticatedUser.name || authenticatedUser.email || "Usuario"
+      };
+      setActionStates();
+      return;
+    }
     openModal("Sesion Firebase", `<div class="load-error"><strong>No se pudo iniciar sesion</strong><span>${error.message}</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
   }
 }
@@ -5380,6 +5428,44 @@ function confidenceLabel(confidence) {
   return confidence === "high" ? "Alta" : confidence === "medium" ? "Media" : "Baja";
 }
 
+function assistantSelectedProductsHtml(productIds = classificationAssistant.productIds) {
+  const products = productIds
+    .map((id) => data.products.find((product) => product.id === id))
+    .filter(Boolean);
+  const visibleProducts = products.slice(0, 250);
+  const rows = visibleProducts.map((product) => {
+    const assignedNode = nodeById()[productNode(product)];
+    const route = assignedNode
+      ? pathFor(assignedNode.id).map((node) => node.name).join(" / ")
+      : "No clasificado";
+    return `
+      <div class="assistant-selection-row">
+        <strong>${escapeHtml(product.id)}</strong>
+        <span class="assistant-selection-name">${escapeHtml(product.name)}</span>
+        <span class="assistant-selection-route">${escapeHtml(route)}</span>
+      </div>
+    `;
+  }).join("");
+  const limitNote = products.length > visibleProducts.length
+    ? `<div class="assistant-selection-limit">Mostrando los primeros ${visibleProducts.length} de ${products.length} productos.</div>`
+    : "";
+  return `
+    <details class="assistant-selection" ${products.length <= 8 ? "open" : ""}>
+      <summary>
+        <span>
+          <strong>Productos analizados</strong>
+          <small>${products.length} seleccionado(s)</small>
+        </span>
+        <span class="assistant-selection-toggle">${products.length <= 8 ? "Ocultar" : "Ver productos"}</span>
+      </summary>
+      <div class="assistant-selection-list">
+        ${rows || `<div class="assistant-selection-empty">No se encontraron productos en la seleccion actual.</div>`}
+      </div>
+      ${limitNote}
+    </details>
+  `;
+}
+
 function candidateCardHtml(candidate, analysisIndex, candidateIndex, nodeMode = false) {
   const samples = candidate.comparable.length
     ? candidate.comparable.map((product) => `<li><strong>${escapeHtml(product.id)}</strong> ${escapeHtml(product.name)}</li>`).join("")
@@ -5432,6 +5518,7 @@ function assistantProposalHtml() {
   `).join("");
   return `
     <div class="assistant-summary">${intro}</div>
+    ${assistantSelectedProductsHtml()}
     ${groupedWarning}
     ${classificationAssistant.externalInsight ? `<div class="assistant-ai-note"><strong>Sugerida por IA</strong><span>${escapeHtml(classificationAssistant.externalInsight)}</span></div>` : ""}
     ${sections}
@@ -5498,6 +5585,7 @@ function assistantViewCandidate(ref) {
   $("modalTitle").textContent = "Contenido del nodo candidato";
   $("modalBody").innerHTML = `
     <div class="assistant-summary"><strong>${escapeHtml(candidate.path)}</strong><span>${countProducts(node.id)} producto(s) en total.</span></div>
+    ${assistantSelectedProductsHtml(analysis.products.map((product) => product.id))}
     <div class="assistant-node-content">
       <section><h3>Subnodos</h3><div class="assistant-scroll-list">${childRows || "<p>Sin subnodos.</p>"}</div></section>
       <section><h3>Productos directos</h3><div class="assistant-scroll-list">${directRows || "<p>Sin productos directos.</p>"}</div></section>
@@ -5809,9 +5897,21 @@ document.addEventListener("click", (event) => {
       sort.key = sortBtn.dataset.sort;
       sort.dir = "asc";
     }
+    if (state.activeView === "lists") state.listRenderLimit = TABLE_RENDER_BATCH;
+    else state.productRenderLimit = TABLE_RENDER_BATCH;
     if (state.activeView === "lists") renderListView();
     else renderProducts();
     setActionStates();
+    return;
+  }
+  if (event.target.closest("[data-load-more-products]")) {
+    state.productRenderLimit += TABLE_RENDER_BATCH;
+    renderProducts();
+    return;
+  }
+  if (event.target.closest("[data-load-more-list]")) {
+    state.listRenderLimit += TABLE_RENDER_BATCH;
+    renderListView();
     return;
   }
   const loadCard = event.target.closest("[data-load-type]");
@@ -5914,6 +6014,7 @@ document.addEventListener("click", (event) => {
       state.operation.mergeName = "";
     }
     state.selectedProducts.clear();
+    state.productRenderLimit = TABLE_RENDER_BATCH;
     renderAll();
     return;
   }
@@ -6040,6 +6141,7 @@ $("hierarchySelect").addEventListener("change", (e) => {
   state.selectedNode = null;
   state.selectedProduct = null;
   state.selectedProducts.clear();
+  state.productRenderLimit = TABLE_RENDER_BATCH;
   state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
   ensureCatalogLinkedList();
   markDataDirty();
@@ -6048,6 +6150,7 @@ $("hierarchySelect").addEventListener("change", (e) => {
 $("productListSelect").addEventListener("change", (e) => {
   state.activeProductListId = e.target.value;
   state.listSearch = "";
+  state.listRenderLimit = TABLE_RENDER_BATCH;
   markDataDirty();
   renderAll();
 });
@@ -6055,6 +6158,7 @@ $("catalogLinkedListSelect").addEventListener("change", (e) => {
   state.activeProductListId = e.target.value;
   state.selectedProduct = null;
   state.selectedProducts.clear();
+  state.productRenderLimit = TABLE_RENDER_BATCH;
   markDataDirty();
   renderAll();
 });
@@ -6064,15 +6168,16 @@ $("listConnectedHierarchySelect")?.addEventListener("change", (e) => {
   state.selectedNode = null;
   state.selectedProduct = null;
   state.selectedProducts.clear();
+  state.listRenderLimit = TABLE_RENDER_BATCH;
   ensureCatalogLinkedList();
   renderAll();
 });
 const debouncedRenderAll = debounce(renderAll, 120);
-$("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; debouncedRenderAll(); });
+$("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; state.productRenderLimit = TABLE_RENDER_BATCH; debouncedRenderAll(); });
 $("targetTreeSearch").addEventListener("input", (e) => { state.operation.targetSearch = e.target.value; debouncedRenderAll(); });
-$("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; debouncedRenderAll(); });
-$("listSearch").addEventListener("input", (e) => { state.listSearch = e.target.value; debouncedRenderAll(); });
-$("statusFilter").addEventListener("change", (e) => { state.status = e.target.value; renderAll(); });
+$("productSearch").addEventListener("input", (e) => { state.productSearch = e.target.value; state.productRenderLimit = TABLE_RENDER_BATCH; debouncedRenderAll(); });
+$("listSearch").addEventListener("input", (e) => { state.listSearch = e.target.value; state.listRenderLimit = TABLE_RENDER_BATCH; debouncedRenderAll(); });
+$("statusFilter").addEventListener("change", (e) => { state.status = e.target.value; state.productRenderLimit = TABLE_RENDER_BATCH; renderAll(); });
 $("addChildBtn").addEventListener("click", () => { closeHierarchyActions(); openCreateNodeDialog(); });
 $("renameNodeBtn").addEventListener("click", () => { closeHierarchyActions(); renameNode(); });
 $("mergeNodeBtn").addEventListener("click", () => { closeHierarchyActions(); mergeNode(); });
