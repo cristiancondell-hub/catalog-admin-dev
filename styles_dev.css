@@ -688,6 +688,43 @@ select{
 .move-product strong{display:block;font-size:12px;line-height:1.25}
 .move-product span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
 .move-target{border:1px solid #c5e2d1;background:var(--green-soft);border-radius:12px;padding:10px;font-size:12px;color:#174f38}
+.assistant-summary{border:1px solid var(--line);background:#f8faf8;border-radius:12px;padding:12px;display:grid;gap:4px;font-size:13px;line-height:1.4}
+.assistant-summary span{color:var(--muted)}
+.assistant-warning{border:1px solid #efcc91;background:var(--amber-soft);border-radius:12px;padding:12px;display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center;color:#6c430f}
+.assistant-warning strong,.assistant-warning span{grid-column:1}
+.assistant-warning .ghost-btn{grid-column:2;grid-row:1 / span 2}
+.assistant-group{display:grid;gap:9px}
+.assistant-group-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.assistant-group-head strong{display:block;font-size:14px}
+.assistant-group-head span{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.assistant-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.assistant-candidate{border:1px solid var(--line);border-left-width:4px;border-radius:12px;padding:12px;background:#fff;display:flex;flex-direction:column;gap:9px;min-width:0}
+.assistant-candidate.confidence-high{border-left-color:#3c9068}
+.assistant-candidate.confidence-medium{border-left-color:#d89a35}
+.assistant-candidate.confidence-low{border-left-color:#b86b75}
+.assistant-candidate-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.assistant-candidate h3{font-size:13px;line-height:1.35;margin-top:3px;overflow-wrap:anywhere}
+.assistant-existing{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:850}
+.confidence-pill{border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;white-space:nowrap}
+.confidence-pill.high{background:#e4f3ea;color:#256747}
+.confidence-pill.medium{background:#fff1d8;color:#8a560e}
+.confidence-pill.low{background:#fae8eb;color:#8b3e4a}
+.assistant-candidate p{font-size:12px;line-height:1.4;color:#42574d}
+.assistant-comparables{font-size:11px;color:var(--muted)}
+.assistant-comparables ul{margin:5px 0 0;padding-left:17px;display:grid;gap:3px}
+.assistant-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto}
+.assistant-actions .primary-btn,.assistant-actions .ghost-btn{padding:8px 10px;font-size:11px}
+.assistant-node-content{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:300px}
+.assistant-node-content section{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.assistant-node-content h3{font-size:13px;padding:10px 12px;background:#eef3ef;border-bottom:1px solid var(--line)}
+.assistant-scroll-list{padding:9px;overflow:auto;max-height:48vh;display:grid;gap:6px}
+.assistant-product-list{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:55vh;padding:8px}
+.assistant-product-choice{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;padding:8px;border-bottom:1px solid var(--line)}
+.assistant-product-choice:last-child{border-bottom:0}
+.assistant-product-choice span{font-size:12px;line-height:1.35}
+.assistant-product-choice strong{display:inline-block;min-width:90px;margin-right:7px}
+.assistant-engine-note,.assistant-ai-note{border:1px solid #c7d9e9;background:#eef6fb;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:#315b78}
+.assistant-ai-note{display:grid}
 .rule-note{border:1px solid #f3d7af;background:var(--amber-soft);color:#6c430f;border-radius:12px;padding:10px;font-size:12px;line-height:1.35}
 .load-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .load-card{
@@ -894,6 +931,9 @@ select{
   .data-table th,.data-table td{padding:10px 12px}
   .metrics{width:100%;overflow:auto}
   .move-layout{grid-template-columns:1fr;min-height:560px}
+  .assistant-candidates,.assistant-node-content{grid-template-columns:1fr}
+  .assistant-warning{grid-template-columns:1fr}
+  .assistant-warning .ghost-btn{grid-column:1;grid-row:auto}
   .load-grid,.load-preview,.load-map-row,.load-settings,.publish-dashboard{grid-template-columns:1fr}
   .list-connections{grid-template-columns:1fr}
   .list-connect-action{flex-wrap:wrap}

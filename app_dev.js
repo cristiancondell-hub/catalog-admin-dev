@@ -9,6 +9,7 @@
     { id: "proveedor", name: "Lista proveedor / atributos", products: 0 },
     { id: "nuevos", name: "Nuevos productos por asociar", products: 0 }
   ],
+  assistantDecisions: [],
   hierarchyListLinks: [],
   nodes: [
     { id: "l-hid", parent: null, level: 0, name: "01 Instalaciones Hidraulicas" },
@@ -116,6 +117,18 @@ const moveState = {
 
 const historyStack = [];
 const redoStack = [];
+const classificationAssistant = {
+  selectionType: "products",
+  productIds: [],
+  sourceNodeId: null,
+  grouped: false,
+  forceTogether: false,
+  allowWholeNodeMove: false,
+  analyses: [],
+  activeAnalysisIndex: 0,
+  activeCandidateIndex: 0,
+  externalInsight: null
+};
 
 const UNCLASSIFIED_NODE_ID = "__unclassified__";
 const levelNames = ["Linea", "Sistema", "Categoria", "Familia"];
@@ -144,7 +157,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "shared-workspace-dev-20260604-02";
+const APP_BUILD = "assistant-dev-20260609-01";
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
 const DB_STORE = "catalogState";
@@ -178,7 +191,7 @@ function isDevOwnerEmail(email) {
 
 function applySavedCatalogState(saved) {
   if (!saved?.data) return false;
-  ["hierarchies", "productLists", "hierarchyListLinks", "nodes", "products"].forEach((key) => {
+  ["hierarchies", "productLists", "assistantDecisions", "hierarchyListLinks", "nodes", "products"].forEach((key) => {
     if (key === "products" && saved.productDataInIndexedDb && (!saved.data[key] || saved.data[key].length === 0)) return;
     if (Array.isArray(saved.data[key]) && Array.isArray(data[key])) {
       data[key].splice(0, data[key].length, ...saved.data[key]);
@@ -270,8 +283,9 @@ function persistCatalogState() {
     changes: state.changes.slice(0, 80),
     data: {
       hierarchies: data.hierarchies,
-        productLists: data.productLists,
-        hierarchyListLinks: data.hierarchyListLinks,
+      productLists: data.productLists,
+      assistantDecisions: data.assistantDecisions || [],
+      hierarchyListLinks: data.hierarchyListLinks,
       nodes: data.nodes,
       products: data.products
     }
@@ -286,6 +300,7 @@ function persistCatalogState() {
       data: {
         hierarchies: payload.data.hierarchies,
         productLists: payload.data.productLists,
+        assistantDecisions: payload.data.assistantDecisions,
         hierarchyListLinks: payload.data.hierarchyListLinks,
         nodes: payload.data.nodes,
         products: payload.data.products.length > 2500 ? [] : payload.data.products
@@ -1271,6 +1286,7 @@ function renderInspector() {
         <button class="ghost-btn" data-action="close-inspector">Cerrar</button>
       </div>
       <div class="detail-actions top-actions-detail">
+        <button class="primary-btn" data-action="suggest-destination">Destinos sugeridos</button>
         <button class="primary-btn" data-action="validate-product">Validar</button>
         <button class="ghost-btn" data-action="move-product">Mover</button>
         <button class="ghost-btn" data-action="apply-suggestion">Aplicar sugerencia</button>
@@ -1498,6 +1514,7 @@ function openModal(title, bodyHtml, onConfirm, options = {}) {
   $("modalBody").innerHTML = bodyHtml;
   $("modalBackdrop").hidden = false;
   $("modalConfirm").textContent = options.confirmText || "Guardar";
+  $("modalConfirm").hidden = false;
   $("modalCancel").textContent = options.cancelText || "Cancelar";
   $("modalCancel").hidden = !!options.hideCancel;
   $("modalConfirm").onclick = async () => {
@@ -1691,6 +1708,7 @@ function currentSnapshot(label) {
     hierarchies: structuredClone(data.hierarchies),
     productLists: structuredClone(data.productLists),
     hierarchyListLinks: structuredClone(data.hierarchyListLinks || []),
+    assistantDecisions: structuredClone(data.assistantDecisions || []),
     nodes: structuredClone(data.nodes),
     products: structuredClone(data.products),
     selectedNode: state.selectedNode,
@@ -1712,6 +1730,7 @@ function restoreSnapshot(snapshot) {
   if (snapshot.hierarchies) data.hierarchies.splice(0, data.hierarchies.length, ...snapshot.hierarchies);
   if (snapshot.productLists) data.productLists.splice(0, data.productLists.length, ...snapshot.productLists);
   if (snapshot.hierarchyListLinks) data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...snapshot.hierarchyListLinks);
+  data.assistantDecisions = structuredClone(snapshot.assistantDecisions || data.assistantDecisions || []);
   data.nodes.splice(0, data.nodes.length, ...snapshot.nodes);
   data.products.splice(0, data.products.length, ...snapshot.products);
   state.selectedNode = snapshot.selectedNode;
@@ -1782,6 +1801,8 @@ function setActionStates() {
   const publishFirebaseBtn = $("publishFirebaseBtn");
   const addUserBtn = $("addUserBtn");
   const refreshUsersBtn = $("refreshUsersBtn");
+  const suggestDestinationsBtn = $("suggestDestinationsBtn");
+  const suggestNodeDestinationBtn = $("suggestNodeDestinationBtn");
   const isSpecialNode = state.selectedNode === UNCLASSIFIED_NODE_ID;
   const selected = state.selectedNode ? nodeById()[state.selectedNode] : null;
   if (undoBtn) {
@@ -1797,6 +1818,12 @@ function setActionStates() {
   if (addChildBtn) {
     addChildBtn.disabled = isSpecialNode;
     addChildBtn.textContent = "Crear nodo";
+  }
+  if (suggestDestinationsBtn) {
+    suggestDestinationsBtn.disabled = !state.selectedProduct && state.selectedProducts.size === 0 && !state.selectedNode;
+  }
+  if (suggestNodeDestinationBtn) {
+    suggestNodeDestinationBtn.disabled = !selected || isSpecialNode || countProducts(selected.id) === 0;
   }
   if (deleteHierarchyBtn) {
     deleteHierarchyBtn.disabled = data.hierarchies.length <= 1;
@@ -4243,6 +4270,7 @@ function adminSnapshot() {
     data: {
       hierarchies: data.hierarchies,
       productLists: data.productLists,
+      assistantDecisions: data.assistantDecisions || [],
       hierarchyListLinks: data.hierarchyListLinks || [],
       nodes: data.nodes,
       products: data.products
@@ -5028,6 +5056,593 @@ async function publishToFirebase() {
   });
 }
 
+const classificationLexicon = {
+  material: {
+    "PVC": ["pvc"],
+    "CPVC": ["cpvc", "aquatherm"],
+    "HDPE": ["hdpe", "pead", "polietileno alta densidad"],
+    "Polietileno": ["polietileno", "poliet", "poly"],
+    "PPR": ["ppr", "polipropileno random"],
+    "Bronce": ["bronce", "bronze"],
+    "Cobre": ["cobre", "cu"],
+    "Acero inoxidable": ["inox", "inoxidable", "aisi 304", "aisi 316"],
+    "Acero carbono": ["acero carbono", "ac carbono"],
+    "Fierro fundido": ["fierro fundido", "hierro fundido", "fundicion"],
+    "Galvanizado": ["galv", "galvanizado"],
+    "Plastico": ["plastico", "polipropileno", "pp"]
+  },
+  piece: {
+    "Codo": ["codo", "curva"],
+    "Tee": ["tee", "te ", "te reduccion"],
+    "Copla": ["copla", "cupla", "manguito"],
+    "Reduccion": ["reduccion", "reductor", "buje reduccion"],
+    "Terminal": ["terminal"],
+    "Tuberia": ["tuberia", "tubo", "caneria"],
+    "Valvula": ["valvula", "llave"],
+    "Filtro": ["filtro"],
+    "Flotador": ["flotador"],
+    "Collarin": ["collarin", "collar arranque", "abrazadera"],
+    "Brida": ["brida", "flange"],
+    "Niple": ["niple", "nipple"],
+    "Tapon": ["tapon", "tapagorro"],
+    "Union": ["union americana", "union universal"],
+    "Adaptador": ["adaptador", "terminal adaptador"],
+    "Cruz": ["cruz", "cruceta"],
+    "Bomba": ["bomba", "motobomba"],
+    "Aspersor": ["aspersor", "microaspersor", "gotero", "emisor"]
+  },
+  connection: {
+    "Rosca interior": ["hi ", "hilo interior", "rosca interior", "hembra"],
+    "Rosca exterior": ["he ", "hilo exterior", "rosca exterior", "macho"],
+    "Soldar": ["soldar", "soldable"],
+    "Cementar": ["cementar", "cementado", "cementar"],
+    "Electrofusion": ["electrofusion", "electrofusion"],
+    "Termofusion": ["termofusion"],
+    "Compresion": ["compresion", "compression"],
+    "Espiga": ["espiga", "insert"]
+  },
+  system: {
+    "Hidraulico a presion": ["hidraul", "presion", "c-6", "c-10", "c-16"],
+    "Sanitario": ["sanitario", "alcantarill", "colector", "desague"],
+    "Riego": ["riego", "aspersor", "gotero", "emisor", "layflat"],
+    "Bombeo": ["bomba", "bombeo", "centrifuga", "sumergible", "achique"],
+    "Piscinas": ["piscina", "spa", "jacuzzi"],
+    "Gas": ["gas", "glp"],
+    "Electrico": ["conduit", "electrico", "halogen", "canaleta"]
+  }
+};
+
+const classificationStopWords = new Set([
+  "de", "del", "la", "el", "los", "las", "para", "con", "sin", "por", "tipo", "x", "mm", "mt", "mts", "un", "una"
+]);
+
+function classificationText(value) {
+  return cellText(value)
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function classificationTokens(value) {
+  return classificationText(value).split(" ").filter((token) => token.length > 1 && !classificationStopWords.has(token));
+}
+
+function extractClassificationProfile(value) {
+  const text = ` ${classificationText(value)} `;
+  const profile = { material: [], piece: [], connection: [], system: [], tokens: classificationTokens(text) };
+  Object.entries(classificationLexicon).forEach(([kind, values]) => {
+    Object.entries(values).forEach(([label, aliases]) => {
+      if (aliases.some((alias) => text.includes(` ${classificationText(alias)} `) || text.includes(classificationText(alias)))) {
+        profile[kind].push(label);
+      }
+    });
+  });
+  if (text.includes(" gris ") || text.includes(" colector ")) profile.system.push("Sanitario");
+  if (text.includes(" blanco ") && !profile.system.length) profile.system.push("Sanitario");
+  if (profile.connection.some((item) => ["Electrofusion", "Termofusion"].includes(item)) && !profile.material.includes("HDPE")) {
+    profile.material.push("HDPE");
+  }
+  Object.keys(profile).forEach((key) => {
+    if (Array.isArray(profile[key])) profile[key] = [...new Set(profile[key])];
+  });
+  return profile;
+}
+
+function mergeClassificationProfiles(products) {
+  const counts = { material: new Map(), piece: new Map(), connection: new Map(), system: new Map(), tokens: new Map() };
+  products.forEach((product) => {
+    const attrs = Object.values(mergedProductAttributes(product, product.listIds || [])).join(" ");
+    const profile = extractClassificationProfile(`${product.name} ${attrs}`);
+    Object.keys(counts).forEach((kind) => {
+      (profile[kind] || []).forEach((value) => counts[kind].set(value, (counts[kind].get(value) || 0) + 1));
+    });
+  });
+  const threshold = Math.max(1, Math.ceil(products.length * 0.34));
+  const merged = {};
+  Object.entries(counts).forEach(([kind, map]) => {
+    merged[kind] = [...map.entries()]
+      .filter(([, count]) => count >= threshold || products.length === 1)
+      .sort((a, b) => b[1] - a[1])
+      .map(([value]) => value);
+  });
+  merged.counts = counts;
+  return merged;
+}
+
+function profileSignature(product) {
+  const profile = extractClassificationProfile(product.name);
+  return [
+    profile.material[0] || "material?",
+    profile.system[0] || "sistema?",
+    profile.piece[0] || "pieza?"
+  ].join("|");
+}
+
+function groupAssistantProducts(products) {
+  const groups = new Map();
+  products.forEach((product) => {
+    const signature = profileSignature(product);
+    if (!groups.has(signature)) groups.set(signature, []);
+    groups.get(signature).push(product);
+  });
+  const ordered = [...groups.entries()]
+    .map(([signature, items]) => ({ signature, products: items }))
+    .sort((a, b) => b.products.length - a.products.length);
+  if (ordered.length <= 6) return ordered;
+  const visible = ordered.slice(0, 5);
+  visible.push({
+    signature: "otros perfiles",
+    products: ordered.slice(5).flatMap((group) => group.products)
+  });
+  return visible;
+}
+
+function buildAssistantNodeIndex() {
+  const map = new Map(activeNodes().map((node) => [node.id, []]));
+  const nodes = nodeById();
+  data.products.forEach((product) => {
+    let current = nodes[productNode(product)];
+    while (current && nodeHierarchy(current) === state.activeHierarchyId) {
+      const samples = map.get(current.id);
+      if (samples && samples.length < 40) samples.push(product);
+      current = nodes[current.parent];
+    }
+  });
+  return map;
+}
+
+function nodeAssistantCorpus(node, assistantIndex) {
+  const pathText = pathFor(node.id).map((item) => item.name).join(" ");
+  const samples = assistantIndex?.get(node.id) || [];
+  return {
+    text: `${pathText} ${samples.map((product) => product.name).join(" ")}`,
+    samples
+  };
+}
+
+function tokenSimilarity(leftTokens, rightTokens) {
+  const left = new Set(leftTokens);
+  const right = new Set(rightTokens);
+  if (!left.size || !right.size) return 0;
+  let common = 0;
+  left.forEach((token) => { if (right.has(token)) common += 1; });
+  return common / Math.max(left.size, Math.min(12, right.size));
+}
+
+function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, sourceNodeId = null, nodeMove = false) {
+  if (nodeHierarchy(node) !== state.activeHierarchyId) return null;
+  if (sourceNodeId && node.id === sourceNodeId) return null;
+  if (nodeMove && sourceNodeId && isDescendantOrSelf(node.id, sourceNodeId)) return null;
+  const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
+  if (nodeMove && sourceNode && node.level !== sourceNode.level - 1) return null;
+  if (!nodeMove && node.level < 1) return null;
+
+  const corpus = nodeAssistantCorpus(node, assistantIndex);
+  const nodeProfile = extractClassificationProfile(corpus.text);
+  const selectionTokens = collectiveProfile.tokens || [];
+  let score = tokenSimilarity(selectionTokens, nodeProfile.tokens) * 28;
+  const reasons = [];
+  const weights = { material: 30, piece: 24, connection: 18, system: 26 };
+
+  ["material", "piece", "connection", "system"].forEach((kind) => {
+    const wanted = collectiveProfile[kind] || [];
+    if (!wanted.length) return;
+    const matches = wanted.filter((item) => nodeProfile[kind].includes(item));
+    if (matches.length) {
+      score += weights[kind] * (matches.length / wanted.length);
+      reasons.push(`${kind === "piece" ? "tipo de pieza" : kind}: ${matches.join(", ")}`);
+    } else if (nodeProfile[kind].length && ["material", "system"].includes(kind)) {
+      score -= 18;
+    }
+  });
+
+  if (!nodeMove) score += node.level === 3 ? 9 : node.level === 2 ? 5 : 0;
+  if (corpus.samples.length) score += Math.min(10, corpus.samples.length / 4);
+  if (sourceNodeId && node.id === nodeById()[sourceNodeId]?.parent) score -= 24;
+
+  const comparable = corpus.samples
+    .map((product) => ({ product, similarity: tokenSimilarity(selectionTokens, classificationTokens(product.name)) }))
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 3)
+    .map((item) => item.product);
+
+  return {
+    type: "existing",
+    nodeId: node.id,
+    path: pathFor(node.id).map((item) => item.name).join(" / "),
+    score: Math.max(0, Math.round(score)),
+    reasons,
+    comparable,
+    existing: true
+  };
+}
+
+function assistantConfidence(score, comparableCount = 0) {
+  if (score >= 68 && comparableCount > 0) return "high";
+  if (score >= 40) return "medium";
+  return "low";
+}
+
+function suggestedNewNodeCandidate(products, profile, bestExisting) {
+  if (!bestExisting || bestExisting.score >= 48) return null;
+  const bestNode = nodeById()[bestExisting.nodeId];
+  const parent = bestNode?.level < 3 ? bestNode : nodeById()[bestNode?.parent];
+  if (!parent || parent.level >= 3) return null;
+  const piece = profile.piece?.[0] || "Productos";
+  const material = profile.material?.[0] || profile.system?.[0] || "Especiales";
+  const name = `${piece}${piece.endsWith("s") ? "" : "s"} ${material}`.trim();
+  return {
+    type: "new",
+    parentId: parent.id,
+    name,
+    path: `${pathFor(parent.id).map((item) => item.name).join(" / ")} / ${name}`,
+    score: Math.max(30, bestExisting.score + 5),
+    reasons: ["No existe un nodo suficientemente especifico para esta combinacion."],
+    comparable: [],
+    existing: false
+  };
+}
+
+function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, assistantIndex = null) {
+  const profile = mergeClassificationProfiles(products);
+  profile.tokens = classificationTokens(products.map((product) => product.name).join(" "));
+  const nodeIndex = assistantIndex || buildAssistantNodeIndex();
+  const candidates = activeNodes()
+    .map((node) => nodeCandidateScore(node, products, profile, nodeIndex, sourceNodeId, nodeMove))
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  const newCandidate = !nodeMove ? suggestedNewNodeCandidate(products, profile, candidates[0]) : null;
+  if (newCandidate) candidates.push(newCandidate);
+  while (candidates.length < 3) {
+    const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
+    const fallback = activeNodes().find((node) =>
+      !candidates.some((candidate) => candidate.nodeId === node.id)
+      && (!sourceNodeId || node.id !== sourceNodeId)
+      && (!nodeMove || !sourceNodeId || !isDescendantOrSelf(node.id, sourceNodeId))
+      && (!nodeMove || (sourceNode && node.level === sourceNode.level - 1))
+    );
+    if (!fallback) break;
+    candidates.push({
+      type: "existing",
+      nodeId: fallback.id,
+      path: pathFor(fallback.id).map((item) => item.name).join(" / "),
+      score: 10,
+      reasons: ["Alternativa estructural disponible; requiere revision manual."],
+      comparable: productsUnderNode(fallback.id).slice(0, 3),
+      existing: true
+    });
+  }
+  candidates.forEach((candidate) => {
+    candidate.confidence = assistantConfidence(candidate.score, candidate.comparable.length);
+  });
+  return { products, profile, candidates: candidates.slice(0, 3) };
+}
+
+function assistantSelection() {
+  const checkedIds = [...state.selectedProducts];
+  if (checkedIds.length) {
+    return {
+      type: "products",
+      products: checkedIds.map((id) => data.products.find((product) => product.id === id)).filter(Boolean),
+      sourceNodeId: null
+    };
+  }
+  if (state.selectedProduct) {
+    const product = data.products.find((item) => item.id === state.selectedProduct);
+    if (product) return { type: "products", products: [product], sourceNodeId: null };
+  }
+  if (state.selectedNode && state.selectedNode !== UNCLASSIFIED_NODE_ID) {
+    return {
+      type: "node",
+      products: productsUnderNode(state.selectedNode),
+      sourceNodeId: state.selectedNode
+    };
+  }
+  if (state.selectedNode === UNCLASSIFIED_NODE_ID) {
+    return { type: "products", products: activeUnclassifiedProducts(), sourceNodeId: null };
+  }
+  return { type: "products", products: [], sourceNodeId: null };
+}
+
+function profileSummary(profile) {
+  const parts = [];
+  if (profile.material?.length) parts.push(`material: ${profile.material.join(", ")}`);
+  if (profile.piece?.length) parts.push(`pieza: ${profile.piece.join(", ")}`);
+  if (profile.connection?.length) parts.push(`conexion: ${profile.connection.join(", ")}`);
+  if (profile.system?.length) parts.push(`sistema: ${profile.system.join(", ")}`);
+  return parts.length ? parts.join(" · ") : "descripcion ambigua; se priorizo similitud con el catalogo actual";
+}
+
+function confidenceLabel(confidence) {
+  return confidence === "high" ? "Alta" : confidence === "medium" ? "Media" : "Baja";
+}
+
+function candidateCardHtml(candidate, analysisIndex, candidateIndex, nodeMode = false) {
+  const samples = candidate.comparable.length
+    ? candidate.comparable.map((product) => `<li><strong>${escapeHtml(product.id)}</strong> ${escapeHtml(product.name)}</li>`).join("")
+    : "<li>Sin productos comparables directos.</li>";
+  const reasons = candidate.reasons.length ? candidate.reasons.join("; ") : "Coincidencia general con el contenido y la ruta.";
+  return `
+    <article class="assistant-candidate confidence-${candidate.confidence}">
+      <div class="assistant-candidate-head">
+        <div>
+          <span class="assistant-existing">${candidate.existing ? "Nodo existente" : "Nodo nuevo propuesto"}</span>
+          <h3>${escapeHtml(candidate.path)}</h3>
+        </div>
+        <span class="confidence-pill ${candidate.confidence}">${confidenceLabel(candidate.confidence)}</span>
+      </div>
+      <p>${escapeHtml(reasons)}</p>
+      <div class="assistant-comparables">
+        <strong>Productos de referencia</strong>
+        <ul>${samples}</ul>
+      </div>
+      <div class="assistant-actions">
+        ${candidate.existing ? `<button class="ghost-btn" data-assistant-view="${analysisIndex}:${candidateIndex}">Ver contenido</button>` : ""}
+        <button class="primary-btn" data-assistant-move="${analysisIndex}:${candidateIndex}">${candidate.existing ? (nodeMode ? "Mover nodo aqui" : "Mover seleccion aqui") : "Crear nodo y mover"}</button>
+        ${nodeMode ? `<button class="ghost-btn" data-assistant-partial="${analysisIndex}:${candidateIndex}">Mover solo productos</button>` : `<button class="ghost-btn" data-assistant-partial="${analysisIndex}:${candidateIndex}">Mover solo algunos</button>`}
+      </div>
+    </article>
+  `;
+}
+
+function assistantProposalHtml() {
+  const selectionCount = classificationAssistant.productIds.length;
+  const source = classificationAssistant.sourceNodeId ? nodeById()[classificationAssistant.sourceNodeId] : null;
+  const intro = source
+    ? `El nodo <strong>${escapeHtml(source.name)}</strong> contiene ${selectionCount} producto(s). Se evaluo su perfil colectivo y los contenedores compatibles con su nivel.`
+    : `Se analizaron ${selectionCount} producto(s) usando material, tipo de pieza, conexion, sistema y productos existentes en la jerarquia.`;
+  const groupedWarning = classificationAssistant.grouped && !classificationAssistant.forceTogether
+    ? `<div class="assistant-warning"><strong>La seleccion es heterogenea.</strong><span>Se separo en grupos naturales para evitar mezclar materiales, sistemas o piezas incompatibles.</span><button class="ghost-btn" data-assistant-force-together>Analizar todo junto de todas formas</button></div>`
+    : "";
+  const sections = classificationAssistant.analyses.map((analysis, analysisIndex) => `
+    <section class="assistant-group">
+      <div class="assistant-group-head">
+        <div>
+          <strong>${classificationAssistant.analyses.length > 1 ? `Grupo ${analysisIndex + 1}` : "Seleccion analizada"}</strong>
+          <span>${analysis.products.length} producto(s) · ${escapeHtml(profileSummary(analysis.profile))}</span>
+        </div>
+      </div>
+      <div class="assistant-candidates">
+        ${analysis.candidates.map((candidate, candidateIndex) => candidateCardHtml(candidate, analysisIndex, candidateIndex, classificationAssistant.allowWholeNodeMove)).join("")}
+      </div>
+    </section>
+  `).join("");
+  return `
+    <div class="assistant-summary">${intro}</div>
+    ${groupedWarning}
+    ${classificationAssistant.externalInsight ? `<div class="assistant-ai-note"><strong>Sugerida por IA</strong><span>${escapeHtml(classificationAssistant.externalInsight)}</span></div>` : ""}
+    ${sections}
+    <div class="assistant-engine-note">
+      <span>Analisis local sobre la jerarquia actual.</span>
+      <button class="ghost-btn" data-assistant-ai ${typeof window.catalogClassificationAI === "function" ? "" : "disabled"}>Consultar IA externa</button>
+    </div>
+  `;
+}
+
+function renderAssistantProposalModal() {
+  $("modalTitle").textContent = "Destinos sugeridos";
+  $("modalBody").innerHTML = assistantProposalHtml();
+  $("modalConfirm").textContent = "Cerrar";
+  $("modalConfirm").hidden = false;
+  $("modalCancel").hidden = true;
+}
+
+function openClassificationAssistant(forceTogether = false) {
+  const selection = assistantSelection();
+  if (!selection.products.length) {
+    openModal("Destinos sugeridos", `<div class="load-error"><strong>Seleccion requerida</strong><span>Selecciona uno o mas productos, o un nodo con productos.</span></div>`, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  classificationAssistant.selectionType = selection.type;
+  classificationAssistant.productIds = selection.products.map((product) => product.id);
+  classificationAssistant.sourceNodeId = selection.sourceNodeId;
+  classificationAssistant.forceTogether = forceTogether;
+  if (!forceTogether) classificationAssistant.externalInsight = null;
+  const groups = groupAssistantProducts(selection.products);
+  classificationAssistant.grouped = groups.length > 1;
+  const analysisGroups = classificationAssistant.grouped && !forceTogether ? groups : [{ products: selection.products }];
+  const sourceNode = selection.sourceNodeId ? nodeById()[selection.sourceNodeId] : null;
+  classificationAssistant.allowWholeNodeMove = selection.type === "node"
+    && analysisGroups.length === 1
+    && !!sourceNode
+    && sourceNode.level > 0;
+  const assistantIndex = buildAssistantNodeIndex();
+  classificationAssistant.analyses = analysisGroups.map((group) =>
+    analyzeAssistantGroup(group.products, selection.sourceNodeId, classificationAssistant.allowWholeNodeMove, assistantIndex)
+  );
+  openModal("Destinos sugeridos", assistantProposalHtml(), () => {}, { confirmText: "Cerrar", hideCancel: true });
+}
+
+function assistantCandidate(ref) {
+  const [analysisIndex, candidateIndex] = String(ref).split(":").map(Number);
+  const analysis = classificationAssistant.analyses[analysisIndex];
+  const candidate = analysis?.candidates[candidateIndex];
+  return { analysisIndex, candidateIndex, analysis, candidate };
+}
+
+function assistantViewCandidate(ref) {
+  const { analysisIndex, candidateIndex, analysis, candidate } = assistantCandidate(ref);
+  if (!candidate?.nodeId) return;
+  classificationAssistant.activeAnalysisIndex = analysisIndex;
+  classificationAssistant.activeCandidateIndex = candidateIndex;
+  const node = nodeById()[candidate.nodeId];
+  const childRows = childrenOf(node.id).map((child) => `
+    <div class="move-product"><strong>${escapeHtml(child.name)}</strong><span>${countProducts(child.id)} producto(s)</span></div>
+  `).join("");
+  const directRows = directProductsInNode(node.id).map((product) => `
+    <div class="move-product"><strong>${escapeHtml(product.name)}</strong><span>${escapeHtml(product.id)}</span></div>
+  `).join("");
+  $("modalTitle").textContent = "Contenido del nodo candidato";
+  $("modalBody").innerHTML = `
+    <div class="assistant-summary"><strong>${escapeHtml(candidate.path)}</strong><span>${countProducts(node.id)} producto(s) en total.</span></div>
+    <div class="assistant-node-content">
+      <section><h3>Subnodos</h3><div class="assistant-scroll-list">${childRows || "<p>Sin subnodos.</p>"}</div></section>
+      <section><h3>Productos directos</h3><div class="assistant-scroll-list">${directRows || "<p>Sin productos directos.</p>"}</div></section>
+    </div>
+    <div class="assistant-actions">
+      <button class="ghost-btn" data-assistant-back>Volver a propuestas</button>
+      <button class="primary-btn" data-assistant-move="${analysisIndex}:${candidateIndex}">Confirmar movimiento a este nodo</button>
+    </div>
+  `;
+  $("modalConfirm").hidden = true;
+}
+
+function assistantPartialSelection(ref) {
+  const { analysisIndex, candidateIndex, analysis, candidate } = assistantCandidate(ref);
+  if (!candidate || !analysis) return;
+  const rows = analysis.products.map((product) => `
+    <label class="assistant-product-choice">
+      <input type="checkbox" data-assistant-product="${escapeHtml(product.id)}" checked>
+      <span><strong>${escapeHtml(product.id)}</strong>${escapeHtml(product.name)}</span>
+    </label>
+  `).join("");
+  $("modalTitle").textContent = "Mover parte de la seleccion";
+  $("modalBody").innerHTML = `
+    <div class="assistant-summary"><strong>Destino: ${escapeHtml(candidate.path)}</strong><span>Desmarca los productos que deben permanecer en su ubicacion actual.</span></div>
+    <div class="assistant-product-list">${rows}</div>
+    <div class="assistant-actions">
+      <button class="ghost-btn" data-assistant-back>Volver a propuestas</button>
+      <button class="primary-btn" data-assistant-confirm-partial="${analysisIndex}:${candidateIndex}">Mover productos marcados</button>
+    </div>
+  `;
+  $("modalConfirm").hidden = true;
+}
+
+function assistantConfirmMove(ref, productIds = null) {
+  const { analysisIndex, candidateIndex, analysis, candidate } = assistantCandidate(ref);
+  if (!candidate || !analysis) return;
+  const ids = productIds || analysis.products.map((product) => product.id);
+  classificationAssistant.activeAnalysisIndex = analysisIndex;
+  classificationAssistant.activeCandidateIndex = candidateIndex;
+  $("modalTitle").textContent = "Confirmar movimiento sugerido";
+  $("modalBody").innerHTML = `
+    <div class="load-error">
+      <strong>Antes de mover</strong>
+      <span>Se moveran ${ids.length} producto(s) hacia ${escapeHtml(candidate.path)}.</span>
+    </div>
+    <div class="assistant-summary">
+      <span>${candidate.existing ? "Se utilizara el nodo existente." : `Se creara el nodo "${escapeHtml(candidate.name)}" antes del movimiento.`}</span>
+    </div>
+    <div class="assistant-actions">
+      <button class="ghost-btn" data-assistant-back>Volver</button>
+      <button class="primary-btn" data-assistant-execute="${analysisIndex}:${candidateIndex}" data-assistant-ids="${escapeHtml(ids.join("|"))}">Confirmar y mover</button>
+    </div>
+  `;
+  $("modalConfirm").hidden = true;
+}
+
+function recordAssistantDecision(candidate, ids, action) {
+  data.assistantDecisions = data.assistantDecisions || [];
+  data.assistantDecisions.unshift({
+    at: new Date().toISOString(),
+    hierarchyId: state.activeHierarchyId,
+    productIds: ids,
+    action,
+    targetNodeId: candidate.nodeId || null,
+    proposedNodeName: candidate.name || null,
+    confidence: candidate.confidence,
+    score: candidate.score
+  });
+  data.assistantDecisions = data.assistantDecisions.slice(0, 1000);
+}
+
+function executeAssistantMove(ref, ids) {
+  const { candidate } = assistantCandidate(ref);
+  if (!candidate || !ids.length) return;
+  pushHistory("movimiento sugerido");
+  let targetId = candidate.nodeId;
+  if (candidate.type === "new") {
+    targetId = `n-${Date.now()}`;
+    const parent = nodeById()[candidate.parentId];
+    data.nodes.push({
+      id: targetId,
+      parent: candidate.parentId,
+      level: Math.min(3, (parent?.level ?? -1) + 1),
+      name: candidate.name,
+      hierarchyId: state.activeHierarchyId,
+      order: nextNodeOrder(state.activeHierarchyId, candidate.parentId)
+    });
+    candidate.nodeId = targetId;
+    if (candidate.parentId) state.expandedNodes.add(candidate.parentId);
+  }
+
+  const moveWholeNode = classificationAssistant.selectionType === "node"
+    && classificationAssistant.allowWholeNodeMove
+    && ids.length === classificationAssistant.productIds.length
+    && candidate.type === "existing";
+  const sourceNode = classificationAssistant.sourceNodeId ? nodeById()[classificationAssistant.sourceNodeId] : null;
+  if (moveWholeNode && sourceNode) {
+    sourceNode.parent = targetId;
+    sourceNode.order = nextNodeOrder(state.activeHierarchyId, targetId, sourceNode.id);
+    state.selectedNode = sourceNode.id;
+  } else {
+    ids.forEach((id) => {
+      const product = data.products.find((item) => item.id === id);
+      if (!product) return;
+      product.assignments = product.assignments || {};
+      product.assignments[state.activeHierarchyId] = targetId;
+      product.node = targetId;
+      product.status = "corrected";
+    });
+    state.selectedProducts.clear();
+  }
+  recordAssistantDecision(candidate, ids, moveWholeNode ? "move_node" : candidate.type === "new" ? "create_and_move" : "move_products");
+  invalidateRenderCache();
+  const targetPath = pathFor(targetId).map((node) => node.name).join(" / ");
+  addChange(
+    candidate.type === "new" ? "Nodo sugerido creado" : "Movimiento sugerido aplicado",
+    `${moveWholeNode ? `Nodo "${sourceNode.name}"` : `${ids.length} producto(s)`} movido(s) a ${targetPath}. Puedes deshacer esta accion.`
+  );
+  closeModal();
+  renderAll();
+}
+
+async function consultExternalClassificationAI() {
+  if (typeof window.catalogClassificationAI !== "function") return;
+  const products = classificationAssistant.productIds
+    .map((id) => data.products.find((product) => product.id === id))
+    .filter(Boolean)
+    .slice(0, 80)
+    .map((product) => ({ cod: product.id, nom: product.name }));
+  const tree = activeNodes().map((node) => ({
+    id: node.id,
+    name: node.name,
+    level: node.level,
+    parentId: node.parent || ""
+  }));
+  setProcessingState(true, "Consultando IA externa...");
+  try {
+    const result = await window.catalogClassificationAI({ products, tree, hierarchyId: state.activeHierarchyId });
+    classificationAssistant.externalInsight = cellText(result?.summary || result?.reason || result);
+    renderAssistantProposalModal();
+  } finally {
+    setProcessingState(false);
+  }
+}
+
 function moveProducts(productIds) {
   if (!productIds.length) return;
   const first = data.products.find((p) => p.id === productIds[0]);
@@ -5088,6 +5703,49 @@ function validateProducts(ids) {
 }
 
 document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-assistant-force-together]")) {
+    openClassificationAssistant(true);
+    return;
+  }
+  if (event.target.closest("[data-assistant-back]")) {
+    renderAssistantProposalModal();
+    return;
+  }
+  const assistantView = event.target.closest("[data-assistant-view]");
+  if (assistantView) {
+    assistantViewCandidate(assistantView.dataset.assistantView);
+    return;
+  }
+  const assistantPartial = event.target.closest("[data-assistant-partial]");
+  if (assistantPartial) {
+    assistantPartialSelection(assistantPartial.dataset.assistantPartial);
+    return;
+  }
+  const assistantMove = event.target.closest("[data-assistant-move]");
+  if (assistantMove) {
+    assistantConfirmMove(assistantMove.dataset.assistantMove);
+    return;
+  }
+  const assistantConfirmPartial = event.target.closest("[data-assistant-confirm-partial]");
+  if (assistantConfirmPartial) {
+    const ids = [...document.querySelectorAll("[data-assistant-product]:checked")].map((input) => input.dataset.assistantProduct);
+    if (!ids.length) {
+      showToast("Sin productos marcados", "Marca al menos un producto para mover.");
+      return;
+    }
+    assistantConfirmMove(assistantConfirmPartial.dataset.assistantConfirmPartial, ids);
+    return;
+  }
+  const assistantExecute = event.target.closest("[data-assistant-execute]");
+  if (assistantExecute) {
+    const ids = cellText(assistantExecute.dataset.assistantIds).split("|").filter(Boolean);
+    executeAssistantMove(assistantExecute.dataset.assistantExecute, ids);
+    return;
+  }
+  if (event.target.closest("[data-assistant-ai]")) {
+    consultExternalClassificationAI().catch((error) => showToast("IA no disponible", error.message || String(error)));
+    return;
+  }
   const filterBtn = event.target.closest("[data-filter-kind]");
   if (filterBtn) {
     event.stopPropagation();
@@ -5267,6 +5925,7 @@ document.addEventListener("click", (event) => {
     state.selectedProduct = state.selectedProduct === row.dataset.product ? null : row.dataset.product;
     updateProductRowSelection();
     renderInspector();
+    setActionStates();
     return;
   }
   const action = event.target.dataset.action;
@@ -5279,6 +5938,10 @@ document.addEventListener("click", (event) => {
     }
     const p = data.products.find((x) => x.id === state.selectedProduct);
     if (!p) return;
+    if (action === "suggest-destination") {
+      openClassificationAssistant();
+      return;
+    }
     if (action === "validate-product") validateProducts([p.id]);
     if (action === "move-product") moveProducts([p.id]);
     if (action === "apply-suggestion" && p.suggestion) {
@@ -5306,6 +5969,7 @@ $("productRows").addEventListener("click", (event) => {
   state.selectedProduct = state.selectedProduct === row.dataset.product ? null : row.dataset.product;
   updateProductRowSelection();
   renderInspector();
+  setActionStates();
 });
 
 document.addEventListener("change", (event) => {
@@ -5325,6 +5989,7 @@ document.addEventListener("change", (event) => {
     ids.forEach((id) => checked ? state.selectedProducts.add(id) : state.selectedProducts.delete(id));
     updateVisibleCheckboxes(checked);
     syncSelectAllState(ids);
+    setActionStates();
     return;
   }
   const check = event.target.dataset.check;
@@ -5332,6 +5997,7 @@ document.addEventListener("change", (event) => {
     if (event.target.checked) state.selectedProducts.add(check);
     else state.selectedProducts.delete(check);
     syncSelectAllState();
+    setActionStates();
     return;
   }
   if (event.target.id === "mergeLocationSelect") {
@@ -5364,7 +6030,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || $("modalBackdrop").hidden) return;
   if (event.target && event.target.tagName === "TEXTAREA") return;
   const confirmBtn = $("modalConfirm");
-  if (!confirmBtn || confirmBtn.disabled) return;
+  if (!confirmBtn || confirmBtn.disabled || confirmBtn.hidden) return;
   event.preventDefault();
   confirmBtn.click();
 });
@@ -5411,6 +6077,7 @@ $("addChildBtn").addEventListener("click", () => { closeHierarchyActions(); open
 $("renameNodeBtn").addEventListener("click", () => { closeHierarchyActions(); renameNode(); });
 $("mergeNodeBtn").addEventListener("click", () => { closeHierarchyActions(); mergeNode(); });
 $("moveNodeBtn").addEventListener("click", () => { closeHierarchyActions(); moveSelectedNode(); });
+$("suggestNodeDestinationBtn").addEventListener("click", () => { closeHierarchyActions(); openClassificationAssistant(); });
 $("deleteNodeBtn").addEventListener("click", () => { closeHierarchyActions(); deleteEmptyNode(); });
 $("expandBranchBtn").addEventListener("click", () => expandBranch());
 $("collapseBranchBtn").addEventListener("click", () => collapseBranch());
@@ -5418,6 +6085,7 @@ $("hideRedundantToggle").addEventListener("change", (e) => { state.hideRedundant
 $("undoBtn").addEventListener("click", () => { closeHierarchyActions(); undoLastChange(); });
 $("redoBtn").addEventListener("click", () => { closeHierarchyActions(); redoLastChange(); });
 $("moveSelectedBtn").addEventListener("click", () => moveProducts([...state.selectedProducts]));
+$("suggestDestinationsBtn").addEventListener("click", () => openClassificationAssistant());
 $("validateSelectedBtn").addEventListener("click", () => validateProducts([...state.selectedProducts]));
 $("modalClose").addEventListener("click", closeModal);
 $("modalCancel").addEventListener("click", closeModal);

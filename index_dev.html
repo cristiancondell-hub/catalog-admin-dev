@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=shared-workspace-dev-20260604-02">
+  <link rel="stylesheet" href="./styles_dev.css?v=assistant-dev-20260609-01">
 </head>
 <body>
   <div class="app-shell">
@@ -113,6 +113,7 @@
             <button id="addChildBtn" title="Crear nodo en la jerarquia">Crear nodo</button>
             <button id="renameNodeBtn" title="Cambia el nombre del nodo seleccionado">Renombrar</button>
             <button id="moveNodeBtn" title="Mueve el nodo con todo su contenido">Mover</button>
+            <button id="suggestNodeDestinationBtn" title="Analiza el nodo y propone destinos">Buscar destinos sugeridos</button>
             <button id="mergeNodeBtn" title="Fusiona dos nodos del mismo nivel">Fusionar</button>
             <button id="deleteNodeBtn" title="Elimina solo si el nodo esta vacio">Eliminar vacio</button>
             <div class="tool-section-title">Jerarquia</div>
@@ -166,6 +167,7 @@
             <option value="corrected">Corregidos</option>
             <option value="suggested">Con sugerencia</option>
           </select>
+          <button class="ghost-btn" id="suggestDestinationsBtn">Destinos sugeridos</button>
           <button class="ghost-btn" id="moveSelectedBtn">Mover seleccionados</button>
           <button class="ghost-btn" id="validateSelectedBtn">Validar</button>
           <button class="ghost-btn danger-action" id="disconnectCatalogListBtn">Quitar lista</button>
@@ -369,7 +371,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=shared-workspace-dev-20260604-02"></script>
+  <script src="./app_dev.js?v=assistant-dev-20260609-01"></script>
 </body>
 </html>
 
