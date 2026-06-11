@@ -159,7 +159,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "performance-dev-20260609-03";
+const APP_BUILD = "assistant-final-node-dev-20260611-01";
 const TABLE_RENDER_BATCH = 400;
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
@@ -5249,9 +5249,14 @@ function groupAssistantProducts(products) {
 
 function buildAssistantNodeIndex() {
   const map = new Map(activeNodes().map((node) => [node.id, []]));
+  map.directCounts = new Map(activeNodes().map((node) => [node.id, 0]));
   const nodes = nodeById();
   data.products.forEach((product) => {
-    let current = nodes[productNode(product)];
+    const assignedNode = productNode(product);
+    if (map.directCounts.has(assignedNode)) {
+      map.directCounts.set(assignedNode, (map.directCounts.get(assignedNode) || 0) + 1);
+    }
+    let current = nodes[assignedNode];
     while (current && nodeHierarchy(current) === state.activeHierarchyId) {
       const samples = map.get(current.id);
       if (samples && samples.length < 40) samples.push(product);
@@ -5259,6 +5264,12 @@ function buildAssistantNodeIndex() {
     }
   });
   return map;
+}
+
+function isFinalProductDestination(node, assistantIndex = null) {
+  if (!node || nodeHierarchy(node) !== state.activeHierarchyId) return false;
+  const directCount = assistantIndex?.directCounts?.get(node.id) ?? directProductsInNode(node.id).length;
+  return directCount > 0 || childrenOf(node.id).length === 0;
 }
 
 function nodeAssistantCorpus(node, assistantIndex) {
@@ -5279,13 +5290,14 @@ function tokenSimilarity(leftTokens, rightTokens) {
   return common / Math.max(left.size, Math.min(12, right.size));
 }
 
-function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, sourceNodeId = null, nodeMove = false) {
+function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, sourceNodeId = null, nodeMove = false, allowGrouping = false) {
   if (nodeHierarchy(node) !== state.activeHierarchyId) return null;
   if (sourceNodeId && node.id === sourceNodeId) return null;
   if (nodeMove && sourceNodeId && isDescendantOrSelf(node.id, sourceNodeId)) return null;
   const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
   if (nodeMove && sourceNode && node.level !== sourceNode.level - 1) return null;
   if (!nodeMove && node.level < 1) return null;
+  if (!nodeMove && !allowGrouping && !isFinalProductDestination(node, assistantIndex)) return null;
 
   const corpus = nodeAssistantCorpus(node, assistantIndex);
   const nodeProfile = extractClassificationProfile(corpus.text);
@@ -5323,7 +5335,10 @@ function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, s
     score: Math.max(0, Math.round(score)),
     reasons,
     comparable,
-    existing: true
+    existing: true,
+    destinationKind: !nodeMove
+      ? ((assistantIndex?.directCounts?.get(node.id) || 0) > 0 ? "Nodo con productos" : "Nodo final")
+      : "Contenedor estructural"
   };
 }
 
@@ -5333,10 +5348,13 @@ function assistantConfidence(score, comparableCount = 0) {
   return "low";
 }
 
-function suggestedNewNodeCandidate(products, profile, bestExisting) {
-  if (!bestExisting || bestExisting.score >= 48) return null;
-  const bestNode = nodeById()[bestExisting.nodeId];
-  const parent = bestNode?.level < 3 ? bestNode : nodeById()[bestNode?.parent];
+function suggestedNewNodeCandidate(products, profile, bestExisting, bestContainer = null) {
+  if (bestExisting?.score >= 48) return null;
+  const bestNode = bestExisting ? nodeById()[bestExisting.nodeId] : null;
+  const containerNode = bestContainer ? nodeById()[bestContainer.nodeId] : null;
+  const parent = containerNode?.level < 3
+    ? containerNode
+    : (bestNode?.level < 3 ? bestNode : nodeById()[bestNode?.parent]);
   if (!parent || parent.level >= 3) return null;
   const piece = profile.piece?.[0] || "Productos";
   const material = profile.material?.[0] || profile.system?.[0] || "Especiales";
@@ -5346,10 +5364,11 @@ function suggestedNewNodeCandidate(products, profile, bestExisting) {
     parentId: parent.id,
     name,
     path: `${pathFor(parent.id).map((item) => item.name).join(" / ")} / ${name}`,
-    score: Math.max(30, bestExisting.score + 5),
-    reasons: ["No existe un nodo suficientemente especifico para esta combinacion."],
+    score: Math.max(30, (bestExisting?.score || bestContainer?.score || 25) + 5),
+    reasons: ["El mejor contenedor es un nodo agrupador; se propone crear dentro un nodo final para alojar productos."],
     comparable: [],
-    existing: false
+    existing: false,
+    destinationKind: "Nuevo nodo final"
   };
 }
 
@@ -5362,7 +5381,14 @@ function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, 
     .filter(Boolean)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
-  const newCandidate = !nodeMove ? suggestedNewNodeCandidate(products, profile, candidates[0]) : null;
+  const bestContainer = !nodeMove
+    ? activeNodes()
+      .filter((node) => childrenOf(node.id).length > 0 && !isFinalProductDestination(node, nodeIndex))
+      .map((node) => nodeCandidateScore(node, products, profile, nodeIndex, sourceNodeId, false, true))
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)[0]
+    : null;
+  const newCandidate = !nodeMove ? suggestedNewNodeCandidate(products, profile, candidates[0], bestContainer) : null;
   if (newCandidate) candidates.push(newCandidate);
   while (candidates.length < 3) {
     const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
@@ -5371,6 +5397,7 @@ function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, 
       && (!sourceNodeId || node.id !== sourceNodeId)
       && (!nodeMove || !sourceNodeId || !isDescendantOrSelf(node.id, sourceNodeId))
       && (!nodeMove || (sourceNode && node.level === sourceNode.level - 1))
+      && (nodeMove || isFinalProductDestination(node, nodeIndex))
     );
     if (!fallback) break;
     candidates.push({
@@ -5380,7 +5407,10 @@ function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, 
       score: 10,
       reasons: ["Alternativa estructural disponible; requiere revision manual."],
       comparable: productsUnderNode(fallback.id).slice(0, 3),
-      existing: true
+      existing: true,
+      destinationKind: nodeMove
+        ? "Contenedor estructural"
+        : ((nodeIndex.directCounts?.get(fallback.id) || 0) > 0 ? "Nodo con productos" : "Nodo final")
     });
   }
   candidates.forEach((candidate) => {
@@ -5475,7 +5505,7 @@ function candidateCardHtml(candidate, analysisIndex, candidateIndex, nodeMode = 
     <article class="assistant-candidate confidence-${candidate.confidence}">
       <div class="assistant-candidate-head">
         <div>
-          <span class="assistant-existing">${candidate.existing ? "Nodo existente" : "Nodo nuevo propuesto"}</span>
+          <span class="assistant-existing">${escapeHtml(candidate.destinationKind || (candidate.existing ? "Nodo existente" : "Nodo nuevo propuesto"))}</span>
           <h3>${escapeHtml(candidate.path)}</h3>
         </div>
         <span class="confidence-pill ${candidate.confidence}">${confidenceLabel(candidate.confidence)}</span>
@@ -5623,6 +5653,18 @@ function assistantConfirmMove(ref, productIds = null) {
   const { analysisIndex, candidateIndex, analysis, candidate } = assistantCandidate(ref);
   if (!candidate || !analysis) return;
   const ids = productIds || analysis.products.map((product) => product.id);
+  const movingWholeNode = classificationAssistant.selectionType === "node"
+    && classificationAssistant.allowWholeNodeMove
+    && ids.length === classificationAssistant.productIds.length
+    && candidate.type === "existing";
+  if (candidate.type === "existing" && !movingWholeNode) {
+    const targetNode = nodeById()[candidate.nodeId];
+    if (!isFinalProductDestination(targetNode)) {
+      showToast("Destino no permitido", "Los productos solo pueden asignarse a nodos finales o nodos que ya contienen productos directamente.");
+      renderAssistantProposalModal();
+      return;
+    }
+  }
   classificationAssistant.activeAnalysisIndex = analysisIndex;
   classificationAssistant.activeCandidateIndex = candidateIndex;
   $("modalTitle").textContent = "Confirmar movimiento sugerido";
@@ -5660,8 +5702,17 @@ function recordAssistantDecision(candidate, ids, action) {
 function executeAssistantMove(ref, ids) {
   const { candidate } = assistantCandidate(ref);
   if (!candidate || !ids.length) return;
-  pushHistory("movimiento sugerido");
   let targetId = candidate.nodeId;
+  const moveWholeNode = classificationAssistant.selectionType === "node"
+    && classificationAssistant.allowWholeNodeMove
+    && ids.length === classificationAssistant.productIds.length
+    && candidate.type === "existing";
+  if (!moveWholeNode && candidate.type === "existing" && !isFinalProductDestination(nodeById()[targetId])) {
+    showToast("Destino no permitido", "Este nodo solo agrupa subnodos. Elige un nodo final o crea un subnodo final.");
+    renderAssistantProposalModal();
+    return;
+  }
+  pushHistory("movimiento sugerido");
   if (candidate.type === "new") {
     targetId = `n-${Date.now()}`;
     const parent = nodeById()[candidate.parentId];
@@ -5677,10 +5728,6 @@ function executeAssistantMove(ref, ids) {
     if (candidate.parentId) state.expandedNodes.add(candidate.parentId);
   }
 
-  const moveWholeNode = classificationAssistant.selectionType === "node"
-    && classificationAssistant.allowWholeNodeMove
-    && ids.length === classificationAssistant.productIds.length
-    && candidate.type === "existing";
   const sourceNode = classificationAssistant.sourceNodeId ? nodeById()[classificationAssistant.sourceNodeId] : null;
   if (moveWholeNode && sourceNode) {
     sourceNode.parent = targetId;
