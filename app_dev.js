@@ -159,7 +159,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "assistant-final-node-dev-20260611-01";
+const APP_BUILD = "assistant-valid-destinations-dev-20260611-03";
 const TABLE_RENDER_BATCH = 400;
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
@@ -5272,6 +5272,25 @@ function isFinalProductDestination(node, assistantIndex = null) {
   return directCount > 0 || childrenOf(node.id).length === 0;
 }
 
+function isUnclassifiedAssistantBranch(node) {
+  if (!node || node.id === UNCLASSIFIED_NODE_ID) return true;
+  const blockedNames = new Set([
+    "noagrupado",
+    "noagrupados",
+    "noasignado",
+    "noasignados",
+    "noclasificado",
+    "noclasificados",
+    "sinclasificar",
+    "sinclasificacion"
+  ]);
+  return pathFor(node.id).some((pathNode) => blockedNames.has(normalizeNodeText(pathNode.name)));
+}
+
+function productsAlreadyInNode(products, nodeId) {
+  return products.some((product) => productNode(product) === nodeId);
+}
+
 function nodeAssistantCorpus(node, assistantIndex) {
   const pathText = pathFor(node.id).map((item) => item.name).join(" ");
   const samples = assistantIndex?.get(node.id) || [];
@@ -5292,7 +5311,9 @@ function tokenSimilarity(leftTokens, rightTokens) {
 
 function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, sourceNodeId = null, nodeMove = false, allowGrouping = false) {
   if (nodeHierarchy(node) !== state.activeHierarchyId) return null;
+  if (isUnclassifiedAssistantBranch(node)) return null;
   if (sourceNodeId && node.id === sourceNodeId) return null;
+  if (!nodeMove && productsAlreadyInNode(products, node.id)) return null;
   if (nodeMove && sourceNodeId && isDescendantOrSelf(node.id, sourceNodeId)) return null;
   const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
   if (nodeMove && sourceNode && node.level !== sourceNode.level - 1) return null;
@@ -5394,7 +5415,9 @@ function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, 
     const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
     const fallback = activeNodes().find((node) =>
       !candidates.some((candidate) => candidate.nodeId === node.id)
+      && !isUnclassifiedAssistantBranch(node)
       && (!sourceNodeId || node.id !== sourceNodeId)
+      && (nodeMove || !productsAlreadyInNode(products, node.id))
       && (!nodeMove || !sourceNodeId || !isDescendantOrSelf(node.id, sourceNodeId))
       && (!nodeMove || (sourceNode && node.level === sourceNode.level - 1))
       && (nodeMove || isFinalProductDestination(node, nodeIndex))
@@ -5657,8 +5680,22 @@ function assistantConfirmMove(ref, productIds = null) {
     && classificationAssistant.allowWholeNodeMove
     && ids.length === classificationAssistant.productIds.length
     && candidate.type === "existing";
+  const movingProducts = ids.map((id) => data.products.find((product) => product.id === id)).filter(Boolean);
+  const destinationNode = candidate.type === "existing"
+    ? nodeById()[candidate.nodeId]
+    : nodeById()[candidate.parentId];
+  if (isUnclassifiedAssistantBranch(destinationNode)) {
+    showToast("Destino no permitido", "El asistente no puede mover productos hacia No agrupados o No clasificados.");
+    renderAssistantProposalModal();
+    return;
+  }
+  if (candidate.type === "existing" && !movingWholeNode && productsAlreadyInNode(movingProducts, candidate.nodeId)) {
+    showToast("Destino sin cambios", "Este nodo ya es la ubicacion actual de uno o mas productos seleccionados.");
+    renderAssistantProposalModal();
+    return;
+  }
   if (candidate.type === "existing" && !movingWholeNode) {
-    const targetNode = nodeById()[candidate.nodeId];
+    const targetNode = destinationNode;
     if (!isFinalProductDestination(targetNode)) {
       showToast("Destino no permitido", "Los productos solo pueden asignarse a nodos finales o nodos que ya contienen productos directamente.");
       renderAssistantProposalModal();
@@ -5707,6 +5744,20 @@ function executeAssistantMove(ref, ids) {
     && classificationAssistant.allowWholeNodeMove
     && ids.length === classificationAssistant.productIds.length
     && candidate.type === "existing";
+  const movingProducts = ids.map((id) => data.products.find((product) => product.id === id)).filter(Boolean);
+  const destinationNode = candidate.type === "existing"
+    ? nodeById()[targetId]
+    : nodeById()[candidate.parentId];
+  if (isUnclassifiedAssistantBranch(destinationNode)) {
+    showToast("Destino no permitido", "No agrupados y No clasificados no son destinos validos para una sugerencia.");
+    renderAssistantProposalModal();
+    return;
+  }
+  if (!moveWholeNode && candidate.type === "existing" && productsAlreadyInNode(movingProducts, targetId)) {
+    showToast("Destino sin cambios", "La seleccion ya contiene productos ubicados en este nodo.");
+    renderAssistantProposalModal();
+    return;
+  }
   if (!moveWholeNode && candidate.type === "existing" && !isFinalProductDestination(nodeById()[targetId])) {
     showToast("Destino no permitido", "Este nodo solo agrupa subnodos. Elige un nodo final o crea un subnodo final.");
     renderAssistantProposalModal();
