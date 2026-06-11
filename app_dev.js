@@ -69,6 +69,7 @@ const state = {
   expandedNodes: new Set(["l-hid", "s-pvc", "f-codos", "fam-collares", "l-riego", "s-mang"]),
   activeHierarchyId: "v16",
   activeProductListId: "base",
+  selectedListConnectionHierarchyId: "",
   activeView: "catalog",
   view: "active",
   treeSearch: "",
@@ -159,7 +160,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "assistant-valid-destinations-dev-20260611-03";
+const APP_BUILD = "catalog-toolbar-connections-dev-20260611-04";
 const TABLE_RENDER_BATCH = 400;
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
@@ -832,7 +833,7 @@ function disconnectActiveCatalogList() {
 
 function disconnectActiveListConnection() {
   const list = activeProductList();
-  const hierarchyId = $("listConnectedHierarchySelect")?.value;
+  const hierarchyId = state.selectedListConnectionHierarchyId || $("listConnectedHierarchySelect")?.value;
   if (!list || !hierarchyId) return;
   disconnectListFromHierarchy(list.id, hierarchyId);
 }
@@ -1066,11 +1067,11 @@ function renderHeader() {
   const isUnclassified = focusNode === UNCLASSIFIED_NODE_ID;
   const node = focusNode ? nodeById()[focusNode] : null;
   const products = filteredCatalogProducts();
-  const activePane = state.operation.type ? (state.activePane === "target" ? "Destino activo" : "Origen activo") : "Catalogo";
-  $("crumbs").innerHTML = isUnclassified
-    ? `<span class="active-pane-note">${activePane}</span> Productos conectados sin ubicacion`
-    : (node ? `<span class="active-pane-note">${activePane}</span> ${pathFor(node.id).map((n) => n.name).join(" / ")}` : "Catalogo completo");
-  $("sectionTitle").textContent = isUnclassified ? "No clasificados" : (node ? node.name : "Productos");
+  const activePane = state.operation.type
+    ? (state.activePane === "target" ? "Destino activo" : "Origen activo")
+    : "";
+  $("crumbs").textContent = activePane || (isUnclassified ? "Productos sin ubicacion" : node ? "Nodo seleccionado" : "Catalogo completo");
+  $("sectionTitle").textContent = isUnclassified ? "No clasificados" : "Productos";
   $("visibleProducts").textContent = products.length;
   $("pendingCount").textContent = products.filter((p) => p.status === "pending" || p.status === "suggested").length;
   $("validatedCount").textContent = products.filter((p) => p.status === "validated").length;
@@ -1500,11 +1501,14 @@ function renderListConnections(list = activeProductList()) {
   const title = $("connectedHierarchyTitle");
   const button = $("connectListToSelectedHierarchyBtn");
   const linked = links.map((link) => data.hierarchies.find((h) => h.id === link.hierarchyId)).filter(Boolean);
+  if (!linked.some((hierarchy) => hierarchy.id === state.selectedListConnectionHierarchyId)) {
+    state.selectedListConnectionHierarchyId = linked[0]?.id || "";
+  }
   if (title) title.textContent = linked.length ? `${linked.length} conectada(s)` : "Sin conexiones";
   if (select) {
     select.disabled = !linked.length;
     select.innerHTML = linked.length
-      ? linked.map((h) => `<option value="${h.id}">${h.name}</option>`).join("")
+      ? linked.map((h) => `<option value="${h.id}" ${h.id === state.selectedListConnectionHierarchyId ? "selected" : ""}>${h.name}</option>`).join("")
       : `<option value="">Sin jerarquias conectadas</option>`;
   }
   if (button) button.disabled = data.hierarchies.length === links.length;
@@ -6247,6 +6251,7 @@ $("hierarchySelect").addEventListener("change", (e) => {
 });
 $("productListSelect").addEventListener("change", (e) => {
   state.activeProductListId = e.target.value;
+  state.selectedListConnectionHierarchyId = "";
   state.listSearch = "";
   state.listRenderLimit = TABLE_RENDER_BATCH;
   markDataDirty();
@@ -6261,14 +6266,8 @@ $("catalogLinkedListSelect").addEventListener("change", (e) => {
   renderAll();
 });
 $("listConnectedHierarchySelect")?.addEventListener("change", (e) => {
-  if (!e.target.value) return;
-  state.activeHierarchyId = e.target.value;
-  state.selectedNode = null;
-  state.selectedProduct = null;
-  state.selectedProducts.clear();
-  state.listRenderLimit = TABLE_RENDER_BATCH;
-  ensureCatalogLinkedList();
-  renderAll();
+  state.selectedListConnectionHierarchyId = e.target.value;
+  setActionStates();
 });
 const debouncedRenderAll = debounce(renderAll, 120);
 $("treeSearch").addEventListener("input", (e) => { state.treeSearch = e.target.value; state.productRenderLimit = TABLE_RENDER_BATCH; debouncedRenderAll(); });
