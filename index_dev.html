@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Administrador de Catalogos</title>
-  <link rel="stylesheet" href="./styles_dev.css?v=catalog-toolbar-connections-dev-20260611-04">
+  <link rel="stylesheet" href="./styles_dev.css?v=independent-data-links-dev-20260611-05">
 </head>
 <body>
   <div class="app-shell">
@@ -28,13 +28,10 @@
           <button class="context-plus" id="addHierarchyLoadBtn" title="Cargar nueva jerarquia">+</button>
         </div>
         <div class="top-context-block product-context">
-          <div class="product-title-block">
-            <div class="crumbs" id="crumbs">Catalogo completo</div>
-            <h1 id="sectionTitle">Productos</h1>
-          </div>
           <div class="catalog-list-picker">
             <label>Lista</label>
             <select id="catalogLinkedListSelect"></select>
+            <button class="context-plus connection-plus" id="connectCatalogListBtn" title="Conectar una lista a esta jerarquia" aria-label="Conectar lista">↔</button>
           </div>
           <div class="metrics">
             <div class="metric">
@@ -371,7 +368,7 @@
     });
     window.dispatchEvent(new CustomEvent("catalog-admin-firebase-ready"));
   </script>
-  <script src="./app_dev.js?v=catalog-toolbar-connections-dev-20260611-04"></script>
+  <script src="./app_dev.js?v=independent-data-links-dev-20260611-05"></script>
 </body>
 </html>
 

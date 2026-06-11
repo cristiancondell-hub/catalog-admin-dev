@@ -89,7 +89,7 @@ button{cursor:pointer}
 .topbar-context{
   min-width:0;
   display:grid;
-  grid-template-columns:minmax(360px,28vw) minmax(620px,1fr);
+  grid-template-columns:minmax(430px,34vw) minmax(520px,1fr);
   gap:8px;
   align-items:stretch;
 }
@@ -112,13 +112,10 @@ button{cursor:pointer}
 .hierarchy-context p{font-size:10.5px;color:var(--muted);margin-top:1px;white-space:nowrap}
 .product-context{
   display:grid;
-  grid-template-columns:minmax(210px,.85fr) minmax(260px,1.1fr) auto;
+  grid-template-columns:minmax(300px,1fr) auto;
   align-items:center;
   gap:8px;
 }
-.product-title-block{min-width:0;align-self:center}
-.product-title-block .crumbs{font-size:10px;margin-bottom:1px}
-.product-title-block h1{font-size:15px}
 .list-context{
   display:grid;
   grid-template-columns:minmax(100px,1fr) minmax(220px,320px) 32px;
@@ -136,7 +133,7 @@ button{cursor:pointer}
 .connected-context select{width:100%;min-width:0;padding:6px 8px;font-size:11.5px}
 .connected-context .ghost-btn{padding:7px 10px;font-size:12px}
 .catalog-list-picker{
-  display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;
+  display:grid;grid-template-columns:auto minmax(0,1fr) 30px;align-items:center;gap:8px;
   min-width:0;
 }
 .catalog-list-picker label{font-size:10px;font-weight:850;color:var(--muted);text-transform:uppercase}
@@ -146,6 +143,7 @@ button{cursor:pointer}
   width:30px;height:30px;font-weight:900;color:var(--green);font-size:18px;line-height:1;
 }
 .context-plus:hover{background:var(--green-soft);border-color:#bad8c6}
+.connection-plus{font-size:16px}
 .hierarchy-picker{
   display:flex;align-items:center;gap:6px;
   border:1px solid var(--line);background:var(--surface-2);
@@ -948,9 +946,8 @@ select{
 @media (max-width:1180px){
   .topbar{grid-template-columns:auto minmax(0,1fr)}
   .compact-brand{display:none}
-  .topbar-context{grid-template-columns:minmax(220px,300px) minmax(280px,1fr)}
-  .product-context{grid-template-columns:minmax(150px,1fr) minmax(130px,180px)}
-  .product-context .metrics{grid-column:1 / -1}
+  .topbar-context{grid-template-columns:minmax(340px,38vw) minmax(360px,1fr)}
+  .product-context{grid-template-columns:minmax(190px,1fr) auto}
   .workspace,.workspace.operation-mode{grid-template-columns:280px 1fr}
   .destination-panel,.right-panel{grid-column:1 / -1;min-height:360px}
 }
@@ -958,7 +955,7 @@ select{
   .topbar{height:auto;grid-template-columns:1fr;align-items:stretch;gap:8px}
   .topbar-context{grid-template-columns:1fr}
   .product-context{grid-template-columns:1fr}
-  .catalog-list-picker{grid-template-columns:1fr}
+  .catalog-list-picker{grid-template-columns:auto minmax(0,1fr) 30px}
   .top-actions{width:100%;justify-content:space-between;flex-wrap:wrap}
   .workspace,.workspace.operation-mode{grid-template-columns:1fr;padding:10px}
   .left-panel,.destination-panel,.right-panel,.content-panel{border-radius:14px}

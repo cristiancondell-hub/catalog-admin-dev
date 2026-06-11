@@ -160,7 +160,7 @@ function debounce(fn, delay = 120) {
     timer = setTimeout(() => fn(...args), delay);
   };
 }
-const APP_BUILD = "catalog-toolbar-connections-dev-20260611-04";
+const APP_BUILD = "independent-data-links-dev-20260611-05";
 const TABLE_RENDER_BATCH = 400;
 const STORAGE_KEY = "catalogAdmin.localState.v1";
 const DB_NAME = "catalogAdminDb";
@@ -342,6 +342,15 @@ function markDataDirty() {
   updateAutosaveStatus(firebaseUser ? "saving" : "idle", firebaseUser ? "Cambios pendientes de sincronizar..." : LOCAL_TEST_MODE ? "Modo local de prueba. Cambios guardados solo en este navegador." : "Cambios locales pendientes. Entra con Google para sincronizar DEV.");
   saveTimer = setTimeout(saveLocalCatalogState, 12000);
   if (firebaseReady && firebaseUser) firebaseSaveTimer = setTimeout(saveAdminStateToFirebaseSilent, 18000);
+}
+
+function flushWorkspaceSaveSoon() {
+  clearTimeout(saveTimer);
+  clearTimeout(firebaseSaveTimer);
+  saveTimer = setTimeout(persistCatalogState, 0);
+  if (firebaseReady && firebaseUser) {
+    firebaseSaveTimer = setTimeout(() => saveAdminStateToFirebaseSilent({ force: true }), 800);
+  }
 }
 
 loadLocalCatalogState();
@@ -670,7 +679,7 @@ function visibleProductAttributeEntries(product, limit = 4) {
   const entries = [];
   preferredIds.forEach((listId) => {
     const list = data.productLists.find((item) => item.id === listId);
-    const attrs = mergedProductAttributes(product, [listId]);
+    const attrs = productListAttributes(product, listId);
     Object.entries(attrs).forEach(([key, value]) => {
       const text = cellText(value);
       if (text && entries.length < limit) entries.push({ key, value: text, listName: list?.name || "Lista" });
@@ -760,6 +769,22 @@ function connectionStats(list, hierarchy) {
   return { productsInList, classified, unclassified: productsInList.length - classified.length };
 }
 
+function refreshListConnectionStats(listId) {
+  const list = data.productLists.find((item) => item.id === listId);
+  if (!list) return;
+  (data.hierarchyListLinks || [])
+    .filter((link) => link.listId === listId)
+    .forEach((link) => {
+      const hierarchy = data.hierarchies.find((item) => item.id === link.hierarchyId);
+      if (!hierarchy) return;
+      const stats = connectionStats(list, hierarchy);
+      link.matched = stats.classified.length;
+      link.unmatched = stats.unclassified;
+      link.productCount = stats.productsInList.length;
+      link.updatedAt = new Date().toISOString();
+    });
+}
+
 function connectListToHierarchyDirect(listId, hierarchyId) {
   const hierarchy = data.hierarchies.find((item) => item.id === hierarchyId);
   const list = data.productLists.find((item) => item.id === listId);
@@ -776,6 +801,7 @@ function connectListToHierarchyDirect(listId, hierarchyId) {
   state.activeProductListId = list.id;
   addChange("Lista conectada", `${list.name} quedo conectada a ${hierarchy.name}: ${stats.classified.length} clasificados y ${stats.unclassified} no clasificados.`);
   markDataDirty();
+  flushWorkspaceSaveSoon();
   return { hierarchy, list, ...stats };
 }
 
@@ -822,6 +848,7 @@ function disconnectListFromHierarchy(listId, hierarchyId) {
     data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...(data.hierarchyListLinks || []).filter((item) => !(item.listId === listId && item.hierarchyId === hierarchyId)));
     addChange("Lista desconectada", `${list.name} fue desconectada de ${hierarchy.name}.`);
     markDataDirty();
+    flushWorkspaceSaveSoon();
   }, { confirmText: "Desconectar" });
 }
 
@@ -861,6 +888,37 @@ function openConnectListModal() {
     const selected = $("connectListHierarchySelect")?.value;
     if (selected) connectListToHierarchyDirect(list.id, selected);
   }, { confirmText: "Conectar" });
+}
+
+function openConnectCatalogListModal() {
+  const hierarchy = activeHierarchy();
+  if (!hierarchy) return;
+  const linkedIds = new Set(activeHierarchyLinkedListIds());
+  const available = data.productLists.filter((list) => !linkedIds.has(list.id));
+  if (!available.length) {
+    openModal("Conectar lista", `
+      <div class="empty-state">
+        <h3>Todas las listas ya estan conectadas</h3>
+        <p>No hay otra lista disponible para conectar con ${escapeHtml(hierarchy.name)}.</p>
+      </div>
+    `, () => {}, { confirmText: "Aceptar", hideCancel: true });
+    return;
+  }
+  openModal("Conectar lista a jerarquia", `
+    <div class="rule-note">
+      Elige una lista para conectarla con <strong>${escapeHtml(hierarchy.name)}</strong>.
+      La lista conserva su identidad y solo se crea la relacion con esta jerarquia.
+    </div>
+    <div class="form-row">
+      <label>Lista disponible</label>
+      <select id="connectCatalogListSelect">
+        ${available.map((list) => `<option value="${list.id}">${escapeHtml(list.name)} · ${productListCount(list.id)} productos</option>`).join("")}
+      </select>
+    </div>
+  `, () => {
+    const listId = $("connectCatalogListSelect")?.value;
+    if (listId) connectListToHierarchyDirect(listId, hierarchy.id);
+  }, { confirmText: "Conectar lista" });
 }
 
 function duplicateActiveHierarchy() {
@@ -1063,15 +1121,7 @@ function renderOperationCard() {
 }
 
 function renderHeader() {
-  const focusNode = focusedNodeId();
-  const isUnclassified = focusNode === UNCLASSIFIED_NODE_ID;
-  const node = focusNode ? nodeById()[focusNode] : null;
   const products = filteredCatalogProducts();
-  const activePane = state.operation.type
-    ? (state.activePane === "target" ? "Destino activo" : "Origen activo")
-    : "";
-  $("crumbs").textContent = activePane || (isUnclassified ? "Productos sin ubicacion" : node ? "Nodo seleccionado" : "Catalogo completo");
-  $("sectionTitle").textContent = isUnclassified ? "No clasificados" : "Productos";
   $("visibleProducts").textContent = products.length;
   $("pendingCount").textContent = products.filter((p) => p.status === "pending" || p.status === "suggested").length;
   $("validatedCount").textContent = products.filter((p) => p.status === "validated").length;
@@ -1145,9 +1195,11 @@ function uniqueFilterValues(rows, key, valueGetter, query = "", limit = 220) {
 
 function activeCatalogAttributeKeys(limit = 8, rows = visibleProducts()) {
   const keys = [];
-  const preferred = [state.activeProductListId, ...activeHierarchyLinkedListIds()].filter(Boolean);
+  const activeListId = activeHierarchyLinkedListIds().includes(state.activeProductListId)
+    ? state.activeProductListId
+    : "";
   rows.forEach((product) => {
-    Object.keys(mergedProductAttributes(product, preferred)).filter(isUsableAttributeKey).forEach((key) => {
+    Object.keys(activeListId ? productListAttributes(product, activeListId) : {}).filter(isUsableAttributeKey).forEach((key) => {
       if (!keys.includes(key)) keys.push(key);
     });
   });
@@ -1163,7 +1215,9 @@ function productSortValue(product, key) {
     return node ? pathFor(node.id).map((n) => n.name).join(" / ") : "No clasificado";
   }
   if (key === "estado") return statusLabels[product.status] || "Pendiente";
-  const attrs = mergedProductAttributes(product, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
+  const attrs = activeHierarchyLinkedListIds().includes(state.activeProductListId)
+    ? productListAttributes(product, state.activeProductListId)
+    : {};
   return attrs[key] || "";
 }
 
@@ -1232,7 +1286,9 @@ function renderProducts() {
       const productId = cellText(p.id);
       const checked = state.selectedProducts.has(productId) ? "checked" : "";
       const selected = state.selectedProduct === productId ? " selected" : "";
-      const attrMap = mergedProductAttributes(p, [state.activeProductListId, ...activeHierarchyLinkedListIds()]);
+      const attrMap = activeHierarchyLinkedListIds().includes(state.activeProductListId)
+        ? productListAttributes(p, state.activeProductListId)
+        : {};
       const status = p.status || "pending";
       const statusLetter = { pending: "P", suggested: "S", corrected: "C", validated: "V" }[status] || "P";
       return `
@@ -1353,7 +1409,7 @@ function listAttributeKeys(listId, limit = 18) {
   const keys = [];
   data.products.forEach((product) => {
     if (!(product.listIds || []).includes(listId)) return;
-    Object.keys(mergedProductAttributes(product, [listId])).filter(isUsableAttributeKey).forEach((key) => {
+    Object.keys(productListAttributes(product, listId)).filter(isUsableAttributeKey).forEach((key) => {
       if (!keys.includes(key)) keys.push(key);
     });
   });
@@ -1363,7 +1419,7 @@ function listAttributeKeys(listId, limit = 18) {
 function listSortValue(product, key) {
   if (key === "cod") return cellText(product.id);
   if (key === "nom") return cellText(product.name);
-  return mergedProductAttributes(product, [state.activeProductListId])[key] || "";
+  return productListAttributes(product, state.activeProductListId)[key] || "";
 }
 
 function baseListProducts(list = activeProductList()) {
@@ -1397,7 +1453,7 @@ function renderListView() {
     const renderedRows = rows.slice(0, state.listRenderLimit);
     const remaining = rows.length - renderedRows.length;
     rowsEl.innerHTML = rows.length ? renderedRows.map((product) => {
-      const attrs = mergedProductAttributes(product, [list.id]);
+      const attrs = productListAttributes(product, list.id);
       return `
         <tr class="list-row" data-product="${cellText(product.id)}">
           <td class="code code-col">${cellText(product.id)}</td>
@@ -1833,6 +1889,7 @@ function setActionStates() {
   const deleteHierarchyBtn = $("deleteHierarchyBtn");
   const deleteListBtn = $("deleteListBtn");
   const connectListBtn = $("connectListBtn");
+  const connectCatalogListBtn = $("connectCatalogListBtn");
   const disconnectCatalogListBtn = $("disconnectCatalogListBtn");
   const disconnectListFromHierarchyBtn = $("disconnectListFromHierarchyBtn");
   const loginBtn = $("firebaseLoginBtn");
@@ -1874,6 +1931,9 @@ function setActionStates() {
   }
   if (connectListBtn) {
     connectListBtn.disabled = !activeHierarchy() || !activeProductList() || productListCount(activeProductList().id) === 0;
+  }
+  if (connectCatalogListBtn) {
+    connectCatalogListBtn.disabled = !activeHierarchy() || data.productLists.every((list) => activeHierarchyLinkedListIds().includes(list.id));
   }
   if (disconnectCatalogListBtn) {
     disconnectCatalogListBtn.disabled = !activeHierarchyLinkedListIds().length || !$("catalogLinkedListSelect")?.value;
@@ -3692,6 +3752,7 @@ function finishHierarchyLoad(config, fileName, hierarchyId, added, touched, elap
   const finalProductCount = data.products.filter((product) => product.assignments?.[hierarchyId]).length;
   logLoad("resultado jerarquia sola", { hierarchyId, added, touched, finalNodeCount, finalProductCount, activeHierarchyId: state.activeHierarchyId });
   addChange("Jerarquia cargada", `${fileName}: ${added} nodo(s) nuevos desde ${touched} fila(s)${merged ? `; ${merged} duplicado(s) consolidados` : ""}.`);
+  flushWorkspaceSaveSoon();
   config.innerHTML = `
     <div class="load-flow">
       <span>1. Tipo de carga</span>
@@ -3846,9 +3907,10 @@ function applyMappedHierarchyProductsLoad() {
     state.expandedNodes = new Set(activeNodes().filter((node) => node.level < 2).map((node) => node.id));
     const omitted = result.skippedNoCode + result.skippedNoNode;
     const finalAssigned = data.products.filter((product) => product.assignments?.[hierarchyId]).length;
-    logLoad("resultado jerarquia con productos", { hierarchyId, uniqueAssigned: result.uniqueAssigned, finalAssigned, addedProducts: result.addedProducts, reusedProducts: result.reusedProducts, skippedNoCode: result.skippedNoCode, skippedNoNode: result.skippedNoNode, mergedNodes, samples: result.samples });
+    logLoad("resultado jerarquia con productos", { hierarchyId, uniqueAssigned: result.uniqueAssigned, finalAssigned, addedProducts: result.addedProducts, reusedProducts: result.reusedProducts, descriptionConflicts: result.descriptionConflicts, skippedNoCode: result.skippedNoCode, skippedNoNode: result.skippedNoNode, mergedNodes, samples: result.samples });
     const productLoadFailed = finalAssigned === 0 || result.uniqueAssigned === 0;
     addChange("Jerarquia con productos cargada", `${fileName}: ${result.uniqueAssigned} codigo(s) ubicados, ${result.addedProducts} nuevo(s), ${result.reusedProducts} reutilizado(s), ${omitted} fila(s) omitida(s)${mergedNodes ? `, ${mergedNodes} nodo(s) duplicados consolidados` : ""}.`);
+    flushWorkspaceSaveSoon();
     config.innerHTML = `
       <div class="load-flow">
         <span>1. Tipo de carga</span>
@@ -3864,6 +3926,7 @@ function applyMappedHierarchyProductsLoad() {
         <div class="load-pill"><strong>${result.totalRows}</strong> filas revisadas</div>
         <div class="load-pill"><strong>${result.addedProducts}</strong> productos nuevos</div>
         <div class="load-pill"><strong>${result.reusedProducts}</strong> productos ya existentes reutilizados</div>
+        <div class="load-pill"><strong>${result.descriptionConflicts}</strong> nombres diferentes advertidos</div>
         <div class="load-pill"><strong>${result.duplicateRows}</strong> filas con codigo repetido</div>
         <div class="load-pill"><strong>${omitted}</strong> filas omitidas</div>
         <div class="load-pill"><strong>${result.addedNodes}</strong> nodos nuevos</div>
@@ -3872,10 +3935,11 @@ function applyMappedHierarchyProductsLoad() {
         <div class="load-pill"><strong>${((performance.now() - startedAt) / 1000).toFixed(1)}s</strong> tiempo de carga</div>
       </div>
       ${productLoadFailed ? `<div class="load-error"><strong>No quedaron productos asociados</strong><span>Esto es un error de carga, no una carga exitosa. Revisa en el diagnostico si hubo filas sin codigo (${result.skippedNoCode}) o sin ruta (${result.skippedNoNode}).</span></div>` : ""}
-      ${omitted || result.duplicateRows ? `
+      ${omitted || result.duplicateRows || result.descriptionConflicts ? `
         <div class="rule-note">
           Omitidas: ${result.skippedNoCode} sin codigo de producto y ${result.skippedNoNode} sin ruta de jerarquia. 
           Repetidas: ${result.duplicateRows} fila(s) traian un codigo ya visto en el mismo archivo; queda una sola ubicacion final por codigo dentro de esta jerarquia.
+          Nombres diferentes: ${result.descriptionConflicts}; se conservo la ficha maestra y el nombre entrante quedo registrado como alternativo.
         </div>
       ` : ""}
     `;
@@ -3891,6 +3955,7 @@ function processHierarchyProductRows(rows, mappings, hierarchyId, productCodeCol
   let addedProducts = 0;
   let reusedProducts = 0;
   let duplicateRows = 0;
+  let descriptionConflicts = 0;
   let skippedNoCode = 0;
   let skippedNoNode = 0;
   let index = 0;
@@ -3900,6 +3965,7 @@ function processHierarchyProductRows(rows, mappings, hierarchyId, productCodeCol
   const existingCodesBeforeLoad = new Set(productIndex.keys());
   const assignedCodes = new Set();
   const reusedCodes = new Set();
+  const conflictCodes = new Set();
   const samples = { noCode: [], noNode: [], assigned: [] };
   setProcessingState(true, progressMessage("Cargando jerarquia y productos", 0, total, "Asignando cada producto a su ruta."));
   const step = () => {
@@ -3932,14 +3998,22 @@ function processHierarchyProductRows(rows, mappings, hierarchyId, productCodeCol
       }
       if (assignedCodes.has(productCode)) duplicateRows += 1;
       let product = productIndex.get(productCode);
+      const incomingName = productDescCol === "" ? "" : cellText(row[Number(productDescCol)]);
       if (!product) {
-        product = { id: productCode, name: productDescCol === "" ? productCode : (cellText(row[Number(productDescCol)]) || productCode), originalNode: null, node: deepest, status: "pending", price: 0, listIds: ["base"], listAttributes: {}, assignments: {} };
+        product = { id: productCode, name: incomingName || productCode, originalNode: null, node: deepest, status: "pending", price: 0, listIds: ["base"], listAttributes: {}, assignments: {} };
         data.products.push(product);
         productIndex.set(productCode, product);
         addedProducts += 1;
       } else if (existingCodesBeforeLoad.has(productCode) && !reusedCodes.has(productCode)) {
         reusedProducts += 1;
         reusedCodes.add(productCode);
+      }
+      if (product && incomingName && product.name && normalizeHeader(product.name) !== normalizeHeader(incomingName)) {
+        product.altNames = Array.from(new Set([...(product.altNames || []), incomingName]));
+        if (!conflictCodes.has(productCode)) {
+          conflictCodes.add(productCode);
+          descriptionConflicts += 1;
+        }
       }
       product.assignments = product.assignments || {};
       product.assignments[hierarchyId] = deepest;
@@ -3956,6 +4030,7 @@ function processHierarchyProductRows(rows, mappings, hierarchyId, productCodeCol
         uniqueAssigned: assignedCodes.size,
         addedProducts,
         reusedProducts,
+        descriptionConflicts,
         duplicateRows,
         skippedNoCode,
         skippedNoNode,
@@ -4138,7 +4213,6 @@ function applyMappedProductLoad(type) {
       product.listIds = (product.listIds || []).filter((id) => id !== listId);
       if (product.listAttributes) delete product.listAttributes[listId];
     });
-    data.hierarchyListLinks.splice(0, data.hierarchyListLinks.length, ...(data.hierarchyListLinks || []).filter((link) => link.listId !== listId));
   }
   processProductRows(rows, { type, listId, codeCol, descCol, attrCols, headers }, (result) => {
     setProcessingState(false);
@@ -4148,8 +4222,10 @@ function applyMappedProductLoad(type) {
     conflicts = result.conflicts;
     const list = data.productLists.find((item) => item.id === listId);
     if (list) list.products = result.listProductCount;
+    refreshListConnectionStats(listId);
     state.activeProductListId = listId;
     addChange("Productos cargados", `${fileName}: ${added} nuevo(s), ${enriched} enriquecido(s), ${skipped} omitido(s), ${conflicts} advertencia(s).`);
+    flushWorkspaceSaveSoon();
     config.innerHTML = `
       <div class="load-flow">
         <span>1. Tipo de carga</span>
@@ -4349,8 +4425,8 @@ async function deleteCollectionDocs(collectionName, idPrefix = "") {
   return items.length;
 }
 
-async function saveAdminStateToFirebaseSilent() {
-  if (!firebaseReady || !firebaseUser || importInProgress || !firebaseDirty) return;
+async function saveAdminStateToFirebaseSilent({ force = false, rethrow = false } = {}) {
+  if (!firebaseReady || !firebaseUser || importInProgress || (!firebaseDirty && !force)) return false;
   try {
     updateAutosaveStatus("saving", "Guardando espacio compartido DEV...");
     const snapshot = adminSnapshot();
@@ -4384,9 +4460,12 @@ async function saveAdminStateToFirebaseSilent() {
     });
     firebaseDirty = false;
     updateAutosaveStatus("saved", `Espacio compartido DEV guardado. Ultima sincronizacion ${new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}.`);
+    return true;
   } catch (error) {
     firebaseDirty = true;
     updateAutosaveStatus("error", `No se pudo guardar el espacio compartido DEV: ${error.message || error}`);
+    if (rethrow) throw error;
+    return false;
   }
 }
 
@@ -5012,6 +5091,10 @@ async function publishToFirebase() {
   const runPublishViews = async ({ oldHierarchyId = "", newHierarchyId = "" } = {}) => {
     if (!oldHierarchyId && !newHierarchyId) throw new Error("Selecciona al menos una vista para publicar.");
     if (oldHierarchyId && newHierarchyId && oldHierarchyId === newHierarchyId) throw new Error("Catalogo Antiguo y Catalogo Nuevo deben usar jerarquias distintas.");
+    if (firebaseDirty) {
+      updateProcessingStatus("Guardando primero el espacio editable y sus conexiones...");
+      await saveAdminStateToFirebaseSilent({ rethrow: true });
+    }
     const payload = buildCatalogViewsPackagePayload({ env: "dev", oldHierarchyId, newHierarchyId, chunkSize: 250 });
     setProcessingState(true, "Preparando vistas FitFlow DEV...");
     await new Promise((resolve) => window.setTimeout(resolve, 0));
@@ -6297,6 +6380,7 @@ $("exportBtn").addEventListener("click", openExportModal);
 $("duplicateHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); duplicateActiveHierarchy(); });
 $("deleteHierarchyBtn").addEventListener("click", () => { closeHierarchyActions(); deleteActiveHierarchy(); });
 $("connectListBtn")?.addEventListener("click", connectActiveListToHierarchy);
+$("connectCatalogListBtn")?.addEventListener("click", openConnectCatalogListModal);
 $("disconnectCatalogListBtn")?.addEventListener("click", disconnectActiveCatalogList);
 $("deleteListBtn").addEventListener("click", deleteActiveProductList);
 $("connectListToSelectedHierarchyBtn").addEventListener("click", openConnectListModal);
