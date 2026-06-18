@@ -740,8 +740,18 @@ select{
 .confidence-pill.medium{background:#fff1d8;color:#8a560e}
 .confidence-pill.low{background:#fae8eb;color:#8b3e4a}
 .assistant-candidate p{font-size:12px;line-height:1.4;color:#42574d}
+.assistant-evidence{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border-radius:8px;background:#f5f8f5;font-size:10px;color:var(--muted)}
+.assistant-evidence strong{font-size:11px;color:var(--ink);white-space:nowrap}
 .assistant-comparables{font-size:11px;color:var(--muted)}
 .assistant-comparables ul{margin:5px 0 0;padding-left:17px;display:grid;gap:3px}
+.assistant-diagnostics{border-top:1px solid var(--line);padding-top:7px}
+.assistant-diagnostics summary{cursor:pointer;font-size:10px;font-weight:850;color:#286847}
+.assistant-diagnostics ul{list-style:none;margin:7px 0 0;padding:0;display:grid;gap:4px}
+.assistant-diagnostics li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted)}
+.assistant-diagnostics li strong{color:#28744d}
+.assistant-diagnostics li strong.negative{color:#a04752}
+.assistant-no-candidates{grid-column:1 / -1;border:1px dashed #d7b16c;background:#fff8e8;border-radius:12px;padding:14px;display:grid;gap:4px;color:#6c430f}
+.assistant-no-candidates span{font-size:12px;line-height:1.4}
 .assistant-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto}
 .assistant-actions .primary-btn,.assistant-actions .ghost-btn{padding:8px 10px;font-size:11px}
 .assistant-node-content{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:300px}

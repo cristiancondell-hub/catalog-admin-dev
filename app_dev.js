@@ -5196,7 +5196,7 @@ const classificationLexicon = {
     "PVC": ["pvc"],
     "CPVC": ["cpvc", "aquatherm"],
     "HDPE": ["hdpe", "pead", "polietileno alta densidad"],
-    "Polietileno": ["polietileno", "poliet", "poly"],
+    "Polietileno": ["polietileno", "poliet", "poly", "pe"],
     "PPR": ["ppr", "polipropileno random"],
     "Bronce": ["bronce", "bronze"],
     "Cobre": ["cobre", "cu"],
@@ -5227,18 +5227,18 @@ const classificationLexicon = {
     "Aspersor": ["aspersor", "microaspersor", "gotero", "emisor"]
   },
   connection: {
-    "Rosca interior": ["hi ", "hilo interior", "rosca interior", "hembra"],
-    "Rosca exterior": ["he ", "hilo exterior", "rosca exterior", "macho"],
-    "Soldar": ["soldar", "soldable"],
-    "Cementar": ["cementar", "cementado", "cementar"],
+    "Rosca interior": ["hi", "hilo interior", "rosca interior", "hembra", "ri"],
+    "Rosca exterior": ["he", "hilo exterior", "rosca exterior", "macho", "re"],
+    "Soldar": ["soldar", "soldable", "so"],
+    "Cementar": ["cementar", "cementado", "cementar", "cem"],
     "Electrofusion": ["electrofusion", "electrofusion"],
     "Termofusion": ["termofusion"],
     "Compresion": ["compresion", "compression"],
     "Espiga": ["espiga", "insert"]
   },
   system: {
-    "Hidraulico a presion": ["hidraul", "presion", "c-6", "c-10", "c-16"],
-    "Sanitario": ["sanitario", "alcantarill", "colector", "desague"],
+    "Hidraulico a presion": ["hidraulico", "hidraulica", "hid", "presion", "c 6", "c 10", "c 16"],
+    "Sanitario": ["sanitario", "sanit", "alcantarillado", "colector", "desague"],
     "Riego": ["riego", "aspersor", "gotero", "emisor", "layflat"],
     "Bombeo": ["bomba", "bombeo", "centrifuga", "sumergible", "achique"],
     "Piscinas": ["piscina", "spa", "jacuzzi"],
@@ -5248,7 +5248,7 @@ const classificationLexicon = {
 };
 
 const classificationStopWords = new Set([
-  "de", "del", "la", "el", "los", "las", "para", "con", "sin", "por", "tipo", "x", "mm", "mt", "mts", "un", "una"
+  "de", "del", "la", "el", "los", "las", "para", "con", "sin", "por", "tipo", "x", "mt", "mts", "un", "una"
 ]);
 
 function classificationText(value) {
@@ -5264,37 +5264,172 @@ function classificationTokens(value) {
   return classificationText(value).split(" ").filter((token) => token.length > 1 && !classificationStopWords.has(token));
 }
 
+const classificationCertainty = {
+  material: {
+    CPVC: "high", HDPE: "high", PPR: "high", "Acero inoxidable": "high",
+    PVC: "medium", Polietileno: "medium", Bronce: "medium", Cobre: "medium",
+    "Acero carbono": "medium", "Fierro fundido": "medium", Galvanizado: "medium", Plastico: "low"
+  },
+  piece: {
+    Bomba: "high", Tuberia: "high", Valvula: "high", Filtro: "high", Flotador: "high",
+    Codo: "medium", Tee: "medium", Copla: "medium", Reduccion: "medium", Terminal: "medium",
+    Collarin: "medium", Brida: "medium", Niple: "medium", Tapon: "medium", Union: "medium",
+    Adaptador: "medium", Cruz: "medium", Aspersor: "medium"
+  },
+  connection: {
+    Electrofusion: "high", Termofusion: "high", Compresion: "high",
+    "Rosca interior": "medium", "Rosca exterior": "medium", Soldar: "medium",
+    Cementar: "medium", Espiga: "medium"
+  },
+  system: {
+    Gas: "high", Sanitario: "high", Riego: "high", Bombeo: "high", Piscinas: "high",
+    Electrico: "high", "Hidraulico a presion": "medium"
+  }
+};
+
+const classificationSynonyms = new Map([
+  ["cupla", "copla"],
+  ["pead", "hdpe"],
+  ["polietileno alta densidad", "hdpe"],
+  ["aquatherm", "cpvc"],
+  ["electro fusion", "electrofusion"],
+  ["termo fusion", "termofusion"],
+  ["fierro galvanizado", "galvanizado"],
+  ["hierro galvanizado", "galvanizado"]
+]);
+
+function normalizedClassificationSource(value) {
+  let text = classificationText(value);
+  [...classificationSynonyms.entries()]
+    .sort((a, b) => b[0].length - a[0].length)
+    .forEach(([from, to]) => {
+      text = ` ${text} `.replace(new RegExp(` ${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} `, "g"), ` ${to} `).trim();
+    });
+  return text;
+}
+
+function containsClassificationAlias(text, alias) {
+  const cleanAlias = normalizedClassificationSource(alias);
+  if (!cleanAlias) return false;
+  return ` ${text} `.includes(` ${cleanAlias} `);
+}
+
+function extractTechnicalAttributes(value) {
+  const raw = cellText(value)
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const dimensions = [];
+  const classes = [];
+  const norms = [];
+  const colors = [];
+  const uses = [];
+  const shapes = [];
+  let match;
+  const dimensionPattern = /(?:^|[^\d])(\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?)\s*(mm|cm|pulg(?:ada)?s?|")(?=$|[^\w])/g;
+  while ((match = dimensionPattern.exec(raw))) {
+    dimensions.push(`${String(match[1]).replace(/\s+/g, "").replace(",", ".")}${match[2] === '"' ? "pulg" : match[2]}`);
+  }
+  const fractionInchPattern = /(?:^|[^\d])(\d+\s*\/\s*\d+)(?=$|[^\d])/g;
+  while ((match = fractionInchPattern.exec(raw))) {
+    dimensions.push(`${String(match[1]).replace(/\s+/g, "")}pulg`);
+  }
+  const classPattern = /\b(pn\s*\d+|sn\s*\d+|c\s*[- ]\s*\d+|clase\s*\d+)\b/g;
+  while ((match = classPattern.exec(raw))) classes.push(classificationText(match[1]).replace(/\s+/g, ""));
+  ["npt", "bsp", "din", "ansi", "astm", "nsf", "iram"].forEach((norm) => {
+    if (new RegExp(`\\b${norm}\\b`, "i").test(raw)) norms.push(norm.toUpperCase());
+  });
+  ["gris", "blanco", "azul", "negro", "verde"].forEach((color) => {
+    if (new RegExp(`\\b${color}\\b`, "i").test(raw)) colors.push(color);
+  });
+  [
+    ["Incendio", /\bincendio\b/],
+    ["Gas", /\b(?:gas|glp)\b/],
+    ["Potable", /\bpotable\b/],
+    ["Alcantarillado", /\b(?:alcantarillado|colector)\b/],
+    ["Piscina", /\b(?:piscina|spa|jacuzzi)\b/]
+  ].forEach(([label, pattern]) => { if (pattern.test(raw)) uses.push(label); });
+  [
+    ["Largo", /\blargo\b/], ["Corto", /\bcorto\b/], ["Recto", /\brect[oa]\b/],
+    ["Excentrico", /\bexcentr/i], ["Concentrico", /\bconcentr/i]
+  ].forEach(([label, pattern]) => { if (pattern.test(raw)) shapes.push(label); });
+  return {
+    dimensions: [...new Set(dimensions)],
+    classes: [...new Set(classes)],
+    norms: [...new Set(norms)],
+    colors: [...new Set(colors)],
+    uses: [...new Set(uses)],
+    shapes: [...new Set(shapes)]
+  };
+}
+
 function extractClassificationProfile(value) {
-  const text = ` ${classificationText(value)} `;
-  const profile = { material: [], piece: [], connection: [], system: [], tokens: classificationTokens(text) };
+  const text = normalizedClassificationSource(value);
+  const technical = extractTechnicalAttributes(value);
+  const profile = {
+    material: [], piece: [], connection: [], system: [],
+    tokens: classificationTokens(text),
+    certainty: { material: {}, piece: {}, connection: {}, system: {} },
+    ...technical
+  };
   Object.entries(classificationLexicon).forEach(([kind, values]) => {
     Object.entries(values).forEach(([label, aliases]) => {
-      if (aliases.some((alias) => text.includes(` ${classificationText(alias)} `) || text.includes(classificationText(alias)))) {
+      if (aliases.some((alias) => containsClassificationAlias(text, alias))) {
         profile[kind].push(label);
+        profile.certainty[kind][label] = classificationCertainty[kind]?.[label] || "medium";
       }
     });
   });
-  if (text.includes(" gris ") || text.includes(" colector ")) profile.system.push("Sanitario");
-  if (text.includes(" blanco ") && !profile.system.length) profile.system.push("Sanitario");
+  if (containsClassificationAlias(text, "colector")) {
+    profile.system.push("Sanitario");
+    profile.certainty.system.Sanitario = "high";
+  } else if (profile.colors.includes("gris")) {
+    profile.system.push("Sanitario");
+    profile.certainty.system.Sanitario = "medium";
+  }
+  if (
+    profile.colors.includes("blanco")
+    && !profile.system.length
+    && !containsClassificationAlias(text, "presion")
+    && !containsClassificationAlias(text, "hidraulico")
+    && profile.piece.some((item) => ["Codo", "Tee", "Copla", "Reduccion", "Terminal", "Tuberia", "Union", "Adaptador", "Cruz"].includes(item))
+  ) {
+    profile.system.push("Sanitario");
+    profile.certainty.system.Sanitario = "medium";
+  }
   if (profile.connection.some((item) => ["Electrofusion", "Termofusion"].includes(item)) && !profile.material.includes("HDPE")) {
     profile.material.push("HDPE");
+    profile.certainty.material.HDPE = "high";
   }
-  Object.keys(profile).forEach((key) => {
-    if (Array.isArray(profile[key])) profile[key] = [...new Set(profile[key])];
-  });
+  if (profile.classes.some((item) => /^pn\d+$|^c\d+$/.test(item)) && !profile.system.includes("Hidraulico a presion")) {
+    profile.system.push("Hidraulico a presion");
+    profile.certainty.system["Hidraulico a presion"] = "high";
+  }
+  if (profile.classes.some((item) => /^sn\d+$/.test(item)) && !profile.system.includes("Sanitario")) {
+    profile.system.push("Sanitario");
+    profile.certainty.system.Sanitario = "high";
+  }
+  ["material", "piece", "connection", "system", "tokens", "dimensions", "classes", "norms", "colors", "uses", "shapes"]
+    .forEach((key) => { profile[key] = [...new Set(profile[key] || [])]; });
   return profile;
 }
 
 function mergeClassificationProfiles(products) {
-  const counts = { material: new Map(), piece: new Map(), connection: new Map(), system: new Map(), tokens: new Map() };
+  const arrayKeys = ["material", "piece", "connection", "system", "tokens", "dimensions", "classes", "norms", "colors", "uses", "shapes"];
+  const counts = Object.fromEntries(arrayKeys.map((key) => [key, new Map()]));
+  const certainty = { material: {}, piece: {}, connection: {}, system: {} };
   products.forEach((product) => {
     const attrs = Object.values(mergedProductAttributes(product, product.listIds || [])).join(" ");
     const profile = extractClassificationProfile(`${product.name} ${attrs}`);
-    Object.keys(counts).forEach((kind) => {
+    arrayKeys.forEach((kind) => {
       (profile[kind] || []).forEach((value) => counts[kind].set(value, (counts[kind].get(value) || 0) + 1));
     });
+    ["material", "piece", "connection", "system"].forEach((kind) => {
+      Object.entries(profile.certainty[kind] || {}).forEach(([label, level]) => {
+        if (level === "high" || !certainty[kind][label]) certainty[kind][label] = level;
+      });
+    });
   });
-  const threshold = Math.max(1, Math.ceil(products.length * 0.34));
+  const threshold = Math.max(1, Math.ceil(products.length * 0.4));
   const merged = {};
   Object.entries(counts).forEach(([kind, map]) => {
     merged[kind] = [...map.entries()]
@@ -5303,15 +5438,18 @@ function mergeClassificationProfiles(products) {
       .map(([value]) => value);
   });
   merged.counts = counts;
+  merged.certainty = certainty;
   return merged;
 }
 
 function profileSignature(product) {
-  const profile = extractClassificationProfile(product.name);
+  const attrs = Object.values(mergedProductAttributes(product, product.listIds || [])).join(" ");
+  const profile = extractClassificationProfile(`${product.name} ${attrs}`);
   return [
     profile.material[0] || "material?",
     profile.system[0] || "sistema?",
-    profile.piece[0] || "pieza?"
+    profile.piece[0] || "pieza?",
+    profile.connection[0] || "conexion?"
   ].join("|");
 }
 
@@ -5337,11 +5475,14 @@ function groupAssistantProducts(products) {
 function buildAssistantNodeIndex() {
   const map = new Map(activeNodes().map((node) => [node.id, []]));
   map.directCounts = new Map(activeNodes().map((node) => [node.id, 0]));
+  map.directSamples = new Map(activeNodes().map((node) => [node.id, []]));
   const nodes = nodeById();
   data.products.forEach((product) => {
     const assignedNode = productNode(product);
     if (map.directCounts.has(assignedNode)) {
       map.directCounts.set(assignedNode, (map.directCounts.get(assignedNode) || 0) + 1);
+      const direct = map.directSamples.get(assignedNode);
+      if (direct && direct.length < 80) direct.push(product);
     }
     let current = nodes[assignedNode];
     while (current && nodeHierarchy(current) === state.activeHierarchyId) {
@@ -5380,10 +5521,16 @@ function productsAlreadyInNode(products, nodeId) {
 
 function nodeAssistantCorpus(node, assistantIndex) {
   const pathText = pathFor(node.id).map((item) => item.name).join(" ");
-  const samples = assistantIndex?.get(node.id) || [];
+  const directSamples = assistantIndex?.directSamples?.get(node.id) || [];
+  const branchSamples = assistantIndex?.get(node.id) || [];
+  const samples = directSamples.length >= 3
+    ? directSamples.slice(0, 40)
+    : [...directSamples, ...branchSamples.filter((product) => !directSamples.includes(product))].slice(0, 20);
   return {
     text: `${pathText} ${samples.map((product) => product.name).join(" ")}`,
-    samples
+    samples,
+    directSamples,
+    evidenceMode: directSamples.length >= 3 ? "direct" : directSamples.length ? "mixed" : "branch"
   };
 }
 
@@ -5394,6 +5541,55 @@ function tokenSimilarity(leftTokens, rightTokens) {
   let common = 0;
   left.forEach((token) => { if (right.has(token)) common += 1; });
   return common / Math.max(left.size, Math.min(12, right.size));
+}
+
+function profileCertainty(profile, kind, label) {
+  return profile?.certainty?.[kind]?.[label] || "medium";
+}
+
+function explicitProfileConflict(selectionProfile, nodeProfile) {
+  const conflicts = [];
+  const selectionHighMaterials = (selectionProfile.material || []).filter((item) => profileCertainty(selectionProfile, "material", item) === "high");
+  const nodeHighMaterials = (nodeProfile.material || []).filter((item) => profileCertainty(nodeProfile, "material", item) === "high");
+  if (selectionHighMaterials.length && nodeHighMaterials.length && !selectionHighMaterials.some((item) => nodeHighMaterials.includes(item))) {
+    conflicts.push(`material incompatible: ${selectionHighMaterials.join(", ")} vs ${nodeHighMaterials.join(", ")}`);
+  }
+  const selectionHighSystems = (selectionProfile.system || []).filter((item) => profileCertainty(selectionProfile, "system", item) === "high");
+  const nodeHighSystems = (nodeProfile.system || []).filter((item) => profileCertainty(nodeProfile, "system", item) === "high");
+  if (
+    selectionHighSystems.length && nodeHighSystems.length
+    && !selectionHighSystems.some((item) => nodeHighSystems.includes(item))
+    && (
+      selectionHighSystems.includes("Gas") || nodeHighSystems.includes("Gas")
+      || (selectionHighSystems.includes("Sanitario") && nodeHighSystems.includes("Hidraulico a presion"))
+      || (selectionHighSystems.includes("Hidraulico a presion") && nodeHighSystems.includes("Sanitario"))
+    )
+  ) {
+    conflicts.push(`sistema incompatible: ${selectionHighSystems.join(", ")} vs ${nodeHighSystems.join(", ")}`);
+  }
+  if (
+    selectionProfile.piece?.includes("Bomba")
+    && nodeProfile.piece?.length
+    && !nodeProfile.piece.includes("Bomba")
+    && nodeProfile.piece.some((item) => ["Codo", "Tee", "Copla", "Reduccion", "Brida", "Niple"].includes(item))
+  ) {
+    conflicts.push("una bomba no debe ubicarse en un nodo explícito de fittings");
+  }
+  return conflicts;
+}
+
+function comparableProductEvidence(selectionProfile, selectionTokens, product) {
+  const attrs = Object.values(mergedProductAttributes(product, product.listIds || [])).join(" ");
+  const profile = extractClassificationProfile(`${product.name} ${attrs}`);
+  let score = tokenSimilarity(selectionTokens, profile.tokens) * 15;
+  ["material", "system", "piece", "connection"].forEach((kind) => {
+    const wanted = selectionProfile[kind] || [];
+    if (wanted.some((item) => profile[kind]?.includes(item))) score += { material: 18, system: 14, piece: 14, connection: 10 }[kind];
+  });
+  if (selectionProfile.classes?.some((item) => profile.classes.includes(item))) score += 8;
+  if (selectionProfile.norms?.some((item) => profile.norms.includes(item))) score += 6;
+  if (selectionProfile.dimensions?.some((item) => profile.dimensions.includes(item))) score += 4;
+  return score;
 }
 
 function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, sourceNodeId = null, nodeMove = false, allowGrouping = false) {
@@ -5409,32 +5605,76 @@ function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, s
 
   const corpus = nodeAssistantCorpus(node, assistantIndex);
   const nodeProfile = extractClassificationProfile(corpus.text);
+  const conflicts = explicitProfileConflict(collectiveProfile, nodeProfile);
+  if (conflicts.length) return null;
   const selectionTokens = collectiveProfile.tokens || [];
-  let score = tokenSimilarity(selectionTokens, nodeProfile.tokens) * 28;
+  const textScore = tokenSimilarity(selectionTokens, nodeProfile.tokens) * 15;
+  let score = textScore;
   const reasons = [];
-  const weights = { material: 30, piece: 24, connection: 18, system: 26 };
+  const diagnostics = [{ label: "Similitud textual", value: Math.round(textScore) }];
+  const weights = { material: 40, piece: 28, connection: 22, system: 32 };
 
   ["material", "piece", "connection", "system"].forEach((kind) => {
     const wanted = collectiveProfile[kind] || [];
     if (!wanted.length) return;
     const matches = wanted.filter((item) => nodeProfile[kind].includes(item));
     if (matches.length) {
-      score += weights[kind] * (matches.length / wanted.length);
+      const certaintyFactor = kind === "material" && matches.every((item) => profileCertainty(collectiveProfile, kind, item) !== "high") ? 0.65 : 1;
+      const contribution = weights[kind] * certaintyFactor * (matches.length / wanted.length);
+      score += contribution;
+      diagnostics.push({ label: `${kind === "piece" ? "Pieza" : kind}`, value: Math.round(contribution) });
       reasons.push(`${kind === "piece" ? "tipo de pieza" : kind}: ${matches.join(", ")}`);
-    } else if (nodeProfile[kind].length && ["material", "system"].includes(kind)) {
-      score -= 18;
+    } else if (nodeProfile[kind].length && kind === "material") {
+      const penalty = wanted.some((item) => profileCertainty(collectiveProfile, kind, item) === "high") ? -45 : -20;
+      score += penalty;
+      diagnostics.push({ label: "Material diferente", value: penalty });
+    } else if (nodeProfile[kind].length && kind === "system") {
+      score -= 35;
+      diagnostics.push({ label: "Sistema diferente", value: -35 });
+    } else if (nodeProfile[kind].length && kind === "connection") {
+      score -= 15;
+      diagnostics.push({ label: "Conexión diferente", value: -15 });
     }
   });
 
-  if (!nodeMove) score += node.level === 3 ? 9 : node.level === 2 ? 5 : 0;
-  if (corpus.samples.length) score += Math.min(10, corpus.samples.length / 4);
-  if (sourceNodeId && node.id === nodeById()[sourceNodeId]?.parent) score -= 24;
+  if (!nodeMove) {
+    const levelBonus = node.level === 3 ? 9 : node.level === 2 ? 5 : 0;
+    score += levelBonus;
+    if (levelBonus) diagnostics.push({ label: "Nivel final", value: levelBonus });
+  }
 
-  const comparable = corpus.samples
-    .map((product) => ({ product, similarity: tokenSimilarity(selectionTokens, classificationTokens(product.name)) }))
-    .sort((a, b) => b.similarity - a.similarity)
+  const comparableScored = corpus.samples
+    .map((product) => ({ product, similarity: comparableProductEvidence(collectiveProfile, selectionTokens, product) }))
+    .sort((a, b) => b.similarity - a.similarity);
+  const comparable = comparableScored
+    .filter((item) => item.similarity >= 18)
     .slice(0, 3)
     .map((item) => item.product);
+  const directComparableCount = comparable.filter((product) => corpus.directSamples.includes(product)).length;
+  const bestComparable = comparableScored[0]?.similarity || 0;
+  const comparableBonus = comparable.length ? Math.min(18, Math.round(bestComparable / 4)) : 0;
+  score += comparableBonus;
+  if (comparableBonus) {
+    diagnostics.push({ label: corpus.evidenceMode === "direct" ? "Productos directos similares" : "Productos similares", value: comparableBonus });
+    reasons.push(`${comparable.length} producto(s) comparable(s) ${corpus.evidenceMode === "direct" ? "directos" : "en la rama"}`);
+  }
+  if (collectiveProfile.classes?.length && nodeProfile.classes?.length) {
+    const sameClass = collectiveProfile.classes.some((item) => nodeProfile.classes.includes(item));
+    score += sameClass ? 12 : -8;
+    diagnostics.push({ label: sameClass ? "Clase/serie compatible" : "Clase/serie diferente", value: sameClass ? 12 : -8 });
+  }
+  if (collectiveProfile.norms?.some((item) => nodeProfile.norms.includes(item))) {
+    score += 8;
+    diagnostics.push({ label: "Norma compatible", value: 8 });
+  }
+  if (collectiveProfile.dimensions?.some((item) => nodeProfile.dimensions.includes(item))) {
+    score += 4;
+    diagnostics.push({ label: "Medida comparable", value: 4 });
+  }
+  if (sourceNodeId && node.id === nodeById()[sourceNodeId]?.parent) {
+    score -= 24;
+    diagnostics.push({ label: "Padre inmediato del origen", value: -24 });
+  }
 
   return {
     type: "existing",
@@ -5443,6 +5683,9 @@ function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, s
     score: Math.max(0, Math.round(score)),
     reasons,
     comparable,
+    diagnostics,
+    directComparableCount,
+    evidenceMode: corpus.evidenceMode,
     existing: true,
     destinationKind: !nodeMove
       ? ((assistantIndex?.directCounts?.get(node.id) || 0) > 0 ? "Nodo con productos" : "Nodo final")
@@ -5450,14 +5693,18 @@ function nodeCandidateScore(node, products, collectiveProfile, assistantIndex, s
   };
 }
 
-function assistantConfidence(score, comparableCount = 0) {
-  if (score >= 68 && comparableCount > 0) return "high";
-  if (score >= 40) return "medium";
-  return "low";
+function assistantConfidence(score, comparableCount = 0, margin = 0, directComparableCount = 0) {
+  let level = score >= 80 ? 2 : score >= 50 ? 1 : 0;
+  if (margin >= 30) level += 1;
+  else if (margin < 15) level -= 1;
+  if (directComparableCount >= 2) level += 1;
+  else if (!comparableCount) level -= 1;
+  return ["low", "medium", "high"][Math.max(0, Math.min(2, level))];
 }
 
 function suggestedNewNodeCandidate(products, profile, bestExisting, bestContainer = null) {
   if (bestExisting?.score >= 48) return null;
+  if (!profile.piece?.length || (!profile.material?.length && !profile.system?.length)) return null;
   const bestNode = bestExisting ? nodeById()[bestExisting.nodeId] : null;
   const containerNode = bestContainer ? nodeById()[bestContainer.nodeId] : null;
   const parent = containerNode?.level < 3
@@ -5475,6 +5722,8 @@ function suggestedNewNodeCandidate(products, profile, bestExisting, bestContaine
     score: Math.max(30, (bestExisting?.score || bestContainer?.score || 25) + 5),
     reasons: ["El mejor contenedor es un nodo agrupador; se propone crear dentro un nodo final para alojar productos."],
     comparable: [],
+    diagnostics: [{ label: "Necesidad de nodo final", value: Math.max(30, (bestExisting?.score || bestContainer?.score || 25) + 5) }],
+    directComparableCount: 0,
     existing: false,
     destinationKind: "Nuevo nodo final"
   };
@@ -5482,11 +5731,15 @@ function suggestedNewNodeCandidate(products, profile, bestExisting, bestContaine
 
 function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, assistantIndex = null) {
   const profile = mergeClassificationProfiles(products);
-  profile.tokens = classificationTokens(products.map((product) => product.name).join(" "));
+  profile.tokens = classificationTokens(products.map((product) => {
+    const attrs = Object.values(mergedProductAttributes(product, product.listIds || [])).join(" ");
+    return `${product.name} ${attrs}`;
+  }).join(" "));
   const nodeIndex = assistantIndex || buildAssistantNodeIndex();
   const candidates = activeNodes()
     .map((node) => nodeCandidateScore(node, products, profile, nodeIndex, sourceNodeId, nodeMove))
     .filter(Boolean)
+    .filter((candidate) => candidate.score >= 25 || candidate.comparable.length >= 2)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
   const bestContainer = !nodeMove
@@ -5498,33 +5751,23 @@ function analyzeAssistantGroup(products, sourceNodeId = null, nodeMove = false, 
     : null;
   const newCandidate = !nodeMove ? suggestedNewNodeCandidate(products, profile, candidates[0], bestContainer) : null;
   if (newCandidate) candidates.push(newCandidate);
-  while (candidates.length < 3) {
-    const sourceNode = sourceNodeId ? nodeById()[sourceNodeId] : null;
-    const fallback = activeNodes().find((node) =>
-      !candidates.some((candidate) => candidate.nodeId === node.id)
-      && !isUnclassifiedAssistantBranch(node)
-      && (!sourceNodeId || node.id !== sourceNodeId)
-      && (nodeMove || !productsAlreadyInNode(products, node.id))
-      && (!nodeMove || !sourceNodeId || !isDescendantOrSelf(node.id, sourceNodeId))
-      && (!nodeMove || (sourceNode && node.level === sourceNode.level - 1))
-      && (nodeMove || isFinalProductDestination(node, nodeIndex))
-    );
-    if (!fallback) break;
-    candidates.push({
-      type: "existing",
-      nodeId: fallback.id,
-      path: pathFor(fallback.id).map((item) => item.name).join(" / "),
-      score: 10,
-      reasons: ["Alternativa estructural disponible; requiere revision manual."],
-      comparable: productsUnderNode(fallback.id).slice(0, 3),
-      existing: true,
-      destinationKind: nodeMove
-        ? "Contenedor estructural"
-        : ((nodeIndex.directCounts?.get(fallback.id) || 0) > 0 ? "Nodo con productos" : "Nodo final")
-    });
+  candidates.sort((a, b) => b.score - a.score);
+  if (candidates[0]?.score >= 80) {
+    for (let index = candidates.length - 1; index >= 1; index -= 1) {
+      if (candidates[index].score < 50 && (candidates[0].score - candidates[index].score) >= 30) {
+        candidates.splice(index, 1);
+      }
+    }
   }
-  candidates.forEach((candidate) => {
-    candidate.confidence = assistantConfidence(candidate.score, candidate.comparable.length);
+  candidates.forEach((candidate, index) => {
+    const nextScore = candidates[index + 1]?.score ?? 0;
+    candidate.margin = Math.max(0, candidate.score - nextScore);
+    candidate.confidence = assistantConfidence(
+      candidate.score,
+      candidate.comparable.length,
+      candidate.margin,
+      candidate.directComparableCount || 0
+    );
   });
   return { products, profile, candidates: candidates.slice(0, 3) };
 }
@@ -5561,6 +5804,9 @@ function profileSummary(profile) {
   if (profile.piece?.length) parts.push(`pieza: ${profile.piece.join(", ")}`);
   if (profile.connection?.length) parts.push(`conexion: ${profile.connection.join(", ")}`);
   if (profile.system?.length) parts.push(`sistema: ${profile.system.join(", ")}`);
+  if (profile.classes?.length) parts.push(`clase: ${profile.classes.join(", ")}`);
+  if (profile.norms?.length) parts.push(`norma: ${profile.norms.join(", ")}`);
+  if (profile.dimensions?.length) parts.push(`medida: ${profile.dimensions.slice(0, 4).join(", ")}`);
   return parts.length ? parts.join(" · ") : "descripcion ambigua; se priorizo similitud con el catalogo actual";
 }
 
@@ -5611,6 +5857,16 @@ function candidateCardHtml(candidate, analysisIndex, candidateIndex, nodeMode = 
     ? candidate.comparable.map((product) => `<li><strong>${escapeHtml(product.id)}</strong> ${escapeHtml(product.name)}</li>`).join("")
     : "<li>Sin productos comparables directos.</li>";
   const reasons = candidate.reasons.length ? candidate.reasons.join("; ") : "Coincidencia general con el contenido y la ruta.";
+  const evidenceLabel = candidate.evidenceMode === "direct"
+    ? "Productos directos del nodo"
+    : candidate.evidenceMode === "mixed"
+      ? "Productos directos y contexto de rama"
+      : candidate.evidenceMode === "branch"
+        ? "Contexto de la rama; revisar con mayor cuidado"
+        : "Estructura del árbol";
+  const diagnostics = (candidate.diagnostics || [])
+    .map((item) => `<li><span>${escapeHtml(item.label)}</span><strong class="${item.value < 0 ? "negative" : ""}">${item.value > 0 ? "+" : ""}${item.value}</strong></li>`)
+    .join("");
   return `
     <article class="assistant-candidate confidence-${candidate.confidence}">
       <div class="assistant-candidate-head">
@@ -5621,10 +5877,18 @@ function candidateCardHtml(candidate, analysisIndex, candidateIndex, nodeMode = 
         <span class="confidence-pill ${candidate.confidence}">${confidenceLabel(candidate.confidence)}</span>
       </div>
       <p>${escapeHtml(reasons)}</p>
+      <div class="assistant-evidence">
+        <span>${escapeHtml(evidenceLabel)}</span>
+        <strong>${candidate.score} puntos${candidate.margin ? ` · ventaja ${candidate.margin}` : ""}</strong>
+      </div>
       <div class="assistant-comparables">
         <strong>Productos de referencia</strong>
         <ul>${samples}</ul>
       </div>
+      <details class="assistant-diagnostics">
+        <summary>Cómo se calculó</summary>
+        <ul>${diagnostics || "<li><span>Evaluación estructural</span><strong>—</strong></li>"}</ul>
+      </details>
       <div class="assistant-actions">
         ${candidate.existing ? `<button class="ghost-btn" data-assistant-view="${analysisIndex}:${candidateIndex}">Ver contenido</button>` : ""}
         <button class="primary-btn" data-assistant-move="${analysisIndex}:${candidateIndex}">${candidate.existing ? (nodeMode ? "Mover nodo aqui" : "Mover seleccion aqui") : "Crear nodo y mover"}</button>
@@ -5652,7 +5916,12 @@ function assistantProposalHtml() {
         </div>
       </div>
       <div class="assistant-candidates">
-        ${analysis.candidates.map((candidate, candidateIndex) => candidateCardHtml(candidate, analysisIndex, candidateIndex, classificationAssistant.allowWholeNodeMove)).join("")}
+        ${analysis.candidates.length
+          ? analysis.candidates.map((candidate, candidateIndex) => candidateCardHtml(candidate, analysisIndex, candidateIndex, classificationAssistant.allowWholeNodeMove)).join("")
+          : `<div class="assistant-no-candidates">
+              <strong>No hay un destino local suficientemente respaldado.</strong>
+              <span>Revisa manualmente la jerarquía, crea un nodo final o consulta IA externa cuando esté habilitada.</span>
+            </div>`}
       </div>
     </section>
   `).join("");
